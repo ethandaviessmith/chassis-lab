@@ -3,9 +3,10 @@ class_name BuildView
 
 signal combat_requested()
 
-# References to managers
-var game_manager
-var deck_manager
+# References to managers - set these in the editor
+@export var game_manager: GameManager
+@export var deck_manager: DeckManager
+@export var turn_manager: TurnManager
 
 # UI elements
 @export var energy_label: Label
@@ -40,13 +41,16 @@ func _ready():
     
     # Log about drag-drop controls
     _log_drag_drop_components()
-    
+
     # Get manager references
-    game_manager = get_node("/root/GameManager")
-    Log.pr("[BuildView] GameManager: ", "Found" if game_manager else "Not Found")
+    Log.pr("[BuildView] GameManager: ", "Set" if game_manager else "Not set")
+    Log.pr("[BuildView] DeckManager: ", "Set" if deck_manager else "Not set")
+    Log.pr("[BuildView] TurnManager: ", "Set" if turn_manager else "Not set")
     
-    deck_manager = get_node("/root/DeckManager") if has_node("/root/DeckManager") else null
-    Log.pr("[BuildView] DeckManager: ", "Found" if deck_manager else "Not Found")
+    # Connect TurnManager to energy label if both exist
+    if turn_manager and energy_label:
+        turn_manager.set_energy_label(energy_label)
+        turn_manager.energy_changed.connect(_on_energy_changed)
     
     # Setup UI elements and slots
     setup_ui()
@@ -133,11 +137,17 @@ func setup_ui():
 
 # Initialize the build phase
 func start_build_phase():
+    # Initialize turn manager for energy
+    if turn_manager:
+        turn_manager.initialize()
+        Log.pr("[BuildView] TurnManager initialized")
+    
     # Draw initial hand
     if deck_manager:
         draw_starting_hand()
     else:
         # Fallback if DeckManager not available - create test cards
+        Log.pr("[BuildView] No DeckManager, using test cards")
         create_test_cards()
     
     # Update UI
@@ -155,8 +165,26 @@ func draw_starting_hand():
     
     # Draw new cards
     var hand = deck_manager.draw_hand()
+    Log.pr("[BuildView] Drawn hand size: ", hand.size())
+    
+    # If hand is empty, try to reload the deck
+    if hand.size() == 0:
+        Log.pr("[BuildView] Hand is empty, trying to reload deck...")
+        if deck_manager.has_method("reload_deck"):
+            deck_manager.reload_deck()
+            hand = deck_manager.draw_hand()
+            Log.pr("[BuildView] After reload, hand size: ", hand.size())
+    
+    # If still empty, fall back to test cards
+    if hand.size() == 0:
+        Log.pr("[BuildView] Still no cards, using fallback test cards")
+        create_test_cards()
+        return
+    
+    # Create card sprites for each card in hand
     for i in range(hand.size()):
         create_card_sprite(hand[i], i)
+    Log.pr("[BuildView] Created ", hand.size(), " card sprites")
 
 # Create test cards when no DeckManager available
 func create_test_cards():
@@ -226,6 +254,10 @@ func create_card_sprite(card_data, index):
         # Initialize the card data
         if card.has_method("initialize"):
             card.initialize(prepared_data)
+            
+            # Set initial card state to hand
+            if card.has_method("set_card_state"):
+                card.set_card_state(Card.State.HAND)
         else:
             print("ERROR: Card scene is missing initialize method!")
     else:
@@ -303,12 +335,20 @@ func draw_chassis_slots():
 
 # Update UI elements
 func update_ui():
-    if deck_manager:
-        energy_label.text = "Energy: " + str(deck_manager.current_energy) + "/" + str(deck_manager.max_energy)
-        heat_label.text = "Heat: " + str(deck_manager.current_heat) + "/" + str(deck_manager.max_heat)
+    if turn_manager:
+        # TurnManager now handles energy display directly via energy_label
+        if heat_label:
+            heat_label.text = "Heat: 0/10"  # Placeholder for now
     else:
-        energy_label.text = "Energy: 10/10"
-        heat_label.text = "Heat: 0/10"
+        if energy_label:
+            energy_label.text = "Energy: 4/4"
+        if heat_label:
+            heat_label.text = "Heat: 0/10"
+
+# Handle energy changes from TurnManager
+func _on_energy_changed(current: int, maximum: int):
+    # TurnManager updates the label directly, but we can do additional UI updates here
+    Log.pr("[BuildView] Energy changed: " + str(current) + "/" + str(maximum))
 
 # Handle button press to end the build phase
 func _on_end_phase_button_pressed():
@@ -577,8 +617,11 @@ func _handle_card_drop(card, drop_pos, target = null):
             
             # Reset card properties for hand
             card.modulate = Color(1, 1, 1, 1)  # Reset transparency
-            card.scale = Vector2(1.0, 1.0)  # Reset scale
             card.mouse_filter = Control.MOUSE_FILTER_STOP
+            
+            # Set card state to hand (this will handle scaling automatically)
+            if card.has_method("set_card_state"):
+                card.set_card_state(Card.State.HAND)
         
         # Make sure the card is properly tracked in hand
         if card is Card and not cards_in_hand.has(card):
@@ -614,16 +657,43 @@ func _attach_part_to_slot(card, slot_name):
             valid_slot = (slot_name == "core")
         "Arm":
             valid_slot = (slot_name == "arm_left" or slot_name == "arm_right")
-        "Legs":
+        "Leg", "Legs":
             valid_slot = (slot_name == "legs")
     
     if valid_slot:
-        # Check if this card is already attached somewhere else and needs to be moved
+        var card_cost = card_data.get("cost", 0)
         var card_current_slot = ""
+        
+        # Check if this card is already attached somewhere else
         for existing_slot in attached_parts:
             if attached_parts[existing_slot] == card:
                 card_current_slot = existing_slot
                 break
+        
+        # Handle energy for card replacement/swapping
+        var previous_card_cost = 0
+        var existing_card_in_slot = null
+        if attached_parts.has(slot_name) and is_instance_valid(attached_parts[slot_name]) and attached_parts[slot_name] != card:
+            existing_card_in_slot = attached_parts[slot_name]
+            if existing_card_in_slot is Card:
+                previous_card_cost = existing_card_in_slot.data.get("cost", 0)
+        
+        # Calculate net energy change
+        var energy_change = 0
+        
+        # For moves between slots (not new attachments), no energy cost
+        if card_current_slot != "":
+            energy_change = 0
+            print("Moving card between slots - no energy change")
+        else:
+            # Calculate net energy requirement: cost of new card minus refund from old card
+            energy_change = card_cost - previous_card_cost
+            
+            # Check if we have enough energy for the net cost
+            if energy_change > 0 and turn_manager:
+                if turn_manager.current_energy < energy_change:
+                    print("Not enough energy to attach ", card_data.name, "! Need: ", energy_change, " net energy (", card_cost, " cost - ", previous_card_cost, " refund), Have: ", turn_manager.current_energy)
+                    return false
         
         # If the card is moving from one slot to another, clean up the old slot first
         if card_current_slot != "" and card_current_slot != slot_name:
@@ -670,7 +740,10 @@ func _attach_part_to_slot(card, slot_name):
                     # Reset card properties for hand
                     previous_card.mouse_filter = Control.MOUSE_FILTER_STOP
                     previous_card.modulate = Color(1, 1, 1, 1)  # Reset transparency
-                    previous_card.scale = Vector2(1.0, 1.0)  # Reset scale
+                    
+                    # Set card state to hand (this will handle scaling automatically)
+                    if previous_card.has_method("set_card_state"):
+                        previous_card.set_card_state(Card.State.HAND)
                     
                     # Remove chassis attachment flag
                     if previous_card.has_meta("attached_to_chassis"):
@@ -726,8 +799,9 @@ func _attach_part_to_slot(card, slot_name):
                 if card.has_method("set_highlight"):
                     card.set_highlight(false)
                 
-                # Reset scale to normal
-                card.scale = Vector2(1.0, 1.0)
+                # Set card state to chassis slot (this will handle scaling automatically)
+                if card.has_method("set_card_state"):
+                    card.set_card_state(Card.State.CHASSIS_SLOT)
                 
                 # Keep the card interactive for dragging
                 card.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -753,12 +827,39 @@ func _attach_part_to_slot(card, slot_name):
         # Store as attached part
         attached_parts[slot_name] = card
         
+        # Apply net energy change for new attachments or swaps (not moves between slots)
+        if card_current_slot == "" and turn_manager:
+            if energy_change > 0:
+                # Need to spend energy
+                if not turn_manager.spend_energy(energy_change):
+                    # This shouldn't happen since we checked above, but safety first
+                    print("Failed to spend energy for card attachment!")
+                    return false
+            elif energy_change < 0:
+                # Gain energy (cheaper replacement)
+                turn_manager.gain_energy(-energy_change)
+            # If energy_change == 0, no energy transaction needed
+        
         # If using a HandContainer, tell it to reposition remaining cards
         if hand_container and hand_container.has_method("_reposition_cards"):
             hand_container._reposition_cards()
         
         # Apply part effects (would call to Robot/GameManager in full implementation)
-        print("Attached " + card_data.name + " to " + slot_name)
+        var energy_message = ""
+        if card_current_slot == "":
+            if previous_card_cost > 0:
+                if energy_change > 0:
+                    energy_message = " (swapped for net " + str(energy_change) + " energy)"
+                elif energy_change < 0:
+                    energy_message = " (swapped, gained " + str(-energy_change) + " energy)"
+                else:
+                    energy_message = " (swapped, no energy change)"
+            else:
+                energy_message = " for " + str(card_cost) + " energy"
+        else:
+            energy_message = " (moved)"
+        
+        print("Attached " + card_data.name + " to " + slot_name + energy_message)
         return true
     else:
         # Not a valid slot - return to original position
@@ -779,7 +880,10 @@ func _attach_part_to_slot(card, slot_name):
         
         # Reset card properties
         card.modulate = Color(1, 1, 1, 1)
-        card.scale = Vector2(1.0, 1.0)
+        
+        # Set card state to hand (this will handle scaling automatically)
+        if card.has_method("set_card_state"):
+            card.set_card_state(Card.State.HAND)
         
         # Make sure it's tracked in hand
         if not cards_in_hand.has(card):

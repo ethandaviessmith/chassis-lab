@@ -11,9 +11,13 @@ config_version=5
 [application]
 
 config/name="Chassis Lab"
-run/main_scene="uid://bxujf7uclkw2q"
+run/main_scene="uid://brqbdkycilxbm"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
+
+[display]
+
+window/stretch/mode="viewport"
 
 [rendering]
 

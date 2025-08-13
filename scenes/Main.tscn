@@ -15,7 +15,7 @@
 script = ExtResource("1_nxtc6")
 game_manager = NodePath("Managers/GameManager")
 
-[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("energy_label", "heat_label", "end_phase_button", "hand_container", "head_slot", "core_slot", "arm_left_slot", "arm_right_slot", "legs_slot")]
+[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("game_manager", "deck_manager", "turn_manager", "energy_label", "heat_label", "end_phase_button", "hand_container", "head_slot", "core_slot", "arm_left_slot", "arm_right_slot", "legs_slot")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,6 +23,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_jlsqs")
+game_manager = NodePath("../Managers/GameManager")
+deck_manager = NodePath("../Managers/DeckManager")
+turn_manager = NodePath("../Managers/TurnManager")
 energy_label = NodePath("EnergyLabel")
 heat_label = NodePath("HeatLabel")
 end_phase_button = NodePath("StartCombatButton")
@@ -97,11 +100,10 @@ layout_mode = 2
 anchors_preset = 0
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -50.0
+offset_left = -49.0
 offset_top = 12.0
-offset_right = 50.0
+offset_right = 51.0
 offset_bottom = 112.0
-grow_horizontal = 2
 script = ExtResource("5_eba30")
 normal_color = Color(0.2, 0.6, 1, 0.25098)
 
@@ -112,9 +114,9 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -20.0
+offset_left = -22.0
 offset_top = -13.0
-offset_right = 20.0
+offset_right = 22.0
 offset_bottom = 13.0
 grow_horizontal = 2
 grow_vertical = 2
@@ -284,8 +286,10 @@ text = "Heat: 0/10"
 script = ExtResource("1_ebyi6")
 metadata/_custom_type_script = "uid://db0n6tl4t48du"
 
-[node name="DeckManager" type="Node" parent="Managers"]
+[node name="DeckManager" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "turn_manager")]
 script = ExtResource("3_c01mt")
+data_loader = NodePath("../../Utils/DataLoader")
+turn_manager = NodePath("../TurnManager")
 metadata/_custom_type_script = "uid://c4ap0o0bfb38"
 
 [node name="TurnManager" type="Node" parent="Managers"]

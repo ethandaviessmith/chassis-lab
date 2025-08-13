@@ -7,15 +7,20 @@ signal drop_attempted(card, drop_position, target)
 var data: Dictionary = {}
 var target_position = Vector2.ZERO
 
+# Card state - affects scaling behavior
+enum State { HAND, CHASSIS_SLOT, DRAGGING }
+var state: State = State.HAND
+
 # References to UI elements
 @onready var name_label = $NameLabel
 @onready var type_label = $TypeLabel
-@onready var cost_label = $StatsContainer/CostLabel
+@onready var cost_label = $CostLabel
 @onready var heat_label = $StatsContainer/HeatLabel
 @onready var durability_label = $StatsContainer/DurabilityLabel
 @onready var effects_label = $EffectsLabel
 @onready var image = $Image
 @onready var background = $Background
+@onready var background2 = $Background2
 @onready var highlight = $Highlight
 @onready var drag_drop = $DragDrop
 
@@ -39,18 +44,44 @@ func _ready():
         if child is Control and not child is DragDrop:
             child.mouse_filter = Control.MOUSE_FILTER_PASS
 
+# Centralized scale management that respects card state
+func set_card_scale(scale_factor: float, scale_type: String = "normal"):
+    var base_scale = Vector2(1.0, 1.0)
+    
+    # Adjust base scale based on card state
+    match state:
+        State.HAND:
+            base_scale = Vector2(1.0, 1.0)
+        State.CHASSIS_SLOT:
+            base_scale = Vector2(0.5, 0.5)  # Smaller when in chassis
+        State.DRAGGING:
+            base_scale = Vector2(1.0, 1.0)  # Normal size when dragging
+    
+    # Apply the scale factor to the base scale
+    var final_scale = base_scale * scale_factor
+    scale = final_scale
+    
+    print("Card ", data.get("name", "Unknown"), " scale set to ", final_scale, " (state: ", State.keys()[state], ", factor: ", scale_factor, ", type: ", scale_type, ")")
+
+# Set the card's state and update scale accordingly
+func set_card_state(new_state: State):
+    if state != new_state:
+        print("Card ", data.get("name", "Unknown"), " state changed from ", State.keys()[state], " to ", State.keys()[new_state])
+        state = new_state
+        set_card_scale(1.0, "state_change")
+
 # Handle mouse hover
 func _on_mouse_entered():
     # Apply hover effect (slight scale up or highlight)
     if not drag_drop or not drag_drop.is_currently_dragging():
-        scale = Vector2(1.05, 1.05)
+        set_card_scale(1.05, "hover")
         z_index = 1  # Bring card to front
 
 # Handle mouse exit
 func _on_mouse_exited():
     # Remove hover effect if not being dragged
     if not drag_drop or not drag_drop.is_currently_dragging():
-        scale = Vector2(1.0, 1.0)
+        set_card_scale(1.0, "unhover")
         z_index = 0  # Reset z-index
 
 func initialize(card_data: Dictionary):
@@ -59,9 +90,9 @@ func initialize(card_data: Dictionary):
     # Set up UI elements
     name_label.text = data.name
     type_label.text = data.type
-    cost_label.text = str(data.cost)
-    heat_label.text = str(data.heat)
-    durability_label.text = str(data.durability)
+    cost_label.text = str(int(data.cost))
+    heat_label.text = str(int(data.heat))
+    durability_label.text = str(int(data.durability))
     
     # Format effects
     var effects_text = ""
@@ -91,6 +122,7 @@ func initialize(card_data: Dictionary):
             bg_color = Color(0.6, 0.2, 0.6)
     
     background.modulate = bg_color
+    background2.modulate = bg_color
 
 func _process(delta):
     # If not being dragged and not attached to chassis, animate toward target position if set
@@ -112,13 +144,14 @@ func _process(delta):
 # DragDrop event handlers
 func _on_drag_started(_draggable):
     # Card is being dragged, emit signal to notify listeners
+    set_card_state(State.DRAGGING)
     z_index = 100
-    scale = Vector2(1.05, 1.05)
+    set_card_scale(1.05, "drag_start")
 
 func _on_drag_ended(_draggable):
-    # Card drag has ended
+    # Card drag has ended - state will be set by BuildView when dropped
     z_index = 0
-    scale = Vector2(1.0, 1.0)
+    set_card_scale(1.0, "drag_end")
     
     # Remove all highlights
     set_highlight(false)
@@ -184,11 +217,11 @@ func set_highlight(enabled: bool, is_compatible: bool = true):
             # Store reference to the tween on the highlight node
             highlight.set_meta("active_tween", tween)
             
-            # Add a slight scale effect
-            scale = Vector2(1.05, 1.05)
+            # Add a slight scale effect using centralized system
+            set_card_scale(1.05, "highlight")
         else:
             highlight.modulate = Color(1.0, 0.3, 0.3)  # Red highlight for incompatible slots
-            scale = Vector2(1.0, 1.0)
+            set_card_scale(1.0, "highlight_invalid")
     else:
         # Stop any running tweens that might be affecting our highlight
         # In Godot 4.4, we need to track our tweens manually instead of using get_tweens()

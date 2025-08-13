@@ -18,6 +18,7 @@ var current_part = null
 var background: ColorRect
 var label: Label
 
+
 func _ready():
     # Look for existing Label in children
     for child in get_children():

@@ -39,15 +39,15 @@ func load_starting_deck() -> Array:
 		"Head": 0,
 		"Core": 0,
 		"Arm": 0,
-		"Leg": 0,
+		"Leg": 0,  # Note: cards.json uses "Leg" not "Legs"
 		"Utility": 0
 	}
 	
 	# Add a balanced starter deck
 	for card in all_cards:
-		if card.rarity == "Common" and type_counts[card.type] < 2:
+		if card.rarity == "Common" and type_counts.get(card.type, 0) < 2:
 			starter_deck.append(card)
-			type_counts[card.type] += 1
+			type_counts[card.type] = type_counts.get(card.type, 0) + 1
 	
 	return starter_deck
 
