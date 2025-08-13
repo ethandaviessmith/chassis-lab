@@ -51,6 +51,37 @@ func load_starting_deck() -> Array:
 	
 	return starter_deck
 
+func load_all_enemies() -> Array:
+	var enemies = []
+	
+	# Load enemies from JSON file
+	var file = FileAccess.open(ENEMIES_PATH, FileAccess.READ)
+	if file:
+		var json_text = file.get_as_text()
+		file.close()
+		
+		var json = JSON.new()
+		var parse_result = json.parse(json_text)
+		if parse_result == OK:
+			var data = json.get_data()
+			enemies = data
+	else:
+		push_error("Failed to open enemies file: " + ENEMIES_PATH)
+		# Fallback to minimal data
+		enemies = _get_fallback_enemies()
+	
+	return enemies
+
+# Public getter methods for GameManager
+func get_all_cards() -> Array:
+	return load_all_cards()
+
+func get_all_enemies() -> Array:
+	return load_all_enemies()
+
+func get_starting_deck() -> Array:
+	return load_starting_deck()
+
 func load_enemy_data() -> Array:
 	var enemies = []
 	
@@ -176,24 +207,37 @@ func _get_fallback_cards() -> Array:
 func _get_fallback_enemies() -> Array:
 	return [
 		{
+			"id": "basic_drone",
+			"name": "Basic Drone",
+			"hp": 6,
+			"armor": 0,
+			"damage": 1,
+			"attack_speed": 1.0,
+			"move_speed": 80,
+			"behavior": "default",
+			"is_boss": false
+		},
+		{
 			"id": "scavenger_drone",
 			"name": "Scavenger Drone",
 			"hp": 8,
 			"armor": 0,
-			"damage": 1,
+			"damage": 2,
 			"attack_speed": 2.0,
 			"move_speed": 120,
-			"behavior": "aggressive"
+			"behavior": "aggressive",
+			"is_boss": false
 		},
 		{
-			"id": "guardian_sentry",
+			"id": "guardian_sentry", 
 			"name": "Guardian Sentry",
 			"hp": 15,
 			"armor": 5,
 			"damage": 3,
 			"attack_speed": 0.8,
 			"move_speed": 50,
-			"behavior": "defensive"
+			"behavior": "defensive",
+			"is_boss": false
 		},
 		{
 			"id": "striker_unit",
@@ -203,8 +247,10 @@ func _get_fallback_enemies() -> Array:
 			"damage": 2,
 			"attack_speed": 1.5,
 			"move_speed": 100,
-			"behavior": "flanking"
-		}
+			"behavior": "flanking",
+			"is_boss": false
+		},
+		_get_fallback_boss()
 	]
 
 func _get_fallback_boss() -> Dictionary:

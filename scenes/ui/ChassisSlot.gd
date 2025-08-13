@@ -74,6 +74,10 @@ func is_compatible_with_card(card_data) -> bool:
             return card_data.type == "Arm"
         "Legs":
             return card_data.type == "Legs"
+        "Scrapper":
+            return card_data.type == "Scrapper"
+        "Utility":
+            return card_data.type == "Utility"
         _:
             return false
 

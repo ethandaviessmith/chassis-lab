@@ -21,8 +21,9 @@ var player_robot = null
 var current_enemy = null
 
 # References
-@onready var data_loader = $"../../Utils/DataLoader"
+@export var data_loader: DataLoader
 @onready var combat_view = $"../../CombatView"
+@export var robot_fighter: RobotFighter
 
 func _ready():
     pass

@@ -1,0 +1,71 @@
+[gd_scene load_steps=3 format=3 uid="uid://d2mi7h8d8goxg"]
+
+[ext_resource type="Script" uid="uid://c32ryr41jfb2f" path="res://scenes/entities/RobotFighter.gd" id="1_hl37x"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(48, 48)
+
+[node name="RobotFighter" type="CharacterBody2D"]
+motion_mode = 1
+script = ExtResource("1_hl37x")
+metadata/_custom_type_script = "uid://c32ryr41jfb2f"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_1")
+
+[node name="CombatSprite" type="Label" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -24.0
+offset_top = -24.0
+offset_right = 24.0
+offset_bottom = 24.0
+text = "🤖"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -30.0
+offset_top = -40.0
+offset_right = 30.0
+offset_bottom = -30.0
+value = 100.0
+show_percentage = false
+
+[node name="HeatBar" type="ProgressBar" parent="."]
+modulate = Color(1, 0.8, 0, 1)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -30.0
+offset_top = -28.0
+offset_right = 30.0
+offset_bottom = -18.0
+show_percentage = false
+
+[node name="AttackIndicator" type="Label" parent="."]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 30.0
+offset_top = -15.0
+offset_right = 50.0
+offset_bottom = 5.0
+text = "🗡️"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

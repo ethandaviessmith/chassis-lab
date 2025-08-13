@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://brqbdkycilxbm"]
+[gd_scene load_steps=17 format=3 uid="uid://brqbdkycilxbm"]
 
 [ext_resource type="Script" uid="uid://db0n6tl4t48du" path="res://scripts/managers/GameManager.gd" id="1_ebyi6"]
 [ext_resource type="Script" uid="uid://c7w4x7sp1qi1s" path="res://game.gd" id="1_nxtc6"]
@@ -7,15 +7,23 @@
 [ext_resource type="Script" uid="uid://c4ap0o0bfb38" path="res://scripts/managers/DeckManager.gd" id="3_c01mt"]
 [ext_resource type="Script" uid="uid://td5q8x8qdwtt" path="res://scripts/managers/TurnManager.gd" id="4_nxtc6"]
 [ext_resource type="Script" uid="uid://1x2salsfhh3r" path="res://scenes/ui/HandContainer.gd" id="4_q8u5g"]
+[ext_resource type="Script" uid="uid://cesmin8sfofsx" path="res://scenes/entities/RobotFrame.gd" id="5_bjd11"]
 [ext_resource type="Script" uid="uid://bhxuylddcuvp" path="res://scenes/ui/ChassisSlot.gd" id="5_eba30"]
 [ext_resource type="Script" uid="uid://w2gk6u6vkang" path="res://scripts/managers/CombatResolver.gd" id="5_jlsqs"]
+[ext_resource type="Texture2D" uid="uid://bcnbtl6x5xv0n" path="res://assets/frame.png" id="5_wp0k4"]
 [ext_resource type="Script" uid="uid://bsqyfsrcw1o5c" path="res://scripts/utils/DataLoader.gd" id="6_q8u5g"]
+[ext_resource type="PackedScene" uid="uid://d2mi7h8d8goxg" path="res://scenes/entities/RobotFighter.tscn" id="9_3p2gp"]
+[ext_resource type="Script" uid="uid://cobesjmoxsp8l" path="res://scenes/CombatView.gd" id="13_mwfav"]
+[ext_resource type="Script" uid="uid://601a3qp8pcc1" path="res://scenes/RewardScreen.gd" id="15_3p2gp"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wp0k4"]
+size = Vector2(740, 216)
 
 [node name="Main" type="Node" node_paths=PackedStringArray("game_manager")]
 script = ExtResource("1_nxtc6")
 game_manager = NodePath("Managers/GameManager")
 
-[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("game_manager", "deck_manager", "turn_manager", "energy_label", "heat_label", "end_phase_button", "hand_container", "head_slot", "core_slot", "arm_left_slot", "arm_right_slot", "legs_slot")]
+[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("game_manager", "deck_manager", "turn_manager", "energy_label", "heat_label", "end_phase_button", "hand_container", "head_slot", "core_slot", "arm_left_slot", "arm_right_slot", "legs_slot", "scrapper_slot", "utility_slot")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -35,6 +43,8 @@ core_slot = NodePath("ChassisContainer/CoreSlot")
 arm_left_slot = NodePath("ChassisContainer/LeftArmSlot")
 arm_right_slot = NodePath("ChassisContainer/RightArmSlot")
 legs_slot = NodePath("ChassisContainer/LegsSlot")
+scrapper_slot = NodePath("ChassisContainer/ScrapperSlot")
+utility_slot = NodePath("ChassisContainer/UtilitySlot")
 card_scene = ExtResource("2_58qjv")
 
 [node name="Background" type="ColorRect" parent="BuildView"]
@@ -73,6 +83,12 @@ grow_horizontal = 2
 grow_vertical = 0
 script = ExtResource("4_q8u5g")
 
+[node name="Area2D" type="Area2D" parent="BuildView/HandContainer"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BuildView/HandContainer/Area2D"]
+position = Vector2(440, 143)
+shape = SubResource("RectangleShape2D_wp0k4")
+
 [node name="ChassisContainer" type="Control" parent="BuildView"]
 layout_mode = 1
 anchors_preset = 8
@@ -86,6 +102,16 @@ offset_right = 162.0
 offset_bottom = 87.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="RobotFrame" type="Node2D" parent="BuildView/ChassisContainer"]
+script = ExtResource("5_bjd11")
+
+[node name="Frame" type="Sprite2D" parent="BuildView/ChassisContainer/RobotFrame"]
+position = Vector2(158, 183)
+scale = Vector2(1.3, 1.3)
+texture = ExtResource("5_wp0k4")
+
+[node name="HeadSprite" type="Sprite2D" parent="BuildView/ChassisContainer/RobotFrame"]
 
 [node name="Background" type="ColorRect" parent="BuildView/ChassisContainer"]
 layout_mode = 2
@@ -250,6 +276,72 @@ grow_horizontal = 2
 grow_vertical = 2
 text = "LEGS"
 
+[node name="ScrapperSlot" type="Control" parent="BuildView/ChassisContainer"]
+layout_mode = 2
+anchors_preset = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -261.0
+offset_top = 50.5
+offset_right = -161.0
+offset_bottom = 150.5
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("5_eba30")
+slot_type = "Legs"
+normal_color = Color(0.8, 0.3884, 0.296, 0.25098)
+highlight_color = Color(0.9, 0.198, 0.2682, 0.501961)
+invalid_color = Color(0.2, 0.48, 0.8, 0.301961)
+
+[node name="SlotLabel" type="Label" parent="BuildView/ChassisContainer/ScrapperSlot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -13.0
+offset_right = 20.0
+offset_bottom = 13.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "SCRAPPER"
+
+[node name="UtilitySlot" type="Control" parent="BuildView/ChassisContainer"]
+layout_mode = 2
+anchors_preset = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 51.0
+offset_top = 50.5
+offset_right = 151.0
+offset_bottom = 150.5
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("5_eba30")
+slot_type = "Legs"
+normal_color = Color(0.4052, 0.296, 0.8, 0.25098)
+
+[node name="SlotLabel" type="Label" parent="BuildView/ChassisContainer/UtilitySlot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -13.0
+offset_right = 20.0
+offset_bottom = 13.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Util"
+
 [node name="StartCombatButton" type="Button" parent="BuildView"]
 layout_mode = 1
 anchors_preset = 1
@@ -278,12 +370,39 @@ offset_right = 120.0
 offset_bottom = 76.0
 text = "Heat: 0/10"
 
+[node name="CombatView" type="Node2D" parent="." node_paths=PackedStringArray("player_spawn_point", "enemy_spawn_point", "combat_ui", "start_combat_button")]
+script = ExtResource("13_mwfav")
+player_spawn_point = NodePath("Spawn")
+enemy_spawn_point = NodePath("Spawn2")
+combat_ui = NodePath("CombatUI")
+start_combat_button = NodePath("../BuildView/StartCombatButton")
+
+[node name="RobotFighter" parent="CombatView" instance=ExtResource("9_3p2gp")]
+
+[node name="Spawn" type="Marker2D" parent="CombatView"]
+position = Vector2(333, 298)
+
+[node name="Spawn2" type="Marker2D" parent="CombatView"]
+position = Vector2(806, 296)
+
+[node name="CombatUI" type="Control" parent="CombatView"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="Managers" type="Node" parent="."]
 
-[node name="GameManager" type="Node" parent="Managers"]
+[node name="GameManager" type="Node" parent="Managers" node_paths=PackedStringArray("deck_manager", "turn_manager", "build_view", "combat_view", "reward_screen", "data_loader")]
 script = ExtResource("1_ebyi6")
+deck_manager = NodePath("../DeckManager")
+turn_manager = NodePath("../TurnManager")
+build_view = NodePath("../../BuildView")
+combat_view = NodePath("../../CombatView")
+reward_screen = NodePath("../../RewardScreen")
+data_loader = NodePath("../../Utils/DataLoader")
 metadata/_custom_type_script = "uid://db0n6tl4t48du"
 
 [node name="DeckManager" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "turn_manager")]
@@ -292,12 +411,16 @@ data_loader = NodePath("../../Utils/DataLoader")
 turn_manager = NodePath("../TurnManager")
 metadata/_custom_type_script = "uid://c4ap0o0bfb38"
 
-[node name="TurnManager" type="Node" parent="Managers"]
+[node name="TurnManager" type="Node" parent="Managers" node_paths=PackedStringArray("robot_frame", "robot_fighter")]
 script = ExtResource("4_nxtc6")
+robot_frame = NodePath("../../BuildView/ChassisContainer/RobotFrame")
+robot_fighter = NodePath("../../CombatView/RobotFighter")
 metadata/_custom_type_script = "uid://td5q8x8qdwtt"
 
-[node name="CombatResolver" type="Node" parent="Managers"]
+[node name="CombatResolver" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "robot_fighter")]
 script = ExtResource("5_jlsqs")
+data_loader = NodePath("../../Utils/DataLoader")
+robot_fighter = NodePath("../../CombatView/RobotFighter")
 metadata/_custom_type_script = "uid://w2gk6u6vkang"
 
 [node name="Utils" type="Node" parent="."]
@@ -306,10 +429,55 @@ metadata/_custom_type_script = "uid://w2gk6u6vkang"
 script = ExtResource("6_q8u5g")
 metadata/_custom_type_script = "uid://bsqyfsrcw1o5c"
 
-[node name="CombatView" type="Node2D" parent="."]
-
-[node name="RewardScreen" type="Control" parent="."]
+[node name="RewardScreen" type="Control" parent="." node_paths=PackedStringArray("reward_title", "reward_container", "continue_button")]
+visible = false
 layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -304.0
+offset_top = -256.0
+offset_right = 304.0
+offset_bottom = 256.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("15_3p2gp")
+reward_title = NodePath("VBoxContainer/Label")
+reward_container = NodePath("VBoxContainer/HBoxContainer")
+continue_button = NodePath("VBoxContainer/Button")
+metadata/_custom_type_script = "uid://601a3qp8pcc1"
+
+[node name="Panel" type="Panel" parent="RewardScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="RewardScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -39.5
+offset_top = -31.0
+offset_right = 39.5
+offset_bottom = 31.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="RewardScreen/VBoxContainer"]
+layout_mode = 2
+text = "Rewards"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="RewardScreen/VBoxContainer"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="RewardScreen/VBoxContainer"]
+layout_mode = 2
+text = "Continue"

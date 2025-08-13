@@ -29,11 +29,24 @@ func _ready():
 
 # Register the hand container as a drop target for all card types
 func register_as_drop_target():
+    # Find Area2D child if it exists
+    var hand_area = find_hand_area()
+    
     # Scan for all existing cards and register with their DragDrop components
     for card in cards:
         if card is Card and card.drag_drop != null:
-            # Register as a drop target accepting all card types
+            # Register both the container and its Area2D as drop targets
             card.drag_drop.register_drop_target(self, [])
+            if hand_area:
+                card.drag_drop.register_drop_target(hand_area, [])
+
+# Find the Area2D child node for hand collision detection
+func find_hand_area():
+    for child in get_children():
+        if child is Area2D:
+            print("HandContainer: Found Area2D for collision detection: ", child.name)
+            return child
+    return null
 
 # Called when a child is added to the container
 func _on_child_entered_tree(node):
@@ -44,6 +57,11 @@ func _on_child_entered_tree(node):
         # If it's a card with DragDrop component, register as drop target
         if node is Card and node.drag_drop != null:
             node.drag_drop.register_drop_target(self, [])
+            
+            # Also register the Area2D if it exists
+            var hand_area = find_hand_area()
+            if hand_area:
+                node.drag_drop.register_drop_target(hand_area, [])
             
         # Reposition all cards when a new one is added
         _reposition_cards()

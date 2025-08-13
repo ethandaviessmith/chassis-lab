@@ -24,6 +24,8 @@ var cards_in_hand = []
 @export var arm_left_slot: Control
 @export var arm_right_slot: Control
 @export var legs_slot: Control
+@export var scrapper_slot: Control
+@export var utility_slot: Control
 
 # Exported card scene
 @export var card_scene: PackedScene
@@ -102,11 +104,13 @@ func _get_mouse_filter_name(filter_value: int) -> String:
 func setup_ui():
     # Initialize the chassis slot map
     chassis_slots_map = {
+        "scrapper": scrapper_slot,
         "head": head_slot,
         "core": core_slot,
         "arm_left": arm_left_slot,
         "arm_right": arm_right_slot,
-        "legs": legs_slot
+        "legs": legs_slot,
+        "utility": utility_slot
     }
     
     # Debug all slots
@@ -199,7 +203,9 @@ func create_test_cards():
         {"name": "Fusion Core", "type": "Core", "cost": 2, "heat": 1, "durability": 5},
         {"name": "Rail Arm", "type": "Arm", "cost": 2, "heat": 1, "durability": 3},
         {"name": "Saw Arm", "type": "Arm", "cost": 1, "heat": 1, "durability": 4},
-        {"name": "Tracked Legs", "type": "Legs", "cost": 1, "heat": 0, "durability": 4}
+        {"name": "Tracked Legs", "type": "Legs", "cost": 1, "heat": 0, "durability": 4},
+        {"name": "Salvage Claw", "type": "Scrapper", "cost": 1, "heat": 0, "durability": 2, "effects": [{"description": "Gain materials from destroyed enemies"}]},
+        {"name": "Shield Generator", "type": "Utility", "cost": 2, "heat": 1, "durability": 3, "effects": [{"description": "+2 armor at start of combat"}]}
     ]
     
     for i in range(sample_cards.size()):
@@ -297,7 +303,7 @@ func create_card_sprite(card_data, index):
         for slot_name in chassis_slots_map:
             var slot = chassis_slots_map[slot_name]
             var valid_types = []
-            if slot.has_method("get_valid_part_types"):
+            if slot and slot.has_method("get_valid_part_types"):
                 valid_types = slot.get_valid_part_types()
             card.drag_drop.register_drop_target(slot, valid_types)
         
@@ -352,7 +358,12 @@ func _on_energy_changed(current: int, maximum: int):
 
 # Handle button press to end the build phase
 func _on_end_phase_button_pressed():
-    emit_signal("combat_requested")
+    # Build robot and start combat through TurnManager
+    if turn_manager and turn_manager.has_method("build_robot_and_start_combat"):
+        turn_manager.build_robot_and_start_combat(self, game_manager)
+    else:
+        # Fallback to old behavior
+        emit_signal("combat_requested")
 
 # Process input events for card dragging
 # Input handling has been moved to the DragDrop component
@@ -510,6 +521,10 @@ func _handle_card_drag(card):
                             is_compatible = (slot_name == "arm_left" or slot_name == "arm_right")
                         "Legs":
                             is_compatible = (slot_name == "legs")
+                        "Scrapper":
+                            is_compatible = (slot_name == "scrapper")
+                        "Utility":
+                            is_compatible = (slot_name == "utility")
                 
                 # Highlight the slot if compatible
                 if is_compatible:
@@ -530,9 +545,16 @@ func _handle_card_drop(card, drop_pos, target = null):
     # Reset card highlight
     if card is Card and card.has_method("set_highlight"):
         card.set_highlight(false)
-        
-    # If a target was provided, check if it's one of our chassis slots
+    
+    # Check if dropped on HandContainer or its Area2D
     if target != null:
+        # Check if target is HandContainer or its Area2D
+        if target is HandContainer or (target is Area2D and target.get_parent() is HandContainer):
+            print("Card dropped on HandContainer area - returning to hand")
+            _return_card_to_hand(card)
+            return
+        
+        # Check if it's one of our chassis slots
         for slot_name in chassis_slots_map:
             if chassis_slots_map[slot_name] == target:
                 print("Direct slot target found: ", slot_name)
@@ -659,6 +681,11 @@ func _attach_part_to_slot(card, slot_name):
             valid_slot = (slot_name == "arm_left" or slot_name == "arm_right")
         "Leg", "Legs":
             valid_slot = (slot_name == "legs")
+        "Utility":
+            valid_slot = (slot_name == "utility")
+        "Scrapper":
+            valid_slot = (slot_name == "scrapper")
+        # todo update scrapped to accept all, not use energy cost and instead lower card durability by 1
     
     if valid_slot:
         var card_cost = card_data.get("cost", 0)
@@ -896,3 +923,63 @@ func _attach_part_to_slot(card, slot_name):
             card.reset_position()
         
         return false
+
+# Helper function to return a card to hand (used for HandContainer Area2D drops)
+func _return_card_to_hand(card):
+    print("Returning card to hand: ", card.data.get("name", "Unknown") if card is Card else str(card))
+    
+    # Check if this card was attached to a chassis slot
+    var was_attached = false
+    var previous_slot = ""
+    
+    # Find if this card was in a slot before
+    for slot_name in attached_parts:
+        if attached_parts[slot_name] == card:
+            was_attached = true
+            previous_slot = slot_name
+            break
+    
+    # If card was previously attached, remove from that slot
+    if was_attached:
+        print("Removing card from " + previous_slot + " and returning to hand")
+        # Remove from previous slot tracking
+        attached_parts.erase(previous_slot)
+        
+        # Clear the previous slot's part reference
+        var prev_slot_control = chassis_slots_map[previous_slot]
+        if prev_slot_control and prev_slot_control is ChassisSlot:
+            prev_slot_control.clear_part()
+    
+    # Remove from slot parent and add back to hand
+    if card.get_parent() != hand_container:
+        # Capture the card's current global position before reparenting
+        var card_global_pos = card.global_position
+        
+        if card.get_parent():
+            card.get_parent().remove_child(card)
+        if hand_container:
+            hand_container.add_child(card)
+            
+            # Restore the card's global position after reparenting
+            card.global_position = card_global_pos
+    
+    # Remove the attached flag
+    if card.has_meta("attached_to_chassis"):
+        card.remove_meta("attached_to_chassis")
+    
+    # Reset card properties for hand
+    card.modulate = Color(1, 1, 1, 1)  # Reset transparency
+    card.mouse_filter = Control.MOUSE_FILTER_STOP
+    
+    # Set card state to hand (this will handle scaling automatically)
+    if card.has_method("set_card_state"):
+        card.set_card_state(Card.State.HAND)
+    
+    # Make sure the card is properly tracked in hand
+    if card is Card and not cards_in_hand.has(card):
+        cards_in_hand.append(card)
+        print("Added card back to hand tracking")
+    
+    # Reposition cards in hand container
+    if hand_container and hand_container.has_method("_reposition_cards"):
+        hand_container._reposition_cards()

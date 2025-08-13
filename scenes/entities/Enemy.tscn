@@ -1,0 +1,59 @@
+[gd_scene load_steps=3 format=3 uid="uid://dneyl0bcnce87"]
+
+[ext_resource type="Script" uid="uid://omrsobek863d" path="res://scenes/entities/Enemy.gd" id="1_8dejf"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(48, 48)
+
+[node name="Enemy" type="CharacterBody2D"]
+script = ExtResource("1_8dejf")
+metadata/_custom_type_script = "uid://omrsobek863d"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_1")
+
+[node name="Sprite" type="Label" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -24.0
+offset_top = -24.0
+offset_right = 24.0
+offset_bottom = 24.0
+text = "👾"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -30.0
+offset_top = -40.0
+offset_right = 30.0
+offset_bottom = -30.0
+value = 100.0
+show_percentage = false
+
+[node name="AttackIndicator" type="Label" parent="."]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -40.0
+offset_top = -15.0
+offset_right = -18.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "🗡️"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

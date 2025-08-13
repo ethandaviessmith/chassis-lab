@@ -1,25 +1,39 @@
 [
   {
+    "id": "basic_drone",
+    "name": "Basic Drone",
+    "hp": 6,
+    "armor": 0,
+    "damage": 1,
+    "attack_speed": 1.0,
+    "move_speed": 80,
+    "behavior": "default",
+    "special_abilities": [
+      {
+        "name": "Basic Targeting",
+        "description": "Simple movement and attack patterns",
+        "trigger": "always",
+        "effect": "none"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/basic_drone.png",
+    "is_boss": false
+  },
+  {
     "id": "scavenger_drone",
     "name": "Scavenger Drone",
     "hp": 8,
     "armor": 0,
-    "damage": 1,
+    "damage": 2,
     "attack_speed": 2.0,
     "move_speed": 120,
     "behavior": "aggressive",
     "special_abilities": [
       {
         "name": "Burst Attack",
-        "description": "Fires rapidly in bursts",
+        "description": "Attacks in bursts; prioritizes close combat",
         "trigger": "always",
         "effect": "burst_fire"
-      },
-      {
-        "name": "Tactical Retreat",
-        "description": "Retreats when health below 30%",
-        "trigger": "on_health_threshold",
-        "effect": "retreat"
       }
     ],
     "sprite": "res://assets/images/enemies/scavenger_drone.png",
@@ -56,13 +70,73 @@
     "behavior": "flanking",
     "special_abilities": [
       {
-        "name": "Dash Strike",
-        "description": "Quickly closes distance",
-        "trigger": "on_distance_threshold",
-        "effect": "dash"
+        "name": "Hit and Run",
+        "description": "Circles around target; evasive maneuvers",
+        "trigger": "always",
+        "effect": "flanking_boost"
       }
     ],
     "sprite": "res://assets/images/enemies/striker_unit.png",
+    "is_boss": false
+  },
+  {
+    "id": "assault_bot",
+    "name": "Assault Bot",
+    "hp": 10,
+    "armor": 1,
+    "damage": 3,
+    "attack_speed": 1.8,
+    "move_speed": 110,
+    "behavior": "aggressive",
+    "special_abilities": [
+      {
+        "name": "Relentless Charge",
+        "description": "Fast and relentless; charges directly at target",
+        "trigger": "always",
+        "effect": "speed_boost"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/assault_bot.png",
+    "is_boss": false
+  },
+  {
+    "id": "sentinel_turret",
+    "name": "Sentinel Turret",
+    "hp": 20,
+    "armor": 8,
+    "damage": 4,
+    "attack_speed": 0.6,
+    "move_speed": 30,
+    "behavior": "defensive",
+    "special_abilities": [
+      {
+        "name": "Heavy Plating",
+        "description": "Slow but heavily armored; long range attacks",
+        "trigger": "always",
+        "effect": "armor_boost"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/sentinel_turret.png",
+    "is_boss": false
+  },
+  {
+    "id": "hunter_drone",
+    "name": "Hunter Drone",
+    "hp": 8,
+    "armor": 1,
+    "damage": 2,
+    "attack_speed": 1.2,
+    "move_speed": 140,
+    "behavior": "flanking",
+    "special_abilities": [
+      {
+        "name": "Evasive Maneuvers",
+        "description": "Fast flanking maneuvers; hard to hit",
+        "trigger": "always",
+        "effect": "dodge_boost"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/hunter_drone.png",
     "is_boss": false
   },
   {

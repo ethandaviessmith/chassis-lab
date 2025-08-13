@@ -15,11 +15,13 @@ var attack_speed: float = 1.0
 var armor: int = 0
 
 # Parts
+var scrapper = null
 var head = null
 var core = null
 var left_arm = null
 var right_arm = null
 var legs = null
+var utility = null
 
 # Part effects cache
 var effects = {}
@@ -74,6 +76,9 @@ func try_attack(_target):
 
 func attach_part(part, slot: String):
     match slot:
+        "scrapper":
+            scrapper = part
+            # Scrapper parts don't have sprites but provide passive effects
         "head":
             head = part
             head_sprite.texture = part.sprite
@@ -89,6 +94,9 @@ func attach_part(part, slot: String):
         "legs":
             legs = part
             legs_sprite.texture = part.sprite
+        "utility":
+            utility = part
+            # Utility parts don't have sprites but provide passive effects
     
     # Update robot stats based on part
     apply_part_effects(part)
@@ -96,7 +104,9 @@ func attach_part(part, slot: String):
     emit_signal("robot_updated")
 
 func remove_part(part):
-    if head == part:
+    if scrapper == part:
+        scrapper = null
+    elif head == part:
         head = null
         head_sprite.texture = null
     elif core == part:
@@ -111,6 +121,8 @@ func remove_part(part):
     elif legs == part:
         legs = null
         legs_sprite.texture = null
+    elif utility == part:
+        utility = null
     
     # Remove part effects
     remove_part_effects(part)
@@ -225,3 +237,91 @@ func update_bars():
             heat_bar.modulate = Color(1, 0.5, 0)  # Orange for high heat
         else:
             heat_bar.modulate = Color(1, 0.8, 0)  # Yellow-orange normal
+
+# Build robot from chassis slot data
+func build_from_chassis(attached_parts: Dictionary):
+    # Clear existing parts
+    clear_all_parts()
+    
+    # Reset base stats
+    reset_to_base_stats()
+    
+    # Process slots in specific order for proper stat calculation
+    var slot_order = ["scrapper", "head", "core", "arm_left", "arm_right", "legs", "utility"]
+    
+    print("Building robot from chassis:")
+    for slot_name in slot_order:
+        if attached_parts.has(slot_name) and is_instance_valid(attached_parts[slot_name]):
+            var card = attached_parts[slot_name]
+            if card is Card and card.data.size() > 0:
+                print("  - Adding ", slot_name, ": ", card.data.name)
+                
+                # Convert slot names to robot part names
+                var robot_slot = slot_name
+                if slot_name == "arm_left":
+                    robot_slot = "left_arm"
+                elif slot_name == "arm_right":
+                    robot_slot = "right_arm"
+                
+                # Create a part object from card data
+                var part_data = create_part_from_card(card.data)
+                attach_part(part_data, robot_slot)
+    
+    print("Robot build complete - Energy: ", energy, "/", max_energy, ", Heat: ", heat, "/", max_heat)
+    update_visuals()
+    update_bars()
+
+# Clear all attached parts
+func clear_all_parts():
+    scrapper = null
+    head = null
+    core = null
+    left_arm = null
+    right_arm = null
+    legs = null
+    utility = null
+    
+    # Clear visual sprites
+    if head_sprite:
+        head_sprite.texture = null
+    if core_sprite:
+        core_sprite.texture = null
+    if left_arm_sprite:
+        left_arm_sprite.texture = null
+    if right_arm_sprite:
+        right_arm_sprite.texture = null
+    if legs_sprite:
+        legs_sprite.texture = null
+
+# Reset stats to base values
+func reset_to_base_stats():
+    energy = 10
+    max_energy = 10
+    heat = 0
+    max_heat = 10
+    move_speed = 100.0
+    attack_speed = 1.0
+    armor = 0
+    effects.clear()
+
+# Create a part object from card data
+func create_part_from_card(card_data: Dictionary):
+    # Convert card data to a part object that the robot can use
+    # This is a simplified conversion - in a full game you might have dedicated Part classes
+    var part = {
+        "name": card_data.get("name", "Unknown Part"),
+        "type": card_data.get("type", "Unknown"),
+        "cost": card_data.get("cost", 0),
+        "heat": card_data.get("heat", 0),
+        "durability": card_data.get("durability", 1),
+        "effects": card_data.get("effects", []),
+        "sprite": null  # Will be set from image path if available
+    }
+    
+    # Load sprite if image path is provided
+    if card_data.has("image") and card_data.image != "":
+        var texture = load(card_data.image)
+        if texture:
+            part.sprite = texture
+    
+    return part
