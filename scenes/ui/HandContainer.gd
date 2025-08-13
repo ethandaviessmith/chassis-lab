@@ -15,19 +15,43 @@ var cards = []
 func _ready():
     # Make sure we handle resizing
     resized.connect(_on_resized)
-    sort_children.connect(_on_sort_children)
+    
+    # Connect sort_children signal
+    if not sort_children.is_connected(_on_sort_children):
+        sort_children.connect(_on_sort_children)
+        
+    # Connect child signals
+    child_entered_tree.connect(_on_child_entered_tree)
+    child_exiting_tree.connect(_on_child_exiting_tree)
+    
+    # Register self as a drop target for cards returning to hand
+    register_as_drop_target()
+
+# Register the hand container as a drop target for all card types
+func register_as_drop_target():
+    # Scan for all existing cards and register with their DragDrop components
+    for card in cards:
+        if card is Card and card.drag_drop != null:
+            # Register as a drop target accepting all card types
+            card.drag_drop.register_drop_target(self, [])
 
 # Called when a child is added to the container
 func _on_child_entered_tree(node):
     if node is Card or node is ColorRect:  # Support both Card scenes and fallback ColorRects
         if not cards.has(node):
             cards.append(node)
+            
+        # If it's a card with DragDrop component, register as drop target
+        if node is Card and node.drag_drop != null:
+            node.drag_drop.register_drop_target(self, [])
+            
         # Reposition all cards when a new one is added
         _reposition_cards()
 
 # Called when a child is removed from the container
 func _on_child_exiting_tree(node):
     if cards.has(node):
+        print("HandContainer: Removing card from tracking: " + (node.data.name if node is Card and node.data else str(node)))
         cards.erase(node)
         # Reposition remaining cards
         _reposition_cards()
@@ -41,7 +65,7 @@ func _on_sort_children():
     _reposition_cards()
     
 # Process animation each frame
-func _process(delta):
+func _process(_delta):
     # Update card animations
     for i in range(cards.size()):
         # Skip if we're out of bounds
@@ -53,15 +77,28 @@ func _process(delta):
         # Skip invalid cards
         if not is_instance_valid(card):
             continue
-            
-        if card is Card and not card.is_being_dragged:
+
+        # Skip cards that are attached to chassis slots
+        if card.has_meta("attached_to_chassis"):
+            continue
+
+        # Check if card is being dragged using its DragDrop component
+        var is_dragging = false
+        if card is Card and card.drag_drop != null:
+            is_dragging = card.drag_drop.is_currently_dragging()
+        
+        if card is Card and not is_dragging:
             # Skip if card is already at its target position
             if card.target_position == Vector2.ZERO:
-                continue
+                # No target position set, calculate and set it now
+                var local_pos = get_target_position(card, i)
+                var global_pos = local_pos + global_position
+                card.target_position = global_pos
                 
-            # We don't need to animate here as Card has its own animation logic
-            # in _process that uses target_position
-            pass
+                # If card is at origin (0,0), set it directly
+                if card.global_position == Vector2.ZERO:
+                    card.global_position = global_pos
+            # Card.gd handles the actual animation in its _process
 
 # Calculate position for a card at specific index
 func get_card_position(index: int, total_cards: int) -> Vector2:
@@ -81,10 +118,19 @@ func get_card_position(index: int, total_cards: int) -> Vector2:
     # Add a slight vertical arc for visual appeal
     # Cards in the middle are slightly higher than those at the edges
     var center_offset = abs(index - (total_cards - 1) / 2.0)
-    var max_offset = (total_cards - 1) / 2.0
+    var max_offset = max((total_cards - 1) / 2.0, 1.0) # Prevent division by zero
     var y_curve = 30.0 * (1.0 - (center_offset / max_offset))
     
-    var y_pos = size.y / 2.0 - y_curve
+    # Calculate base y position - centered vertically
+    var y_base = size.y / 2.0
+    
+    # Apply curve effect but ensure it stays within boundaries
+    # Assume card height is about 200 (based on custom_minimum_size)
+    var card_height = 200.0
+    var min_y = 10.0 # Minimum padding from top
+    var max_y = size.y - (card_height * 0.7) # Keep most of card in view at bottom
+    
+    var y_pos = clamp(y_base - y_curve, min_y, max_y)
     
     return Vector2(x_pos, y_pos)
 
@@ -119,6 +165,12 @@ func _reposition_cards():
     # If all cards were invalid, exit
     if cards.is_empty():
         return
+    
+    # Force an update of size if needed
+    if size.x < 10 or size.y < 10:
+        print("Warning: HandContainer has very small size: ", size)
+        # Use reasonable defaults if size is too small
+        size = Vector2(600, 220)  # Increased height to accommodate cards
         
     # Reposition all cards
     for i in range(cards.size()):
@@ -127,21 +179,35 @@ func _reposition_cards():
         # Skip invalid cards
         if not is_instance_valid(card):
             continue
+        
+        # Skip cards that are attached to chassis slots
+        if card.has_meta("attached_to_chassis"):
+            continue
             
         # Get local position in container
         var local_pos = get_target_position(card, i)
         
-        # Convert to global position - Container doesn't have to_global so we need to use the position
-        var global_pos = local_pos + global_position
+        # Convert to global position properly
+        # First get our global rect to ensure we're using the correct origin
+        var container_rect = get_global_rect()
+        var global_pos = container_rect.position + local_pos
         
-        # Debug output
-        print("Card " + str(i) + " local position: " + str(local_pos))
-        print("Card " + str(i) + " global position: " + str(global_pos))
+        # Debug position info
+        print("Container global_position: ", global_position, " rect: ", container_rect)
+        
+        # Debug output (but less verbose)
+        if i == 0 or i == cards.size() - 1:  # Just log first and last card for clarity
+            print("Card " + str(i) + " global position: " + str(global_pos))
         
         # If using our Card scene with custom properties
         if card is Card:
+            # Check if card is being dragged using its DragDrop component
+            var is_dragging = false
+            if card.drag_drop != null:
+                is_dragging = card.drag_drop.is_currently_dragging()
+            
             # If card is being dragged, don't reposition
-            if card.is_being_dragged:
+            if is_dragging:
                 print("Card " + str(i) + " is being dragged, skipping")
                 continue
                 
@@ -151,15 +217,14 @@ func _reposition_cards():
             # For immediate positioning (helps with initialization)
             if card.global_position == Vector2.ZERO:
                 card.global_position = global_pos
-                
-            # Store original position (global)
-            card.original_position = global_pos
+            
+            # Store original position in DragDrop component if available
+            if card.drag_drop != null:
+                card.drag_drop.original_position = global_pos
             
             # Ensure card is visible and can receive input
             card.modulate.a = 1.0
             card.mouse_filter = Control.MOUSE_FILTER_STOP
-            
-            print("Card " + str(i) + " target set to: " + str(card.target_position))
         else:
             # For fallback ColorRect cards, set position directly
             # Skip if card is being dragged
@@ -175,11 +240,41 @@ func _reposition_cards():
 func get_original_position(card) -> Vector2:
     var index = cards.find(card)
     if index >= 0:
-        # Convert local position to global position by adding container's global position
+        # Get local position for card
         var local_pos = get_card_position(index, cards.size())
-        var global_pos = local_pos + global_position
-        print("Card " + str(index) + " global position: " + str(global_pos))
+        
+        # Convert to global position properly using the container's global rect
+        var container_rect = get_global_rect()
+        var global_pos = container_rect.position + local_pos
+        
+        print("Card " + str(index) + " global position: " + str(global_pos) + 
+              " (container at " + str(container_rect.position) + ")")
         return global_pos
     
     print("WARNING: Card not found in hand container")
     return Vector2.ZERO
+    
+# Handle drops from DragDrop component
+func handle_drop(card):
+    # If card is not in our cards array, add it
+    if not cards.has(card):
+        cards.append(card)
+        
+    # Make sure the card is our child
+    if card.get_parent() != self:
+        if card.get_parent():
+            card.get_parent().remove_child(card)
+        add_child(card)
+    
+    # Reset the card position
+    if card.has_method("reset_position"):
+        card.reset_position()
+    else:
+        # Fallback for non-Card objects
+        var index = cards.find(card)
+        if index >= 0:
+            var pos = get_original_position(card)
+            card.global_position = pos
+    
+    # Reposition all cards
+    _reposition_cards()

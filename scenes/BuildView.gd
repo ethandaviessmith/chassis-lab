@@ -35,16 +35,65 @@ var attached_parts = {}
 
 # Called when the node enters the scene tree for the first time
 func _ready():
+    # Add diagnostic logs
+    Log.pr("[BuildView] Initializing...")
+    
+    # Log about drag-drop controls
+    _log_drag_drop_components()
+    
     # Get manager references
     game_manager = get_node("/root/GameManager")
+    Log.pr("[BuildView] GameManager: ", "Found" if game_manager else "Not Found")
+    
     deck_manager = get_node("/root/DeckManager") if has_node("/root/DeckManager") else null
+    Log.pr("[BuildView] DeckManager: ", "Found" if deck_manager else "Not Found")
     
     # Setup UI elements and slots
     setup_ui()
     
     # Initialize the build phase
     start_build_phase()
+    
+    Log.pr("[BuildView] Initialization complete")
 
+# Helper function to log info about drag-drop components
+func _log_drag_drop_components():
+    Log.pr("[BuildView] Checking for DragDrop components...")
+    
+    # Check direct children first
+    for child in get_children():
+        if child is Control:
+            Log.pr("[BuildView] Found Control child: " + child.name)
+            
+            # Check if this control has a DragDrop component
+            var has_drag_drop = false
+            for component in child.get_children():
+                if component is DragDrop:
+                    has_drag_drop = true
+                    Log.pr("[BuildView]   - Has DragDrop component")
+                    Log.pr("[BuildView]     - Enabled: " + str(component.enabled))
+                    Log.pr("[BuildView]     - Drag Handle: " + str(component.drag_handle))
+                    
+            if not has_drag_drop:
+                Log.pr("[BuildView]   - No DragDrop component found")
+        
+            # Log the control's mouse filter
+            Log.pr("[BuildView]   - Mouse filter: " + _get_mouse_filter_name(child.mouse_filter))
+            
+            # Log any ColorRect children
+            for subchild in child.get_children():
+                if subchild is ColorRect:
+                    Log.pr("[BuildView]   - Has ColorRect child: " + subchild.name)
+                    Log.pr("[BuildView]     - Mouse filter: " + _get_mouse_filter_name(subchild.mouse_filter))
+
+# Helper to convert mouse_filter enum to string for debugging
+func _get_mouse_filter_name(filter_value: int) -> String:
+    match filter_value:
+        Control.MOUSE_FILTER_STOP: return "MOUSE_FILTER_STOP"
+        Control.MOUSE_FILTER_PASS: return "MOUSE_FILTER_PASS"
+        Control.MOUSE_FILTER_IGNORE: return "MOUSE_FILTER_IGNORE"
+        _: return "UNKNOWN (" + str(filter_value) + ")"
+        
 # Set up the UI elements and map the chassis slots
 func setup_ui():
     # Initialize the chassis slot map
@@ -55,6 +104,21 @@ func setup_ui():
         "arm_right": arm_right_slot,
         "legs": legs_slot
     }
+    
+    # Debug all slots
+    for slot_name in chassis_slots_map:
+        var slot = chassis_slots_map[slot_name]
+        if slot:
+            # Print detailed debug info for each slot
+            print("SLOT DEBUG - ", slot_name)
+            print("  Global pos: ", slot.global_position)
+            if slot.has_method("get_global_rect"):
+                print("  Global rect: ", slot.get_global_rect())
+            print("  Position: ", slot.position)
+            print("  Size: ", slot.size)
+            var parent = slot.get_parent()
+            print("  Parent: ", parent.name if parent else "none")
+            print("  Mouse filter: ", slot.mouse_filter)
     
     # Connect button if needed
     if end_phase_button and not end_phase_button.pressed.is_connected(Callable(self, "_on_end_phase_button_pressed")):
@@ -156,26 +220,8 @@ func create_card_sprite(card_data, index):
         if not "image" in prepared_data:
             prepared_data["image"] = ""
         
-        # Connect card signals first
-        if card.has_signal("card_dragged"):
-            # Disconnect previous connection to avoid duplicates
-            if card.card_dragged.is_connected(func(dragged_card): _handle_card_drag(dragged_card)):
-                card.card_dragged.disconnect(func(dragged_card): _handle_card_drag(dragged_card))
-            card.card_dragged.connect(func(dragged_card): _handle_card_drag(dragged_card))
-                
-        if card.has_signal("card_dropped"):
-            # Disconnect previous connection to avoid duplicates
-            if card.card_dropped.is_connected(func(dropped_card, drop_pos): _handle_card_drop(dropped_card, drop_pos)):
-                card.card_dropped.disconnect(func(dropped_card, drop_pos): _handle_card_drop(dropped_card, drop_pos))
-            card.card_dropped.connect(func(dropped_card, drop_pos): _handle_card_drop(dropped_card, drop_pos))
-        
         # Add to tracking array - do this before initialize to ensure it's tracked properly
         cards_in_hand.append(card)
-        
-        # Make sure GUI input is connected for drag/drop
-        if card.has_method("_on_gui_input"):
-            if not card.gui_input.is_connected(card._on_gui_input):
-                card.gui_input.connect(card._on_gui_input)
         
         # Initialize the card data
         if card.has_method("initialize"):
@@ -210,10 +256,18 @@ func create_card_sprite(card_data, index):
         cards_in_hand.append(card)
     
     # Connect card signals if they weren't already connected in the main creation block
-    if card.has_signal("card_dragged") and not card.card_dragged.is_connected(func(dragged_card): _handle_card_drag(dragged_card)):
-        card.card_dragged.connect(func(dragged_card): _handle_card_drag(dragged_card))
-    if card.has_signal("card_dropped") and not card.card_dropped.is_connected(func(dropped_card, drop_pos): _handle_card_drop(dropped_card, drop_pos)):
-        card.card_dropped.connect(func(dropped_card, drop_pos): _handle_card_drop(dropped_card, drop_pos))
+    if card.has_signal("drop_attempted") and not card.drop_attempted.is_connected(func(dropped_card, drop_pos, target): _handle_card_drop(dropped_card, drop_pos, target)):
+        card.drop_attempted.connect(func(dropped_card, drop_pos, target): _handle_card_drop(dropped_card, drop_pos, target))
+    
+    # Connect to DragDrop component signals if available
+    if card.drag_drop:
+        # Register all chassis slots as valid drop targets
+        for slot_name in chassis_slots_map:
+            var slot = chassis_slots_map[slot_name]
+            var valid_types = []
+            if slot.has_method("get_valid_part_types"):
+                valid_types = slot.get_valid_part_types()
+            card.drag_drop.register_drop_target(slot, valid_types)
         
     # Note: Card is already added to cards_in_hand above
 
@@ -261,68 +315,135 @@ func _on_end_phase_button_pressed():
     emit_signal("combat_requested")
 
 # Process input events for card dragging
-func _input(event):
-    # Check for mouse button press/release
-    if event is InputEventMouseButton:
-        if event.button_index == MOUSE_BUTTON_LEFT:
-            if event.pressed:
-                # Check for card under cursor
-                _check_card_press(event.position)
-            else:
-                # Release any dragged card
-                _release_dragged_card(event.position)
-    
-    # Check for mouse movement while dragging
-    elif event is InputEventMouseMotion:
-        # Move any dragged card
-        _update_dragged_card(event.position)
+# Input handling has been moved to the DragDrop component
+# This function is no longer needed
+func _input(_event):
+    pass
 
 # Check if a card was clicked
-func _check_card_press(click_pos):
-    # In a full implementation, find the card under the cursor
-    # and mark it as being dragged
-    for card in cards_in_hand:
-        if _is_position_over_card(click_pos, card):
-            card.set_meta("dragging", true)
-            card.z_index = 100  # Bring to front
+# This function is no longer needed - card press detection is handled by DragDrop component
+func _check_card_press(_click_pos):
+    pass
 
 # Update position of dragged card
-func _update_dragged_card(mouse_pos):
-    for card in cards_in_hand:
-        if card.get_meta("dragging"):
-            card.position = mouse_pos - Vector2(50, 75)  # Center the card on cursor
+# This function is no longer needed - card movement is handled by DragDrop component
+func _update_dragged_card(_mouse_pos):
+    pass
 
-# Release a dragged card
-func _release_dragged_card(drop_pos):
-    for card in cards_in_hand:
-        if card.get_meta("dragging"):
-            # Check if dropped on a valid chassis slot
-            var slot_name = _get_slot_at_position(drop_pos)
-            
-            if slot_name != "":
-                _attach_part_to_slot(card, slot_name)
-            else:
-                # Return to original position
-                card.position = card.original_position
-            
-            card.set_meta("dragging", false)
-            card.z_index = 0  # Reset z-index
+# This function is no longer needed - card release is handled by DragDrop component
+func _release_dragged_card(_drop_pos):
+    pass
 
 # Check if position is over a card
 func _is_position_over_card(mouse_pos, card):
-    return (mouse_pos.x >= card.position.x and 
-            mouse_pos.x <= card.position.x + card.size.x and
-            mouse_pos.y >= card.position.y and
-            mouse_pos.y <= card.position.y + card.size.y)
+    # Use global_position if available, position otherwise
+    var pos = card.global_position if card.has_method("get_global_position") else card.position
+    var card_size = card.size
+    
+    var is_over = (mouse_pos.x >= pos.x and 
+                  mouse_pos.x <= pos.x + card_size.x and
+                  mouse_pos.y >= pos.y and
+                  mouse_pos.y <= pos.y + card_size.y)
+    
+    Log.pr("[BuildView] Position check: " +
+           "mouse=" + str(mouse_pos) +
+           ", card pos=" + str(pos) +
+           ", card size=" + str(card_size) +
+           ", result=" + str(is_over))
+           
+    return is_over
 
 # Get slot name at position, or empty string if none
 func _get_slot_at_position(check_pos):
+    # Debug the incoming position
+    print("GET SLOT - Check position: ", check_pos)
+    
+    # Direct hit test first - get viewport rect to debug screen coordinates
+    var viewport_rect = get_viewport_rect()
+    print("GET SLOT - Viewport rect: ", viewport_rect)
+    
+    # For each slot, print detailed coordinates and test direct hits
     for slot_name in chassis_slots_map:
         var slot = chassis_slots_map[slot_name]
         if slot:
-            var slot_rect = Rect2(slot.global_position, slot.size)
-            if slot_rect.has_point(check_pos):
+            # Log everything we know about the slot's position
+            print("GET SLOT - Slot: ", slot_name)
+            print("  Global pos: ", slot.global_position)
+            print("  Rect pos: ", slot.get_global_rect().position)
+            print("  Size: ", slot.size)
+            print("  Parent: ", slot.get_parent().name if slot.get_parent() else "none")
+            
+            # Try different approaches to get the slot rect
+            var slot_rect1 = Rect2(slot.global_position, slot.size)
+            var slot_rect2 = slot.get_global_rect()
+            
+            # Debug both approaches
+            print("  Approach 1 rect: ", slot_rect1)
+            print("  Approach 2 rect: ", slot_rect2)
+            print("  Point inside rect1: ", slot_rect1.has_point(check_pos))
+            print("  Point inside rect2: ", slot_rect2.has_point(check_pos))
+            
+            # Use both approaches - if either one hits, count it as a match
+            if slot_rect1.has_point(check_pos) or slot_rect2.has_point(check_pos):
+                print("  DIRECT HIT FOUND")
                 return slot_name
+                
+    # No direct hit - try proximity detection
+    var closest_slot = ""
+    var closest_distance = 1000000  # Large initial value
+    
+    for slot_name in chassis_slots_map:
+        var slot = chassis_slots_map[slot_name]
+        if slot:
+            var slot_center = slot.global_position + (slot.size / 2)
+            
+            # Calculate distance to slot center
+            var distance = slot_center.distance_to(check_pos)
+            print("GET SLOT - Distance to ", slot_name, " center: ", distance)
+            
+            # Keep track of closest slot
+            if distance < closest_distance and distance < 150:  # Within reasonable range
+                closest_distance = distance
+                closest_slot = slot_name
+    
+    # If we found a reasonably close slot and no exact match
+    if closest_slot != "" and closest_distance < 100:
+        print("Using closest slot: ", closest_slot, " at distance: ", closest_distance)
+        return closest_slot
+        
+    # Direct manual detection attempt as last resort
+    # We know the exact positions and sizes of slots, so let's try absolute positioning
+    
+    # Check which quadrant of the screen we're in
+    var viewport_size = get_viewport_rect().size
+    
+    # Top area is likely head
+    if check_pos.y < viewport_size.y * 0.3:
+        print("  QUADRANT HIT - Top area (head)")
+        return "head"
+    
+    # Center area is likely core
+    if check_pos.y < viewport_size.y * 0.6 and check_pos.y > viewport_size.y * 0.3:
+        if check_pos.x > viewport_size.x * 0.3 and check_pos.x < viewport_size.x * 0.7:
+            print("  QUADRANT HIT - Center area (core)")
+            return "core"
+    
+    # Left side is left arm
+    if check_pos.x < viewport_size.x * 0.4 and check_pos.y > viewport_size.y * 0.3:
+        print("  QUADRANT HIT - Left side (arm_left)")
+        return "arm_left"
+    
+    # Right side is right arm
+    if check_pos.x > viewport_size.x * 0.6 and check_pos.y > viewport_size.y * 0.3:
+        print("  QUADRANT HIT - Right side (arm_right)")
+        return "arm_right"
+    
+    # Bottom center is legs
+    if check_pos.y > viewport_size.y * 0.7 and check_pos.x > viewport_size.x * 0.3 and check_pos.x < viewport_size.x * 0.7:
+        print("  QUADRANT HIT - Bottom area (legs)")
+        return "legs"
+        
+    print("No slot found at position after all attempts")
     return ""
 
 # Handle card drag event
@@ -356,46 +477,120 @@ func _handle_card_drag(card):
                 else:
                     slot.highlight(false)  # Pass false for invalid highlight
                 
-                # Also highlight the card itself to indicate compatibility
-                if card is Card and card.has_method("set_highlight"):
-                    card.set_highlight(true, is_compatible)
-            elif slot:
-                # For non-ChassisSlot controls, use a visual effect
-                if slot.has_method("set_self_modulate"):
-                    slot.set_self_modulate(Color(1.0, 1.0, 0.5, 0.7))  # Yellow tint
+                # Since the DragDrop component handles highlighting the card,
+# We no longer need to handle it here directly
 
 # Handle card drop event
-func _handle_card_drop(card, drop_pos):
+func _handle_card_drop(card, drop_pos, target = null):
+    print("BUILD VIEW - Card dropped event received - card: ", card, " at pos: ", drop_pos)
+    
     # Reset all slot highlights
     _reset_slot_highlights()
     
     # Reset card highlight
     if card is Card and card.has_method("set_highlight"):
         card.set_highlight(false)
+        
+    # If a target was provided, check if it's one of our chassis slots
+    if target != null:
+        for slot_name in chassis_slots_map:
+            if chassis_slots_map[slot_name] == target:
+                print("Direct slot target found: ", slot_name)
+                if _attach_part_to_slot(card, slot_name):
+                    return
     
-    # Ensure card is marked as not being dragged
-    if card is Card:
-        card.is_being_dragged = false
-    elif card.has_meta("dragging"):
-        card.set_meta("dragging", false)
+    # Try several approaches to find the slot
+    var slot_name = ""
     
-    # Check if dropped on a valid chassis slot
-    var slot_name = _get_slot_at_position(drop_pos)
+    # First try exact position check
+    slot_name = _get_slot_at_position(drop_pos)
+    print("Exact position check result: ", slot_name)
+    
+    # If that didn't work, try the card's global position
+    if slot_name == "" and card is Card:
+        var card_center = card.global_position + (card.size / 2)
+        slot_name = _get_slot_at_position(card_center)
+        print("Card center position check result: ", slot_name)
+        
+    # If still nothing, try a larger area around the drop position
+    if slot_name == "":
+        # Check a larger radius around drop position
+        for radius in [20, 50, 100]:
+            for offset_x in [-radius, 0, radius]:
+                for offset_y in [-radius, 0, radius]:
+                    var check_pos = drop_pos + Vector2(offset_x, offset_y)
+                    var result = _get_slot_at_position(check_pos)
+                    if result != "":
+                        slot_name = result
+                        print("Found slot with expanded search: ", slot_name, " at offset: ", Vector2(offset_x, offset_y))
+                        break
+                if slot_name != "":
+                    break
+            if slot_name != "":
+                break
     
     if slot_name != "":
+        # Attach to slot (method handles replacing existing parts)
         _attach_part_to_slot(card, slot_name)
     else:
         # Debug drop position
         print("Card dropped at: ", drop_pos, " - not on a slot")
         
-        # Return to original position
-        if card.has_method("reset_position"):
-            card.reset_position()
+        # Check if this card was attached to a chassis slot
+        var was_attached = false
+        var previous_slot = ""
+        
+        # Find if this card was in a slot before
+        for existing_slot in attached_parts:
+            if attached_parts[existing_slot] == card:
+                was_attached = true
+                previous_slot = existing_slot
+                break
+        
+        # If card was previously attached, remove from that slot
+        if was_attached:
+            print("Removing card from " + previous_slot + " and returning to hand")
+            # Remove from previous slot tracking
+            attached_parts.erase(previous_slot)
+            
+            # Clear the previous slot's part reference
+            var prev_slot_control = chassis_slots_map[previous_slot]
+            if prev_slot_control and prev_slot_control is ChassisSlot:
+                prev_slot_control.clear_part()
+            
+            # Remove from slot parent and add back to hand
+            if card.get_parent() != hand_container:
+                # Capture the card's current global position before reparenting
+                var card_global_pos = card.global_position
+                
+                if card.get_parent():
+                    card.get_parent().remove_child(card)
+                if hand_container:
+                    hand_container.add_child(card)
+                    
+                    # Restore the card's global position after reparenting
+                    card.global_position = card_global_pos
+            
+            # Remove the attached flag
+            if card.has_meta("attached_to_chassis"):
+                card.remove_meta("attached_to_chassis")
+            
+            # Reset card properties for hand
+            card.modulate = Color(1, 1, 1, 1)  # Reset transparency
+            card.scale = Vector2(1.0, 1.0)  # Reset scale
+            card.mouse_filter = Control.MOUSE_FILTER_STOP
         
         # Make sure the card is properly tracked in hand
         if card is Card and not cards_in_hand.has(card):
             cards_in_hand.append(card)
             print("Added card back to hand tracking")
+        
+        # Reposition cards in hand container
+        if hand_container and hand_container.has_method("_reposition_cards"):
+            hand_container._reposition_cards()
+        elif card.has_method("reset_position"):
+            # Fallback if no hand container repositioning
+            card.reset_position()
             
 # Reset all slot highlights
 func _reset_slot_highlights():
@@ -421,41 +616,179 @@ func _attach_part_to_slot(card, slot_name):
             valid_slot = (slot_name == "arm_left" or slot_name == "arm_right")
         "Legs":
             valid_slot = (slot_name == "legs")
+    
     if valid_slot:
-        # Remove previous part in this slot if any
-        if attached_parts.has(slot_name) and is_instance_valid(attached_parts[slot_name]):
-            attached_parts[slot_name].queue_free()
+        # Check if this card is already attached somewhere else and needs to be moved
+        var card_current_slot = ""
+        for existing_slot in attached_parts:
+            if attached_parts[existing_slot] == card:
+                card_current_slot = existing_slot
+                break
+        
+        # If the card is moving from one slot to another, clean up the old slot first
+        if card_current_slot != "" and card_current_slot != slot_name:
+            print("Moving card from " + card_current_slot + " to " + slot_name)
+            attached_parts.erase(card_current_slot)
+            
+            # Clear the old slot's part reference
+            var old_slot_control = chassis_slots_map[card_current_slot]
+            if old_slot_control and old_slot_control is ChassisSlot:
+                old_slot_control.clear_part()
+        
+        # Handle previous part in this slot if any (different card)
+        var previous_card = null
+        if attached_parts.has(slot_name) and is_instance_valid(attached_parts[slot_name]) and attached_parts[slot_name] != card:
+            previous_card = attached_parts[slot_name]
+            
+            # Only return to hand if it's a Card (not a placeholder sprite)
+            if previous_card is Card:
+                print("Returning previous card to hand: ", previous_card.data.name)
+                
+                # Remove from the chassis slot first
+                var previous_slot = chassis_slots_map[slot_name]
+                if previous_slot and previous_slot is ChassisSlot:
+                    previous_slot.clear_part()
+                
+                # Capture the card's current global position before reparenting
+                var card_global_pos = previous_card.global_position
+                
+                # Remove from current parent (the slot)
+                if previous_card.get_parent():
+                    previous_card.get_parent().remove_child(previous_card)
+                
+                # Add to hand container (use the exported hand_container)
+                if hand_container:
+                    hand_container.add_child(previous_card)
+                    
+                    # Set the card's global position to where it was before reparenting
+                    previous_card.global_position = card_global_pos
+                    
+                    # Add back to hand tracking
+                    if not cards_in_hand.has(previous_card):
+                        cards_in_hand.append(previous_card)
+                    
+                    # Reset card properties for hand
+                    previous_card.mouse_filter = Control.MOUSE_FILTER_STOP
+                    previous_card.modulate = Color(1, 1, 1, 1)  # Reset transparency
+                    previous_card.scale = Vector2(1.0, 1.0)  # Reset scale
+                    
+                    # Remove chassis attachment flag
+                    if previous_card.has_meta("attached_to_chassis"):
+                        previous_card.remove_meta("attached_to_chassis")
+                    
+                    # Now trigger repositioning which will animate to proper hand position
+                    if hand_container.has_method("_reposition_cards"):
+                        hand_container._reposition_cards()
+                else:
+                    # If we can't return to hand, just remove it
+                    previous_card.queue_free()
+            else:
+                # Not a proper card, just remove
+                previous_card.queue_free()
         
         # Get the target slot
         var target_slot = chassis_slots_map[slot_name]
         
         # Move card to slot position (center in slot)
         if target_slot:
-            # Calculate center position
-            var center_pos = target_slot.global_position + (target_slot.size / 2.0)
-            # Adjust for card size (assuming card.size exists or is 100x150)
-            var card_size = card.size if "size" in card else Vector2(100, 150)
-            card.global_position = center_pos - (card_size / 2.0)
-            
-            # Make sure the card stays visible when attached
-            if card is Control:
-                card.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Prevent card from capturing mouse events
+            if card is Card:
+                # Remove the card from hand tracking first
+                cards_in_hand.erase(card)
+                print("BuildView: Removed card from cards_in_hand tracking")
+                
+                # Remove from current parent (likely hand_container)
+                var old_parent = card.get_parent()
+                if old_parent:
+                    print("BuildView: Removing card from parent: " + old_parent.name)
+                    old_parent.remove_child(card)
+                
+                # Add the card as a child of the slot
+                print("BuildView: Adding card to slot: " + slot_name)
+                target_slot.add_child(card)
+                
+                # Position it properly within the slot (centered)
+                var slot_center_x = target_slot.size.x / 2 - card.size.x / 2
+                var slot_center_y = target_slot.size.y / 2 - card.size.y / 2
+                card.position = Vector2(slot_center_x, slot_center_y)
+                print("BuildView: Positioned card at local position: " + str(card.position) + " within slot size: " + str(target_slot.size))
+                
+                # Clear any target_position that HandContainer might have set
+                if card.has_method("clear_target_position") or "target_position" in card:
+                    card.target_position = Vector2.ZERO
+                
+                # Update the DragDrop component's original position to the new slot position
+                if card.drag_drop:
+                    # Use global position since DragDrop works in global coordinates
+                    card.drag_drop.original_position = card.global_position
+                    print("BuildView: Updated DragDrop original_position to: " + str(card.drag_drop.original_position))
+                
+                # Clear any highlight effects
+                if card.has_method("set_highlight"):
+                    card.set_highlight(false)
+                
+                # Reset scale to normal
+                card.scale = Vector2(1.0, 1.0)
+                
+                # Keep the card interactive for dragging
+                card.mouse_filter = Control.MOUSE_FILTER_STOP
+                
+                # Mark as attached to chassis
+                card.set_meta("attached_to_chassis", slot_name)
+                
+                # Clear any target position to prevent HandContainer animation
+                card.target_position = Vector2.ZERO
+                
+                print("Positioned card in slot: " + slot_name + " at local pos: " + str(card.position))
+            else:
+                # Handle non-Card objects (legacy fallback)
+                var center_pos = target_slot.global_position + (target_slot.size / 2.0)
+                var card_size = card.size if "size" in card else Vector2(100, 150)
+                var target_pos = center_pos - (card_size / 2.0)
+                card.global_position = target_pos
             
             # If the slot is a ChassisSlot, tell it that it has a part now
-            if target_slot is ChassisSlot:
+            if target_slot is ChassisSlot and target_slot.has_method("set_part"):
                 target_slot.set_part(card)
         
         # Store as attached part
         attached_parts[slot_name] = card
         
-        # Remove from hand array
-        cards_in_hand.erase(card)
+        # If using a HandContainer, tell it to reposition remaining cards
+        if hand_container and hand_container.has_method("_reposition_cards"):
+            hand_container._reposition_cards()
         
         # Apply part effects (would call to Robot/GameManager in full implementation)
         print("Attached " + card_data.name + " to " + slot_name)
+        return true
     else:
-        # Return to original position
-        if card is Card and card.has_method("reset_position"):
+        # Not a valid slot - return to original position
+        print("Invalid slot for card type: " + card_data.type + " can't go in " + slot_name)
+        
+        # Return the card to hand
+        if card.get_parent() != hand_container:
+            # Capture the card's current global position before reparenting
+            var card_global_pos = card.global_position
+            
+            if card.get_parent():
+                card.get_parent().remove_child(card)
+            if hand_container:
+                hand_container.add_child(card)
+                
+                # Restore the card's global position after reparenting
+                card.global_position = card_global_pos
+        
+        # Reset card properties
+        card.modulate = Color(1, 1, 1, 1)
+        card.scale = Vector2(1.0, 1.0)
+        
+        # Make sure it's tracked in hand
+        if not cards_in_hand.has(card):
+            cards_in_hand.append(card)
+        
+        # Reposition hand cards
+        if hand_container and hand_container.has_method("_reposition_cards"):
+            hand_container._reposition_cards()
+        elif card.has_method("reset_position"):
             card.reset_position()
-        elif card.has_meta("original_position"):
-            card.position = card.get_meta("original_position")
+        
+        return false

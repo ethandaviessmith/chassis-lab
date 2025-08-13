@@ -82,15 +82,38 @@ func highlight(is_valid: bool = true):
         background.color = highlight_color
         # Make highlight more visible for valid slots
         modulate = Color(1.2, 1.2, 0.8, 1.0)  # Slightly brighter yellow
+        
+        # Kill any existing tween first
+        if background.has_meta("active_tween"):
+            var old_tween = background.get_meta("active_tween")
+            if old_tween and old_tween.is_valid() and old_tween.is_running():
+                old_tween.kill()
+        
+        # Add a subtle pulse animation
+        var tween = create_tween()
+        tween.tween_property(background, "color", highlight_color.lightened(0.3), 0.5)
+        tween.tween_property(background, "color", highlight_color, 0.5)
+        tween.set_loops()
+        
+        # Store reference to the tween
+        background.set_meta("active_tween", tween)
     else:
-        background.color = invalid_color
-        # Make invalid slots have a red tint
-        modulate = Color(1.2, 0.8, 0.8, 1.0)  # Slightly reddish
+        pass
+        # background.color = invalid_color
+        # # Make invalid slots have a red tint
+        # modulate = Color(1.2, 0.8, 0.8, 1.0)  # Slightly reddish
         
     is_highlighted = true
 
 # Remove highlight
 func unhighlight():
+    # Stop any running tweens - using stored reference
+    if background.has_meta("active_tween"):
+        var tween = background.get_meta("active_tween")
+        if tween and tween.is_valid() and tween.is_running():
+            tween.kill()
+        background.remove_meta("active_tween")
+            
     background.color = normal_color
     is_highlighted = false
     
@@ -99,17 +122,32 @@ func unhighlight():
 
 # Set the part in this slot
 func set_part(part):
+    # Clear any existing part first
+    if current_part != null:
+        clear_part()
+    
     current_part = part
     has_part = part != null
     
-    # Could change appearance when filled
+    # Change appearance when filled
     if has_part:
         background.color = normal_color.darkened(0.2)
+        print("Slot " + slot_type + " now has part: " + str(part))
+        
+        # Make sure the part is a child of this slot
+        if part.get_parent() != self:
+            if part.get_parent():
+                part.get_parent().remove_child(part)
+            add_child(part)
+            print("Added part to slot " + slot_type)
     else:
         background.color = normal_color
 
 # Clear the part from this slot
 func clear_part():
+    # Don't remove the part from the scene, just clear our reference
+    # The BuildView will handle moving it elsewhere (like back to hand)
     current_part = null
     has_part = false
     background.color = normal_color
+    print("Slot " + slot_type + " cleared")

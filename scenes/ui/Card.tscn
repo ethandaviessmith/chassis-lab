@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://7265h3h34unm"]
+[gd_scene load_steps=3 format=3 uid="uid://7265h3h34unm"]
 
 [ext_resource type="Script" uid="uid://fru48j6lxgyl" path="res://scenes/ui/Card.gd" id="1_34xrx"]
+[ext_resource type="Script" uid="uid://de1f6vav0t21r" path="res://scripts/utils/DragDrop.gd" id="2_6dpf0"]
 
 [node name="Card" type="Control"]
 custom_minimum_size = Vector2(140, 200)
@@ -8,6 +9,7 @@ layout_mode = 3
 anchors_preset = 0
 offset_right = 140.0
 offset_bottom = 200.0
+focus_mode = 2
 script = ExtResource("1_34xrx")
 
 [node name="Background" type="ColorRect" parent="."]
@@ -17,6 +19,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 1
 color = Color(0.2, 0.2, 0.2, 0.8)
 
 [node name="Highlight" type="ColorRect" parent="."]
@@ -27,6 +30,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 1
 color = Color(1, 1, 0.2, 0.2)
 
 [node name="NameLabel" type="Label" parent="."]
@@ -36,6 +40,7 @@ anchor_right = 1.0
 offset_top = 5.0
 offset_bottom = 31.0
 grow_horizontal = 2
+mouse_filter = 1
 text = "Card Name"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -47,6 +52,7 @@ anchor_right = 1.0
 offset_top = 30.0
 offset_bottom = 56.0
 grow_horizontal = 2
+mouse_filter = 1
 text = "Type"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -123,8 +129,13 @@ anchor_bottom = 1.0
 offset_top = -25.0
 grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 1
 theme_override_font_sizes/font_size = 10
 text = "Card effects"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
+
+[node name="DragDrop" type="Node" parent="."]
+script = ExtResource("2_6dpf0")
+metadata/_custom_type_script = "uid://de1f6vav0t21r"
