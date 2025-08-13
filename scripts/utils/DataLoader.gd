@@ -39,7 +39,7 @@ func load_starting_deck() -> Array:
 		"Head": 0,
 		"Core": 0,
 		"Arm": 0,
-		"Leg": 0,  # Note: cards.json uses "Leg" not "Legs"
+		"Legs": 0,
 		"Utility": 0
 	}
 	

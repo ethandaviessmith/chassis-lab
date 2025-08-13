@@ -2,6 +2,7 @@ extends Control
 class_name BuildView
 
 signal combat_requested()
+signal chassis_updated(attached_parts)
 
 # References to managers - set these in the editor
 @export var game_manager: GameManager
@@ -887,6 +888,10 @@ func _attach_part_to_slot(card, slot_name):
             energy_message = " (moved)"
         
         print("Attached " + card_data.name + " to " + slot_name + energy_message)
+        
+        # Emit signal to update robot visuals in real-time
+        emit_signal("chassis_updated", attached_parts)
+        
         return true
     else:
         # Not a valid slot - return to original position
@@ -983,3 +988,6 @@ func _return_card_to_hand(card):
     # Reposition cards in hand container
     if hand_container and hand_container.has_method("_reposition_cards"):
         hand_container._reposition_cards()
+    
+    # Emit signal to update robot visuals after card removal
+    emit_signal("chassis_updated", attached_parts)

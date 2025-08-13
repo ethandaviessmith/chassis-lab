@@ -11,6 +11,11 @@ signal part_removed(slot_name)
 @onready var left_arm_sprite = $LeftArmSprite
 @onready var right_arm_sprite = $RightArmSprite
 @onready var legs_sprite = $LegsSprite
+@onready var utility_sprite = $UtilitySprite
+
+# Frame index mapping for AsepriteWizard sprites
+# Maps left arm frames to right arm frames (left + 4 = right)
+var left_to_right_offset = 4
 
 # Parts data for visual representation
 var scrapper_data = null
@@ -25,7 +30,7 @@ func _ready():
     update_visuals()
 
 # Create a part object from card data
-func create_part_from_card(card_data: Dictionary):
+func create_part_from_card(card_data: Dictionary, is_right: bool = false):
     # Convert card data to a part object that can be used for visuals
     var part = {
         "name": card_data.get("name", "Unknown Part"),
@@ -34,51 +39,55 @@ func create_part_from_card(card_data: Dictionary):
         "heat": card_data.get("heat", 0),
         "durability": card_data.get("durability", 1),
         "effects": card_data.get("effects", []),
-        "sprite": null  # Will be set from image path if available
+        "frame_index": 0
     }
     
-    # Load sprite if image path is provided
-    if card_data.has("image") and card_data.image != "":
-        var texture = load(card_data.image)
-        if texture:
-            part.sprite = texture
-    
+    # Get frame index from card data
+    if card_data.has("frame"):
+        part.frame_index = card_data.frame
+        
+        # For arms, add offset for right side
+        if card_data.get("type", "").to_lower() == "arm" and !is_right:
+            part.frame_index += left_to_right_offset
     return part
 
 # Attach a part to a specific slot (visual only)
 func attach_part_visual(part_data, slot: String):
+    Log.pr("Attaching part ", part_data.name, " to ", slot, " ", part_data.frame_index)
     match slot:
         "scrapper":
             scrapper_data = part_data
             # Scrapper parts don't have sprites but we store the data
         "head":
             head_data = part_data
-            if head_sprite and part_data.has("sprite") and part_data.sprite:
-                head_sprite.texture = part_data.sprite
+            if head_sprite and part_data.has("frame_index"):
+                head_sprite.frame = part_data.frame_index
                 head_sprite.visible = true
         "core":
             core_data = part_data
-            if core_sprite and part_data.has("sprite") and part_data.sprite:
-                core_sprite.texture = part_data.sprite
+            if core_sprite and part_data.has("frame_index"):
+                core_sprite.frame = part_data.frame_index
                 core_sprite.visible = true
         "left_arm":
             left_arm_data = part_data
-            if left_arm_sprite and part_data.has("sprite") and part_data.sprite:
-                left_arm_sprite.texture = part_data.sprite
+            if left_arm_sprite and part_data.has("frame_index"):
+                left_arm_sprite.frame = part_data.frame_index
                 left_arm_sprite.visible = true
         "right_arm":
             right_arm_data = part_data
-            if right_arm_sprite and part_data.has("sprite") and part_data.sprite:
-                right_arm_sprite.texture = part_data.sprite
+            if right_arm_sprite and part_data.has("frame_index"):
+                right_arm_sprite.frame = part_data.frame_index
                 right_arm_sprite.visible = true
         "legs":
             legs_data = part_data
-            if legs_sprite and part_data.has("sprite") and part_data.sprite:
-                legs_sprite.texture = part_data.sprite
+            if legs_sprite and part_data.has("frame_index"):
+                legs_sprite.frame = part_data.frame_index
                 legs_sprite.visible = true
         "utility":
             utility_data = part_data
-            # Utility parts don't have sprites but we store the data
+            if utility_sprite and part_data.has("frame_index"):
+                utility_sprite.frame = part_data.frame_index
+                utility_sprite.visible = true
     
     print("RobotFrame: Attached ", part_data.name, " to ", slot)
     emit_signal("part_attached", part_data, slot)
@@ -97,35 +106,32 @@ func remove_part_visual(slot: String):
             removed_data = head_data
             head_data = null
             if head_sprite:
-                head_sprite.texture = null
                 head_sprite.visible = false
         "core":
             removed_data = core_data
             core_data = null
             if core_sprite:
-                core_sprite.texture = null
                 core_sprite.visible = false
         "left_arm":
             removed_data = left_arm_data
             left_arm_data = null
             if left_arm_sprite:
-                left_arm_sprite.texture = null
                 left_arm_sprite.visible = false
         "right_arm":
             removed_data = right_arm_data
             right_arm_data = null
             if right_arm_sprite:
-                right_arm_sprite.texture = null
                 right_arm_sprite.visible = false
         "legs":
             removed_data = legs_data
             legs_data = null
             if legs_sprite:
-                legs_sprite.texture = null
                 legs_sprite.visible = false
         "utility":
             removed_data = utility_data
             utility_data = null
+            if utility_sprite:
+                utility_sprite.visible = false
     
     if removed_data:
         print("RobotFrame: Removed ", removed_data.name, " from ", slot)
@@ -146,20 +152,17 @@ func clear_all_parts():
     
     # Clear visual sprites
     if head_sprite:
-        head_sprite.texture = null
         head_sprite.visible = false
     if core_sprite:
-        core_sprite.texture = null
         core_sprite.visible = false
     if left_arm_sprite:
-        left_arm_sprite.texture = null
         left_arm_sprite.visible = false
     if right_arm_sprite:
-        right_arm_sprite.texture = null
         right_arm_sprite.visible = false
     if legs_sprite:
-        legs_sprite.texture = null
         legs_sprite.visible = false
+    if utility_sprite:
+        utility_sprite.visible = false
     
     emit_signal("robot_frame_updated")
     update_visuals()
@@ -177,17 +180,20 @@ func build_robot_visuals(attached_parts: Dictionary):
         if attached_parts.has(slot_name) and is_instance_valid(attached_parts[slot_name]):
             var card = attached_parts[slot_name]
             if card is Card and card.data.size() > 0:
-                print("  - Adding visual for ", slot_name, ": ", card.data.name)
+                print("  - Adding visual for ", slot_name, ": ", card.data.name, card.data.frame)
                 
-                # Convert slot names to robot part names
+                # Convert slot names to robot part names and determine if it's a right arm
                 var robot_slot = slot_name
+                var is_right_arm = false
                 if slot_name == "arm_left":
                     robot_slot = "left_arm"
+                    is_right_arm = false
                 elif slot_name == "arm_right":
                     robot_slot = "right_arm"
+                    is_right_arm = true
                 
                 # Create a part object from card data and attach visually
-                var part_data = create_part_from_card(card.data)
+                var part_data = create_part_from_card(card.data, is_right_arm)
                 attach_part_visual(part_data, robot_slot)
     
     print("RobotFrame: Visual build complete")

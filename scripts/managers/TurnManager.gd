@@ -19,10 +19,59 @@ func _ready():
     # Initialize energy for the first turn (but don't start turn yet)
     current_energy = max_energy
     _update_energy_display()
+    
+    # Connect to robot frame signals for real-time visual updates
+    if robot_frame:
+        robot_frame.connect("robot_frame_updated", _on_robot_frame_updated)
+        print("TurnManager: Connected to robot_frame signals")
+    
+    # Try to find and connect to BuildView
+    call_deferred("_connect_to_build_view")
+
+# Deferred connection to BuildView to ensure scene is ready
+func _connect_to_build_view():
+    var build_view = get_node_or_null("../../BuildView")
+    if not build_view:
+        build_view = get_node_or_null("../BuildView") 
+    if not build_view:
+        # Try to find BuildView in the scene tree
+        var scene_root = get_tree().current_scene
+        if scene_root:
+            build_view = scene_root.find_child("BuildView", true, false)
+    
+    if build_view:
+        connect_to_build_view(build_view)
+    else:
+        print("TurnManager: Warning - Could not find BuildView to connect to")
 
 func initialize():
     # Call this to start the first turn properly
     start_turn()
+
+# Handle real-time robot frame updates
+func _on_robot_frame_updated():
+    print("TurnManager: Robot frame updated - triggering visual refresh")
+    # This gets called whenever the robot frame changes
+    # We can add visual effects or animations here if needed
+
+# Connect to BuildView to listen for chassis changes
+func connect_to_build_view(build_view):
+    if build_view and build_view.has_signal("chassis_updated"):
+        build_view.connect("chassis_updated", _on_chassis_updated)
+        print("TurnManager: Connected to BuildView chassis updates")
+
+# Handle chassis updates from BuildView
+func _on_chassis_updated(attached_parts):
+    print("TurnManager: Chassis updated, refreshing robot visuals...")
+    update_robot_visuals(attached_parts)
+
+# Update robot visuals in real-time
+func update_robot_visuals(attached_parts):
+    # Update visual robot frame
+    if robot_frame:
+        robot_frame.build_robot_visuals(attached_parts)
+    else:
+        print("Warning: No RobotFrame assigned for visual updates")
 
 func set_energy_label(label: Label):
     energy_label = label
@@ -87,8 +136,6 @@ func build_robot_and_start_combat(build_view, game_manager = null):
     # Build visual robot in the frame (for animation)
     if robot_frame:
         robot_frame.build_robot_visuals(attached_parts)
-        # TODO: Add build animation sequence here
-        # await robot_frame.play_build_animation()
     else:
         print("Warning: No RobotFrame assigned, visual building will be skipped")
     

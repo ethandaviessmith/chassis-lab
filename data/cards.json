@@ -6,6 +6,7 @@
     "cost": 1,
     "heat": 0,
     "durability": 3,
+    "frame": 12,
     "effects": [
       {
         "type": "crit_chance",
@@ -29,6 +30,7 @@
     "cost": 2,
     "heat": 1,
     "durability": 4,
+    "frame": 13,
     "effects": [
       {
         "type": "target_priority",
@@ -52,6 +54,7 @@
     "cost": 2,
     "heat": 1,
     "durability": 5,
+    "frame": 16,
     "effects": [
       {
         "type": "energy_next_turn",
@@ -75,6 +78,7 @@
     "cost": 1,
     "heat": 0,
     "durability": 3,
+    "frame": 17,
     "effects": [
       {
         "type": "heat_dissipation",
@@ -93,6 +97,7 @@
     "cost": 2,
     "heat": 1,
     "durability": 3,
+    "frame": 4,
     "effects": [
       {
         "type": "damage",
@@ -116,6 +121,7 @@
     "cost": 1,
     "heat": 1,
     "durability": 4,
+    "frame": 5,
     "effects": [
       {
         "type": "damage",
@@ -139,6 +145,7 @@
     "cost": 1,
     "heat": 0,
     "durability": 3,
+    "frame": 6,
     "effects": [
       {
         "type": "damage",
@@ -162,6 +169,7 @@
     "cost": 2,
     "heat": 1,
     "durability": 4,
+    "frame": 7,
     "effects": [
       {
         "type": "damage",
@@ -185,6 +193,7 @@
     "cost": 1,
     "heat": 0,
     "durability": 5,
+    "frame": 18,
     "effects": [
       {
         "type": "armor",
@@ -204,10 +213,11 @@
   {
     "id": "tracked_legs",
     "name": "Tracked Legs",
-    "type": "Leg",
+    "type": "Legs",
     "cost": 1,
     "heat": 0,
     "durability": 4,
+    "frame": 0,
     "effects": [
       {
         "type": "stability",
@@ -227,10 +237,11 @@
   {
     "id": "jump_jets",
     "name": "Jump Jets",
-    "type": "Leg",
+    "type": "Legs",
     "cost": 2,
     "heat": 1,
     "durability": 3,
+    "frame": 1,
     "effects": [
       {
         "type": "dodge_chance",
@@ -254,6 +265,7 @@
     "cost": 1,
     "heat": 2,
     "durability": 2,
+    "frame": 20,
     "effects": [
       {
         "type": "damage_percent",
@@ -277,6 +289,7 @@
     "cost": 1,
     "heat": 0,
     "durability": 1,
+    "frame": 21,
     "effects": [
       {
         "type": "heal",
@@ -300,6 +313,7 @@
     "cost": 2,
     "heat": 1,
     "durability": 4,
+    "frame": 14,
     "effects": [
       {
         "type": "attack_speed_percent",
@@ -318,6 +332,7 @@
     "cost": 0,
     "heat": 0,
     "durability": 3,
+    "frame": 19,
     "effects": [
       {
         "type": "energy_storage",
@@ -337,10 +352,11 @@
   {
     "id": "reinforced_armature",
     "name": "Reinforced Armature",
-    "type": "Leg",
+    "type": "Legs",
     "cost": 1,
     "heat": 0,
     "durability": 4,
+    "frame": 2,
     "effects": [
       {
         "type": "move_speed_percent",
