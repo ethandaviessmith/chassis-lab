@@ -1,0 +1,55 @@
+[gd_scene load_steps=9 format=3 uid="uid://bxujf7uclkw2q"]
+
+[ext_resource type="Script" uid="uid://c7w4x7sp1qi1s" path="res://game.gd" id="1_u1xfj"]
+[ext_resource type="PackedScene" uid="uid://dcryuipiv10vo" path="res://scenes/BuildView.tscn" id="2_1rhdn"]
+[ext_resource type="Script" uid="uid://db0n6tl4t48du" path="res://scripts/managers/GameManager.gd" id="2_dc040"]
+[ext_resource type="Script" uid="uid://c4ap0o0bfb38" path="res://scripts/managers/DeckManager.gd" id="3_1rhdn"]
+[ext_resource type="Script" uid="uid://td5q8x8qdwtt" path="res://scripts/managers/TurnManager.gd" id="4_sjxhf"]
+[ext_resource type="Script" uid="uid://w2gk6u6vkang" path="res://scripts/managers/CombatResolver.gd" id="5_ko0rf"]
+[ext_resource type="PackedScene" uid="uid://bveorgcpxhvbp" path="res://scenes/RewardScreen.tscn" id="7_sjxhf"]
+[ext_resource type="Script" uid="uid://bsqyfsrcw1o5c" path="res://scripts/utils/DataLoader.gd" id="8_ko0rf"]
+
+[node name="Root" type="Node2D"]
+script = ExtResource("1_u1xfj")
+
+[node name="BuildView" parent="." instance=ExtResource("2_1rhdn")]
+
+[node name="CombatView" type="Node2D" parent="."]
+
+[node name="HUD" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Managers" type="Node" parent="."]
+
+[node name="GameManager" type="Node" parent="Managers"]
+script = ExtResource("2_dc040")
+metadata/_custom_type_script = "uid://db0n6tl4t48du"
+
+[node name="DeckManager" type="Node" parent="Managers"]
+script = ExtResource("3_1rhdn")
+metadata/_custom_type_script = "uid://c4ap0o0bfb38"
+
+[node name="TurnManager" type="Node" parent="Managers"]
+script = ExtResource("4_sjxhf")
+metadata/_custom_type_script = "uid://td5q8x8qdwtt"
+
+[node name="CombatResolver" type="Node" parent="Managers"]
+script = ExtResource("5_ko0rf")
+metadata/_custom_type_script = "uid://w2gk6u6vkang"
+
+[node name="Card" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="RewardScreen" parent="." instance=ExtResource("7_sjxhf")]
+
+[node name="Utils" type="Node" parent="."]
+
+[node name="DataLoader" type="Node" parent="Utils"]
+script = ExtResource("8_ko0rf")
+metadata/_custom_type_script = "uid://bsqyfsrcw1o5c"

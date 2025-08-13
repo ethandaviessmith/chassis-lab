@@ -1,0 +1,360 @@
+[
+  {
+    "id": "scope_visor",
+    "name": "Scope Visor",
+    "type": "Head",
+    "cost": 1,
+    "heat": 0,
+    "durability": 3,
+    "effects": [
+      {
+        "type": "crit_chance",
+        "value": 10,
+        "description": "+10% crit chance"
+      },
+      {
+        "type": "target_priority",
+        "value": "lowest_hp",
+        "description": "Target lowest-HP enemy"
+      }
+    ],
+    "rarity": "Common",
+    "image": "res://assets/images/parts/scope_visor.png",
+    "description": "Basic targeting system with modest crit bonus."
+  },
+  {
+    "id": "overseer_ai",
+    "name": "Overseer AI",
+    "type": "Head",
+    "cost": 2,
+    "heat": 1,
+    "durability": 4,
+    "effects": [
+      {
+        "type": "target_priority",
+        "value": "nearest",
+        "description": "Prioritize nearest target"
+      },
+      {
+        "type": "attack_speed_percent",
+        "value": 5,
+        "description": "+5% attack speed"
+      }
+    ],
+    "rarity": "Uncommon",
+    "image": "res://assets/images/parts/overseer_ai.png",
+    "description": "Advanced tactical processor that prioritizes closest threats."
+  },
+  {
+    "id": "fusion_core",
+    "name": "Fusion Core",
+    "type": "Core",
+    "cost": 2,
+    "heat": 1,
+    "durability": 5,
+    "effects": [
+      {
+        "type": "energy_next_turn",
+        "value": 1,
+        "description": "+1 Energy next turn"
+      },
+      {
+        "type": "max_heat",
+        "value": 2,
+        "description": "+2 Heat capacity"
+      }
+    ],
+    "rarity": "Uncommon",
+    "image": "res://assets/images/parts/fusion_core.png",
+    "description": "Experimental power source that provides extra energy."
+  },
+  {
+    "id": "coolant_tank",
+    "name": "Coolant Tank",
+    "type": "Core",
+    "cost": 1,
+    "heat": 0,
+    "durability": 3,
+    "effects": [
+      {
+        "type": "heat_dissipation",
+        "value": 1,
+        "description": "-1 Heat per tick while >0 Heat"
+      }
+    ],
+    "rarity": "Rare",
+    "image": "res://assets/images/parts/coolant_tank.png",
+    "description": "Advanced cooling system that rapidly dissipates heat."
+  },
+  {
+    "id": "rail_arm",
+    "name": "Rail Arm",
+    "type": "Arm",
+    "cost": 2,
+    "heat": 1,
+    "durability": 3,
+    "effects": [
+      {
+        "type": "damage",
+        "value": 12,
+        "description": "12 damage per shot"
+      },
+      {
+        "type": "pierce",
+        "value": 1,
+        "description": "Pierce through 1 target"
+      }
+    ],
+    "rarity": "Uncommon",
+    "image": "res://assets/images/parts/rail_arm.png",
+    "description": "High-powered linear accelerator that fires metal slugs through multiple targets."
+  },
+  {
+    "id": "saw_arm",
+    "name": "Saw Arm",
+    "type": "Arm",
+    "cost": 1,
+    "heat": 1,
+    "durability": 4,
+    "effects": [
+      {
+        "type": "damage",
+        "value": 4,
+        "description": "4 damage per hit"
+      },
+      {
+        "type": "bleed",
+        "value": 2,
+        "description": "2 bleed damage over 3s"
+      }
+    ],
+    "rarity": "Common",
+    "image": "res://assets/images/parts/saw_arm.png",
+    "description": "Rotating saw blade that causes sustained bleeding damage."
+  },
+  {
+    "id": "pulse_blaster",
+    "name": "Pulse Blaster",
+    "type": "Arm",
+    "cost": 1,
+    "heat": 0,
+    "durability": 3,
+    "effects": [
+      {
+        "type": "damage",
+        "value": 6,
+        "description": "6 damage per hit"
+      },
+      {
+        "type": "stagger_chance",
+        "value": 10,
+        "description": "+10% stagger chance"
+      }
+    ],
+    "rarity": "Common",
+    "image": "res://assets/images/parts/pulse_blaster.png",
+    "description": "Standard energy weapon with consistent output."
+  },
+  {
+    "id": "flak_arm",
+    "name": "Flak Arm",
+    "type": "Arm",
+    "cost": 2,
+    "heat": 1,
+    "durability": 4,
+    "effects": [
+      {
+        "type": "damage",
+        "value": 8,
+        "description": "8 damage per hit"
+      },
+      {
+        "type": "shield_damage_bonus",
+        "value": 25,
+        "description": "+25% damage vs shielded"
+      }
+    ],
+    "rarity": "Uncommon",
+    "image": "res://assets/images/parts/flak_arm.png",
+    "description": "Explosive flak cannon that's especially effective against shielded targets."
+  },
+  {
+    "id": "heavy_plating",
+    "name": "Heavy Plating",
+    "type": "Core",
+    "cost": 1,
+    "heat": 0,
+    "durability": 5,
+    "effects": [
+      {
+        "type": "armor",
+        "value": 10,
+        "description": "+10 Armor"
+      },
+      {
+        "type": "move_speed_percent",
+        "value": -5,
+        "description": "-5% Move Speed"
+      }
+    ],
+    "rarity": "Common",
+    "image": "res://assets/images/parts/heavy_plating.png",
+    "description": "Thick armor plating that slows movement slightly."
+  },
+  {
+    "id": "tracked_legs",
+    "name": "Tracked Legs",
+    "type": "Leg",
+    "cost": 1,
+    "heat": 0,
+    "durability": 4,
+    "effects": [
+      {
+        "type": "stability",
+        "value": 20,
+        "description": "+20% stability"
+      },
+      {
+        "type": "knockback_resistance",
+        "value": 10,
+        "description": "-10% knockback"
+      }
+    ],
+    "rarity": "Common",
+    "image": "res://assets/images/parts/tracked_legs.png",
+    "description": "Basic treads for stable movement."
+  },
+  {
+    "id": "jump_jets",
+    "name": "Jump Jets",
+    "type": "Leg",
+    "cost": 2,
+    "heat": 1,
+    "durability": 3,
+    "effects": [
+      {
+        "type": "dodge_chance",
+        "value": 20,
+        "description": "+20% dodge chance"
+      },
+      {
+        "type": "dodge_cooldown",
+        "value": 5,
+        "description": "5 second cooldown between dodges"
+      }
+    ],
+    "rarity": "Rare",
+    "image": "res://assets/images/parts/jump_jets.png",
+    "description": "Propulsion system that enables quick evasive maneuvers."
+  },
+  {
+    "id": "overclock",
+    "name": "Overclock",
+    "type": "Utility",
+    "cost": 1,
+    "heat": 2,
+    "durability": 2,
+    "effects": [
+      {
+        "type": "damage_percent",
+        "value": 25,
+        "description": "+25% damage this turn"
+      },
+      {
+        "type": "heat_instant",
+        "value": 3,
+        "description": "+3 Heat instantly"
+      }
+    ],
+    "rarity": "Uncommon",
+    "image": "res://assets/images/parts/overclock.png",
+    "description": "Emergency power surge that boosts damage at the cost of heat generation."
+  },
+  {
+    "id": "patch_kit",
+    "name": "Patch Kit",
+    "type": "Utility",
+    "cost": 1,
+    "heat": 0,
+    "durability": 1,
+    "effects": [
+      {
+        "type": "heal",
+        "value": 15,
+        "description": "Heal 15 HP"
+      },
+      {
+        "type": "heat_reduce",
+        "value": 2,
+        "description": "Purge 2 Heat"
+      }
+    ],
+    "rarity": "Common",
+    "image": "res://assets/images/parts/patch_kit.png",
+    "description": "Emergency repairs and cooling for critical situations."
+  },
+  {
+    "id": "auto_loader",
+    "name": "Auto-Loader",
+    "type": "Head",
+    "cost": 2,
+    "heat": 1,
+    "durability": 4,
+    "effects": [
+      {
+        "type": "attack_speed_percent",
+        "value": 15,
+        "description": "+15% attack speed"
+      }
+    ],
+    "rarity": "Rare",
+    "image": "res://assets/images/parts/auto_loader.png",
+    "description": "Advanced targeting computer that increases weapon cycling rate."
+  },
+  {
+    "id": "capacitor",
+    "name": "Capacitor",
+    "type": "Core",
+    "cost": 0,
+    "heat": 0,
+    "durability": 3,
+    "effects": [
+      {
+        "type": "energy_storage",
+        "value": 1,
+        "description": "Store 1 unused Energy"
+      },
+      {
+        "type": "energy_release",
+        "value": "next_turn",
+        "description": "Release stored energy next turn"
+      }
+    ],
+    "rarity": "Common",
+    "image": "res://assets/images/parts/capacitor.png",
+    "description": "Power storage system that can save energy for later use."
+  },
+  {
+    "id": "reinforced_armature",
+    "name": "Reinforced Armature",
+    "type": "Leg",
+    "cost": 1,
+    "heat": 0,
+    "durability": 4,
+    "effects": [
+      {
+        "type": "move_speed_percent",
+        "value": 10,
+        "description": "+10% move speed"
+      },
+      {
+        "type": "armor",
+        "value": 5,
+        "description": "+5% armor"
+      }
+    ],
+    "rarity": "Uncommon",
+    "image": "res://assets/images/parts/reinforced_armature.png",
+    "description": "Lightweight reinforced leg structure providing mobility and protection."
+  }
+]

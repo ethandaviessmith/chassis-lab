@@ -1,0 +1,39 @@
+[gd_scene load_steps=2 format=3 uid="uid://dcryuipiv10vo"]
+
+[ext_resource type="Script" uid="uid://c7p1hjor1eu7x" path="res://scenes/BuildView.gd" id="1_s1mf6"]
+
+[node name="BuildView" type="Node2D"]
+script = ExtResource("1_s1mf6")
+metadata/_custom_type_script = "uid://c7p1hjor1eu7x"
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_top = -1.0
+offset_right = 40.0
+offset_bottom = 39.0
+
+[node name="ChasisView" type="Node2D" parent="."]
+
+[node name="HeadSlot" type="Sprite2D" parent="ChasisView"]
+
+[node name="CoreSlot" type="Sprite2D" parent="ChasisView"]
+
+[node name="ArmSlotLeft" type="Sprite2D" parent="ChasisView"]
+
+[node name="ArmSlotRight" type="Sprite2D" parent="ChasisView"]
+
+[node name="LegSlotLeft" type="Sprite2D" parent="ChasisView"]
+
+[node name="LegSlotRight" type="Sprite2D" parent="ChasisView"]
+
+[node name="ScrapperArea" type="Node2D" parent="."]
+
+[node name="ScrapperVisual" type="Sprite2D" parent="ScrapperArea"]
+
+[node name="HeatDisplay" type="Sprite2D" parent="ScrapperArea"]
+
+[node name="HandArea" type="Node2D" parent="."]
+
+[node name="StartCombatButton" type="Button" parent="."]
+offset_right = 8.0
+offset_bottom = 8.0
+text = "End"

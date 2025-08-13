@@ -1,0 +1,17 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bp20euxxcnvp4"
+
+[deps]
+
+files=["res://data/cards.name.translation", "res://data/cards.type.translation", "res://data/cards.cost.translation", "res://data/cards.heat.translation", "res://data/cards.durability.translation", "res://data/cards.effects.translation", "res://data/cards.rarity.translation", "res://data/cards.description.translation"]
+
+source_file="res://data/cards.csv"
+dest_files=["res://data/cards.name.translation", "res://data/cards.type.translation", "res://data/cards.cost.translation", "res://data/cards.heat.translation", "res://data/cards.durability.translation", "res://data/cards.effects.translation", "res://data/cards.rarity.translation", "res://data/cards.description.translation"]
+
+[params]
+
+compress=true
+delimiter=0

@@ -1,0 +1,100 @@
+[
+  {
+    "id": "scavenger_drone",
+    "name": "Scavenger Drone",
+    "hp": 8,
+    "armor": 0,
+    "damage": 1,
+    "attack_speed": 2.0,
+    "move_speed": 120,
+    "behavior": "aggressive",
+    "special_abilities": [
+      {
+        "name": "Burst Attack",
+        "description": "Fires rapidly in bursts",
+        "trigger": "always",
+        "effect": "burst_fire"
+      },
+      {
+        "name": "Tactical Retreat",
+        "description": "Retreats when health below 30%",
+        "trigger": "on_health_threshold",
+        "effect": "retreat"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/scavenger_drone.png",
+    "is_boss": false
+  },
+  {
+    "id": "guardian_sentry",
+    "name": "Guardian Sentry",
+    "hp": 15,
+    "armor": 5,
+    "damage": 3,
+    "attack_speed": 0.8,
+    "move_speed": 50,
+    "behavior": "defensive",
+    "special_abilities": [
+      {
+        "name": "Reinforced Shell",
+        "description": "Reduces incoming damage",
+        "trigger": "always",
+        "effect": "damage_reduction"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/guardian_sentry.png",
+    "is_boss": false
+  },
+  {
+    "id": "striker_unit",
+    "name": "Striker Unit",
+    "hp": 12,
+    "armor": 2,
+    "damage": 2,
+    "attack_speed": 1.5,
+    "move_speed": 100,
+    "behavior": "flanking",
+    "special_abilities": [
+      {
+        "name": "Dash Strike",
+        "description": "Quickly closes distance",
+        "trigger": "on_distance_threshold",
+        "effect": "dash"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/striker_unit.png",
+    "is_boss": false
+  },
+  {
+    "id": "juggernaut_prototype",
+    "name": "Juggernaut Prototype",
+    "hp": 30,
+    "armor": 10,
+    "damage": 4,
+    "attack_speed": 1.0,
+    "move_speed": 70,
+    "behavior": "adaptive",
+    "special_abilities": [
+      {
+        "name": "Adaptive Defense",
+        "description": "Changes attack pattern at low health",
+        "trigger": "on_health_threshold",
+        "effect": "behavior_change"
+      },
+      {
+        "name": "Emergency Repair",
+        "description": "Self-repairs when critically damaged",
+        "trigger": "on_health_threshold",
+        "effect": "self_heal"
+      },
+      {
+        "name": "Overcharge",
+        "description": "Temporarily increases damage but generates heat",
+        "trigger": "on_cooldown",
+        "effect": "damage_boost"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/juggernaut_prototype.png",
+    "is_boss": true
+  }
+]

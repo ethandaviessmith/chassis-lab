@@ -1,0 +1,311 @@
+[gd_scene load_steps=11 format=3 uid="uid://brqbdkycilxbm"]
+
+[ext_resource type="Script" uid="uid://db0n6tl4t48du" path="res://scripts/managers/GameManager.gd" id="1_ebyi6"]
+[ext_resource type="Script" uid="uid://c7w4x7sp1qi1s" path="res://game.gd" id="1_nxtc6"]
+[ext_resource type="PackedScene" uid="uid://7265h3h34unm" path="res://scenes/ui/Card.tscn" id="2_58qjv"]
+[ext_resource type="Script" uid="uid://c7p1hjor1eu7x" path="res://scenes/BuildView.gd" id="2_jlsqs"]
+[ext_resource type="Script" uid="uid://c4ap0o0bfb38" path="res://scripts/managers/DeckManager.gd" id="3_c01mt"]
+[ext_resource type="Script" uid="uid://td5q8x8qdwtt" path="res://scripts/managers/TurnManager.gd" id="4_nxtc6"]
+[ext_resource type="Script" uid="uid://1x2salsfhh3r" path="res://scenes/ui/HandContainer.gd" id="4_q8u5g"]
+[ext_resource type="Script" uid="uid://bhxuylddcuvp" path="res://scenes/ui/ChassisSlot.gd" id="5_eba30"]
+[ext_resource type="Script" uid="uid://w2gk6u6vkang" path="res://scripts/managers/CombatResolver.gd" id="5_jlsqs"]
+[ext_resource type="Script" uid="uid://bsqyfsrcw1o5c" path="res://scripts/utils/DataLoader.gd" id="6_q8u5g"]
+
+[node name="Main" type="Node" node_paths=PackedStringArray("game_manager")]
+script = ExtResource("1_nxtc6")
+game_manager = NodePath("Managers/GameManager")
+
+[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("energy_label", "heat_label", "end_phase_button", "hand_container", "head_slot", "core_slot", "arm_left_slot", "arm_right_slot", "legs_slot")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_jlsqs")
+energy_label = NodePath("EnergyLabel")
+heat_label = NodePath("HeatLabel")
+end_phase_button = NodePath("StartCombatButton")
+hand_container = NodePath("HandContainer")
+head_slot = NodePath("ChassisContainer/HeadSlot")
+core_slot = NodePath("ChassisContainer/CoreSlot")
+arm_left_slot = NodePath("ChassisContainer/LeftArmSlot")
+arm_right_slot = NodePath("ChassisContainer/RightArmSlot")
+legs_slot = NodePath("ChassisContainer/LegsSlot")
+card_scene = ExtResource("2_58qjv")
+
+[node name="Background" type="ColorRect" parent="BuildView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.12549, 0.12549, 0.12549, 1)
+
+[node name="Title" type="Label" parent="BuildView"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -89.0
+offset_top = 20.0
+offset_right = 89.0
+offset_bottom = 46.0
+grow_horizontal = 2
+text = "CHASSIS LAB - BUILD PHASE"
+
+[node name="HandContainer" type="Container" parent="BuildView"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -429.0
+offset_top = -220.0
+offset_right = 429.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("4_q8u5g")
+
+[node name="ChassisContainer" type="Control" parent="BuildView"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -156.0
+offset_top = -156.0
+offset_right = 156.0
+offset_bottom = 84.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="BuildView/ChassisContainer"]
+layout_mode = 2
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 0.501961)
+
+[node name="HeadSlot" type="Control" parent="BuildView/ChassisContainer"]
+layout_mode = 2
+anchors_preset = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -50.0
+offset_top = 20.0
+offset_right = 50.0
+offset_bottom = 70.0
+grow_horizontal = 2
+script = ExtResource("5_eba30")
+normal_color = Color(0.2, 0.6, 1, 0.25098)
+
+[node name="SlotLabel" type="Label" parent="BuildView/ChassisContainer/HeadSlot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -13.0
+offset_right = 20.0
+offset_bottom = 13.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "HEAD"
+
+[node name="CoreSlot" type="Control" parent="BuildView/ChassisContainer"]
+layout_mode = 2
+anchors_preset = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -50.0
+offset_top = -40.0
+offset_right = 50.0
+offset_bottom = 10.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("5_eba30")
+slot_type = "Core"
+normal_color = Color(1, 0.8, 0.2, 0.25098)
+
+[node name="SlotLabel" type="Label" parent="BuildView/ChassisContainer/CoreSlot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -13.0
+offset_right = 20.0
+offset_bottom = 13.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "CORE"
+
+[node name="LeftArmSlot" type="Control" parent="BuildView/ChassisContainer"]
+layout_mode = 2
+anchors_preset = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -40.0
+offset_right = -50.0
+offset_bottom = 10.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("5_eba30")
+slot_type = "Arm"
+normal_color = Color(1, 0.3, 0.3, 0.25098)
+
+[node name="SlotLabel" type="Label" parent="BuildView/ChassisContainer/LeftArmSlot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -13.0
+offset_right = 20.0
+offset_bottom = 13.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "L ARM"
+
+[node name="RightArmSlot" type="Control" parent="BuildView/ChassisContainer"]
+layout_mode = 2
+anchors_preset = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 50.0
+offset_top = -40.0
+offset_right = 150.0
+offset_bottom = 10.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("5_eba30")
+slot_type = "Arm"
+normal_color = Color(1, 0.3, 0.3, 0.25098)
+
+[node name="SlotLabel" type="Label" parent="BuildView/ChassisContainer/RightArmSlot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -13.0
+offset_right = 20.0
+offset_bottom = 13.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "R ARM"
+
+[node name="LegsSlot" type="Control" parent="BuildView/ChassisContainer"]
+layout_mode = 2
+anchors_preset = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -43.0
+offset_top = 40.0
+offset_right = 37.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("5_eba30")
+slot_type = "Legs"
+normal_color = Color(0.3, 0.8, 0.3, 0.25098)
+
+[node name="SlotLabel" type="Label" parent="BuildView/ChassisContainer/LegsSlot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -13.0
+offset_right = 20.0
+offset_bottom = 13.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "LEGS"
+
+[node name="StartCombatButton" type="Button" parent="BuildView"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -130.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 51.0
+grow_horizontal = 0
+text = "START COMBAT"
+
+[node name="EnergyLabel" type="Label" parent="BuildView"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 120.0
+offset_bottom = 46.0
+text = "Energy: 10/10"
+
+[node name="HeatLabel" type="Label" parent="BuildView"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 50.0
+offset_right = 120.0
+offset_bottom = 76.0
+text = "Heat: 0/10"
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Managers" type="Node" parent="."]
+
+[node name="GameManager" type="Node" parent="Managers"]
+script = ExtResource("1_ebyi6")
+metadata/_custom_type_script = "uid://db0n6tl4t48du"
+
+[node name="DeckManager" type="Node" parent="Managers"]
+script = ExtResource("3_c01mt")
+metadata/_custom_type_script = "uid://c4ap0o0bfb38"
+
+[node name="TurnManager" type="Node" parent="Managers"]
+script = ExtResource("4_nxtc6")
+metadata/_custom_type_script = "uid://td5q8x8qdwtt"
+
+[node name="CombatResolver" type="Node" parent="Managers"]
+script = ExtResource("5_jlsqs")
+metadata/_custom_type_script = "uid://w2gk6u6vkang"
+
+[node name="Utils" type="Node" parent="."]
+
+[node name="DataLoader" type="Node" parent="Utils"]
+script = ExtResource("6_q8u5g")
+metadata/_custom_type_script = "uid://bsqyfsrcw1o5c"
+
+[node name="CombatView" type="Node2D" parent="."]
+
+[node name="RewardScreen" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
