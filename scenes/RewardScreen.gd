@@ -9,6 +9,8 @@ signal continue_to_next_encounter
 @export var reward_container: HBoxContainer = null
 @export var continue_button: Button = null
 
+@export var data_loader: DataLoader
+
 # Reward options
 var available_rewards: Array = []
 var selected_reward = null
@@ -48,7 +50,6 @@ func generate_rewards(victory: bool):
     available_rewards.clear()
     
     # Load card data for potential rewards
-    var data_loader = get_node_or_null("/root/DataLoader")
     if not data_loader:
         # Create fallback rewards if DataLoader not available
         generate_fallback_rewards(victory)

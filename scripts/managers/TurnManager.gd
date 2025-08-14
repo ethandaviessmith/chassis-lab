@@ -112,6 +112,14 @@ func gain_energy(amount: int):
     _update_energy_display()
     print("Gained ", actual_gained, " energy (", amount, " requested). Energy: ", old_energy, " -> ", current_energy)
 
+func reset_energy():
+    # Reset energy to maximum (useful for clearing chassis)
+    var old_energy = current_energy
+    current_energy = max_energy
+    emit_signal("energy_changed", current_energy, max_energy)
+    _update_energy_display()
+    print("Energy reset from ", old_energy, " to ", current_energy, " (max)")
+
 func set_max_energy(new_max: int):
     max_energy = new_max
     current_energy = min(current_energy, max_energy)  # Adjust current if over new max

@@ -53,6 +53,7 @@ offset_left = 106.0
 offset_top = -14.0
 offset_right = 116.0
 offset_bottom = 9.0
+mouse_filter = 1
 text = "11"
 horizontal_alignment = 2
 
@@ -62,6 +63,7 @@ offset_left = 120.0
 offset_top = -14.0
 offset_right = 142.0
 offset_bottom = 9.0
+mouse_filter = 1
 text = "⚡"
 
 [node name="NameLabel" type="Label" parent="."]

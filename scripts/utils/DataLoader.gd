@@ -11,43 +11,66 @@ func _ready():
 func load_all_cards() -> Array:
 	var cards = []
 	
+	print("DataLoader: Attempting to load cards from: ", CARDS_PATH)
+	
 	# Load cards from JSON file
 	var file = FileAccess.open(CARDS_PATH, FileAccess.READ)
 	if file:
+		print("DataLoader: Successfully opened cards file")
 		var json_text = file.get_as_text()
 		file.close()
+		
+		print("DataLoader: JSON text length: ", json_text.length())
 		
 		var json = JSON.new()
 		var parse_result = json.parse(json_text)
 		if parse_result == OK:
 			var data = json.get_data()
 			cards = data
+			print("DataLoader: Successfully parsed JSON, found ", cards.size(), " cards")
+		else:
+			print("DataLoader: ERROR - Failed to parse JSON: ", json.error_string)
+			cards = _get_fallback_cards()
 	else:
-		push_error("Failed to open cards file: " + CARDS_PATH)
+		push_error("DataLoader: ERROR - Failed to open cards file: " + CARDS_PATH)
+		print("DataLoader: Using fallback cards instead")
 		# Fallback to minimal data
 		cards = _get_fallback_cards()
 	
 	return cards
 
 func load_starting_deck() -> Array:
-	# For the prototype, just load a subset of cards as starting deck
+	# Load 15 random cards for the starting deck
+	print("DataLoader: Loading starting deck...")
 	var all_cards = load_all_cards()
+	print("DataLoader: Loaded ", all_cards.size(), " total cards from JSON")
 	var starter_deck = []
 	
-	# Add some basic cards of each type
-	var type_counts = {
-		"Head": 0,
-		"Core": 0,
-		"Arm": 0,
-		"Legs": 0,
-		"Utility": 0
-	}
+	# If we don't have enough cards, duplicate the available ones
+	if all_cards.size() == 0:
+		print("DataLoader: ERROR - No cards available to create starting deck!")
+		return starter_deck
 	
-	# Add a balanced starter deck
-	for card in all_cards:
-		if card.rarity == "Common" and type_counts.get(card.type, 0) < 2:
-			starter_deck.append(card)
-			type_counts[card.type] = type_counts.get(card.type, 0) + 1
+	# Create a pool of cards to choose from (including duplicates if needed)
+	var card_pool = all_cards.duplicate()
+	print("DataLoader: Initial card pool size: ", card_pool.size())
+	
+	# If we need more than available, add duplicates
+	while card_pool.size() < 15:
+		card_pool.append_array(all_cards)
+		print("DataLoader: Expanded card pool to: ", card_pool.size())
+	
+	# Shuffle the pool
+	card_pool.shuffle()
+	print("DataLoader: Shuffled card pool")
+	
+	# Take the first 15 cards
+	for i in range(15):
+		starter_deck.append(card_pool[i])
+	
+	print("DataLoader: Created starting deck with ", starter_deck.size(), " cards")
+	for i in range(min(3, starter_deck.size())):
+		print("  Sample card ", i+1, ": ", starter_deck[i].get("name", "Unknown"))
 	
 	return starter_deck
 

@@ -29,7 +29,15 @@ func _ready():
     print("  TurnManager: ", "Set" if turn_manager else "Not set")
     
     # Load initial deck
+    print("DeckManager: About to load starting deck...")
     load_starting_deck()
+    
+    # Print final status after loading
+    var status = get_deck_status()
+    print("DeckManager: Final deck status after loading:")
+    print("  Deck size: ", status.deck_size)
+    print("  Hand size: ", status.hand_size)
+    print("  Discard size: ", status.discard_size)
 
 # Force reload the starting deck (useful for debugging)
 func reload_deck():

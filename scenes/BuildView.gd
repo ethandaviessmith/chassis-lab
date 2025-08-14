@@ -13,9 +13,11 @@ signal chassis_updated(attached_parts)
 @export var energy_label: Label
 @export var heat_label: Label
 @export var end_phase_button: Button
+@export var clear_chassis_button: Button
 
 # Card container
 @export var hand_container: Container
+@export var deck_container: Control
 var hand_spacing = 120
 var cards_in_hand = []
 
@@ -57,6 +59,17 @@ func _ready():
     
     # Setup UI elements and slots
     setup_ui()
+    
+    # Wait for DeckManager to be properly initialized before starting build phase
+    if deck_manager:
+        # Check if deck is loaded, if not wait for it
+        var deck_status = deck_manager.get_deck_status()
+        if deck_status.deck_size == 0 and deck_status.discard_size == 0:
+            Log.pr("[BuildView] Deck not loaded yet, waiting for DeckManager...")
+            await get_tree().process_frame  # Wait one frame
+            # Try reloading the deck
+            deck_manager.reload_deck()
+            await get_tree().process_frame  # Wait another frame
     
     # Initialize the build phase
     start_build_phase()
@@ -133,6 +146,10 @@ func setup_ui():
     if end_phase_button and not end_phase_button.pressed.is_connected(Callable(self, "_on_end_phase_button_pressed")):
         end_phase_button.pressed.connect(Callable(self, "_on_end_phase_button_pressed"))
     
+    # Connect clear chassis button if needed
+    if clear_chassis_button and not clear_chassis_button.pressed.is_connected(Callable(self, "_on_clear_chassis_button_pressed")):
+        clear_chassis_button.pressed.connect(Callable(self, "_on_clear_chassis_button_pressed"))
+    
     # Initialize UI labels with default values
     if energy_label:
         energy_label.text = "Energy: 0/0"
@@ -147,19 +164,20 @@ func start_build_phase():
         turn_manager.initialize()
         Log.pr("[BuildView] TurnManager initialized")
     
-    # Draw initial hand
-    if deck_manager:
-        draw_starting_hand()
-    else:
-        # Fallback if DeckManager not available - create test cards
-        Log.pr("[BuildView] No DeckManager, using test cards")
-        create_test_cards()
+    # Initialize deck container visual
+    setup_deck_container()
+    
+    # Start with no cards in hand
+    clear_hand()
     
     # Update UI
     update_ui()
     
     # Draw chassis slots
     draw_chassis_slots()
+    
+    # Start drawing cards sequentially with delay
+    start_sequential_card_draw()
 
 # Draw the initial hand of cards
 func draw_starting_hand():
@@ -190,6 +208,160 @@ func draw_starting_hand():
     for i in range(hand.size()):
         create_card_sprite(hand[i], i)
     Log.pr("[BuildView] Created ", hand.size(), " card sprites")
+
+# Setup the visual deck container
+func setup_deck_container():
+    if not deck_container:
+        Log.pr("[BuildView] Warning: DeckContainer not assigned!")
+        return
+    
+    # Clear existing deck visuals
+    for child in deck_container.get_children():
+        child.queue_free()
+    
+    # Create deck stack visual
+    create_deck_stack_visual()
+    Log.pr("[BuildView] Deck container initialized")
+
+# Create visual representation of the deck stack
+func create_deck_stack_visual():
+    if not deck_container or not deck_manager:
+        return
+    
+    # Create a stack of card backs to represent the deck
+    var deck_status = deck_manager.get_deck_status()
+    var total_cards = deck_status.deck_size + deck_status.discard_size
+    
+    # Create main deck visual (a stack of card backs)
+    var deck_visual = ColorRect.new()
+    deck_visual.name = "DeckStack"
+    deck_visual.color = Color(0.2, 0.3, 0.5, 0.8)  # Dark blue for deck
+    deck_visual.size = Vector2(100, 150)
+    deck_visual.position = Vector2(10, 10)
+    
+    # Add deck count label
+    var count_label = Label.new()
+    count_label.name = "DeckCount"
+    count_label.text = str(total_cards)
+    count_label.position = Vector2(35, 60)
+    count_label.add_theme_font_size_override("font_size", 24)
+    deck_visual.add_child(count_label)
+    
+    # Add deck title label
+    var title_label = Label.new()
+    title_label.name = "DeckTitle"
+    title_label.text = "DECK"
+    title_label.position = Vector2(30, 10)
+    title_label.add_theme_font_size_override("font_size", 14)
+    deck_visual.add_child(title_label)
+    
+    # Make deck clickable for drawing cards
+    deck_visual.mouse_filter = Control.MOUSE_FILTER_STOP
+    deck_visual.gui_input.connect(_on_deck_clicked)
+    
+    deck_container.add_child(deck_visual)
+
+# Clear all cards from hand
+func clear_hand():
+    for card in cards_in_hand:
+        card.queue_free()
+    cards_in_hand.clear()
+    Log.pr("[BuildView] Hand cleared")
+
+# Handle deck container clicks to draw cards
+func _on_deck_clicked(event):
+    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+        draw_single_card()
+
+# Draw a single card from deck to hand
+func draw_single_card():
+    if not deck_manager:
+        Log.pr("[BuildView] No DeckManager available")
+        return
+    
+    # Check if hand is at max capacity
+    if cards_in_hand.size() >= deck_manager.max_hand_size:
+        Log.pr("[BuildView] Hand is full! (", cards_in_hand.size(), "/", deck_manager.max_hand_size, ")")
+        return
+    
+    # Draw the card first (this handles deck/discard reshuffling internally)
+    var drawn_card = deck_manager.draw_card()
+    if not drawn_card.is_empty():
+        # Create visual for the new card (use current hand size as index since we're about to add it)
+        create_card_sprite(drawn_card, cards_in_hand.size())
+        Log.pr("[BuildView] Drew card: ", drawn_card.get("name", "Unknown"))
+        
+        # Update deck visual
+        update_deck_visual()
+    else:
+        Log.pr("[BuildView] Failed to draw card - deck and discard both empty")
+
+# Update the deck visual counter
+func update_deck_visual():
+    if not deck_container:
+        return
+    
+    var deck_stack = deck_container.get_node_or_null("DeckStack")
+    if not deck_stack:
+        return
+    
+    var count_label = deck_stack.get_node_or_null("DeckCount")
+    if not count_label:
+        return
+    
+    var deck_status = deck_manager.get_deck_status()
+    var total_cards = deck_status.deck_size + deck_status.discard_size
+    count_label.text = str(total_cards)
+
+# Start drawing cards sequentially with 0.2s delay between each
+func start_sequential_card_draw():
+    if not deck_manager:
+        Log.pr("[BuildView] No DeckManager available for sequential draw")
+        return
+    
+    # Draw cards up to hand limit with delay
+    var max_cards = deck_manager.max_hand_size
+    Log.pr("[BuildView] Starting sequential card draw, target: ", max_cards, " cards")
+    
+    # Initial deck status check with more detailed info
+    var initial_status = deck_manager.get_deck_status()
+    Log.pr("[BuildView] Initial deck status - deck: ", initial_status.deck_size, ", discard: ", initial_status.discard_size, ", hand: ", initial_status.hand_size)
+    Log.pr("[BuildView] DataLoader exists: ", initial_status.get("data_loader_exists", "unknown"))
+    
+    # If deck is empty, try to force reload
+    if initial_status.deck_size == 0 and initial_status.discard_size == 0:
+        Log.pr("[BuildView] Deck is empty! Attempting to reload...")
+        deck_manager.reload_deck()
+        await get_tree().process_frame  # Wait for reload to complete
+        var reloaded_status = deck_manager.get_deck_status()
+        Log.pr("[BuildView] After reload - deck: ", reloaded_status.deck_size, ", discard: ", reloaded_status.discard_size)
+    
+    for i in range(max_cards):
+        # Log current iteration
+        Log.pr("[BuildView] Sequential draw iteration ", i + 1, "/", max_cards)
+        
+        # Check if we can still draw cards
+        if cards_in_hand.size() >= deck_manager.max_hand_size:
+            Log.pr("[BuildView] Hand limit reached during sequential draw")
+            break
+        
+        # Check deck status before drawing
+        var deck_status = deck_manager.get_deck_status()
+        Log.pr("[BuildView] Pre-draw - deck:", deck_status.deck_size, " discard:", deck_status.discard_size, " hands:", str(deck_status.hand_size) + "/" + str(cards_in_hand.size()))
+        
+        # If no cards available, break
+        if deck_status.deck_size == 0 and deck_status.discard_size == 0:
+            Log.pr("[BuildView] No more cards to draw (deck and discard empty)")
+            break
+        
+        # Draw the card
+        draw_single_card()
+        
+        # Wait 0.2 seconds before drawing next card
+        if i < max_cards - 1:  # Don't wait after the last card
+            await get_tree().create_timer(0.2).timeout
+    
+    Log.pr("[BuildView] Sequential card draw complete. Hand size: ", cards_in_hand.size())
 
 # Create test cards when no DeckManager available
 func create_test_cards():
@@ -308,6 +480,22 @@ func create_card_sprite(card_data, index):
                 valid_types = slot.get_valid_part_types()
             card.drag_drop.register_drop_target(slot, valid_types)
         
+        # Register HandContainer as a drop target for returning cards to hand
+        if hand_container:
+            card.drag_drop.register_drop_target(hand_container, [])
+            
+            # Also register HandContainer's Area2D if it exists
+            var hand_area = null
+            for child in hand_container.get_children():
+                if child is Area2D:
+                    hand_area = child
+                    break
+            if hand_area:
+                card.drag_drop.register_drop_target(hand_area, [])
+                print("BuildView: Registered HandContainer Area2D as drop target for card: ", card.data.get("name", "Unknown") if card is Card else str(card))
+
+
+        
     # Note: Card is already added to cards_in_hand above
 
 # Get a color based on card type
@@ -365,6 +553,44 @@ func _on_end_phase_button_pressed():
     else:
         # Fallback to old behavior
         emit_signal("combat_requested")
+
+# Handle button press to clear all chassis parts
+func _on_clear_chassis_button_pressed():
+    clear_all_chassis_parts()
+
+# Clear all attached parts from chassis slots
+func clear_all_chassis_parts():
+    Log.pr("[BuildView] Clearing all chassis parts")
+    
+    # Return all attached cards to hand
+    var cards_to_return = []
+    for slot_name in attached_parts:
+        var card = attached_parts[slot_name]
+        if is_instance_valid(card) and card is Card:
+            cards_to_return.append(card)
+    
+    # Clear the attached_parts tracking first
+    attached_parts.clear()
+    
+    # Clear all chassis slots
+    for slot_name in chassis_slots_map:
+        var slot = chassis_slots_map[slot_name]
+        if slot and slot is ChassisSlot and slot.has_method("clear_part"):
+            slot.clear_part()
+    
+    # Return each card to hand with proper async handling
+    for card in cards_to_return:
+        await _return_card_to_hand(card)
+    
+    # Reset energy to maximum when clearing chassis
+    if turn_manager and turn_manager.has_method("reset_energy"):
+        turn_manager.reset_energy()
+        Log.pr("[BuildView] Energy reset to maximum")
+    
+    # Emit signal to update robot visuals (empty chassis)
+    emit_signal("chassis_updated", attached_parts)
+    
+    Log.pr("[BuildView] Chassis cleared - ", cards_to_return.size(), " cards returned to hand")
 
 # Process input events for card dragging
 # Input handling has been moved to the DragDrop component
@@ -807,11 +1033,16 @@ func _attach_part_to_slot(card, slot_name):
                 print("BuildView: Adding card to slot: " + slot_name)
                 target_slot.add_child(card)
                 
-                # Position it properly within the slot (centered)
-                var slot_center_x = target_slot.size.x / 2 - card.size.x / 2
-                var slot_center_y = target_slot.size.y / 2 - card.size.y / 2
+                # Set card state to chassis slot FIRST (this will handle scaling automatically)
+                if card.has_method("set_card_state"):
+                    card.set_card_state(Card.State.CHASSIS_SLOT)
+                
+                # Now position it properly within the slot (centered) using the scaled size
+                var effective_card_size = card.size * card.scale  # Account for scaling
+                var slot_center_x = target_slot.size.x / 2 - effective_card_size.x / 2
+                var slot_center_y = target_slot.size.y / 2 - effective_card_size.y / 2
                 card.position = Vector2(slot_center_x, slot_center_y)
-                print("BuildView: Positioned card at local position: " + str(card.position) + " within slot size: " + str(target_slot.size))
+                print("BuildView: Positioned card at local position: " + str(card.position) + " within slot size: " + str(target_slot.size) + " (scaled card size: " + str(effective_card_size) + ")")
                 
                 # Clear any target_position that HandContainer might have set
                 if card.has_method("clear_target_position") or "target_position" in card:
@@ -826,10 +1057,6 @@ func _attach_part_to_slot(card, slot_name):
                 # Clear any highlight effects
                 if card.has_method("set_highlight"):
                     card.set_highlight(false)
-                
-                # Set card state to chassis slot (this will handle scaling automatically)
-                if card.has_method("set_card_state"):
-                    card.set_card_state(Card.State.CHASSIS_SLOT)
                 
                 # Keep the card interactive for dragging
                 card.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -947,6 +1174,14 @@ func _return_card_to_hand(card):
     # If card was previously attached, remove from that slot
     if was_attached:
         print("Removing card from " + previous_slot + " and returning to hand")
+        
+        # Refund the energy cost of the card
+        if card is Card and card.data.has("cost"):
+            var card_cost = card.data.get("cost", 0)
+            if card_cost > 0 and turn_manager and turn_manager.has_method("gain_energy"):
+                turn_manager.gain_energy(card_cost)
+                print("Refunded ", card_cost, " energy for returning ", card.data.get("name", "Unknown"), " to hand")
+        
         # Remove from previous slot tracking
         attached_parts.erase(previous_slot)
         
@@ -957,37 +1192,90 @@ func _return_card_to_hand(card):
     
     # Remove from slot parent and add back to hand
     if card.get_parent() != hand_container:
-        # Capture the card's current global position before reparenting
-        var card_global_pos = card.global_position
-        
         if card.get_parent():
             card.get_parent().remove_child(card)
         if hand_container:
             hand_container.add_child(card)
-            
-            # Restore the card's global position after reparenting
-            card.global_position = card_global_pos
     
-    # Remove the attached flag
+    # COMPREHENSIVE STATE RESET
+    # Remove all chassis-related metadata
     if card.has_meta("attached_to_chassis"):
         card.remove_meta("attached_to_chassis")
     
-    # Reset card properties for hand
+    # Reset visual properties
     card.modulate = Color(1, 1, 1, 1)  # Reset transparency
     card.mouse_filter = Control.MOUSE_FILTER_STOP
+    card.rotation = 0  # Reset any rotation
+    card.scale = Vector2.ONE  # Reset any scaling
+    
+    # Reset DragDrop component state if it exists
+    if card.drag_drop:
+        # Clear any stored original position from chassis
+        card.drag_drop.is_dragging = false
+        card.drag_drop.drag_offset = Vector2.ZERO
+        # Don't set original_position here - let HandContainer handle positioning
+        print("Reset DragDrop component state")
+    
+    # Clear any target position that might interfere with hand positioning
+    if "target_position" in card:
+        card.target_position = Vector2.ZERO
     
     # Set card state to hand (this will handle scaling automatically)
     if card.has_method("set_card_state"):
         card.set_card_state(Card.State.HAND)
+        print("Set card state to HAND")
+    
+    # Reset position to origin - let HandContainer handle final positioning
+    card.position = Vector2.ZERO
     
     # Make sure the card is properly tracked in hand
     if card is Card and not cards_in_hand.has(card):
         cards_in_hand.append(card)
         print("Added card back to hand tracking")
     
-    # Reposition cards in hand container
+    # Re-register drop targets for the DragDrop component
+    if card.drag_drop:
+        # Clear existing drop targets
+        card.drag_drop.valid_drop_targets.clear()
+        
+        # Re-register all chassis slots as valid drop targets
+        for slot_name in chassis_slots_map:
+            var slot = chassis_slots_map[slot_name]
+            var valid_types = []
+            if slot and slot.has_method("get_valid_part_types"):
+                valid_types = slot.get_valid_part_types()
+            card.drag_drop.register_drop_target(slot, valid_types)
+        
+        # Re-register HandContainer as a drop target for returning cards to hand
+        if hand_container:
+            card.drag_drop.register_drop_target(hand_container, [])
+            
+            # Also register HandContainer's Area2D if it exists
+            var hand_area = null
+            for child in hand_container.get_children():
+                if child is Area2D:
+                    hand_area = child
+                    break
+            if hand_area:
+                card.drag_drop.register_drop_target(hand_area, [])
+                print("Re-registered HandContainer Area2D as drop target for card")
+        
+        print("Re-registered drop targets for card")
+    
+    # Force a frame wait to ensure all changes are applied
+    await get_tree().process_frame
+    
+    # Reposition cards in hand container (this should set proper positions and update DragDrop original_position)
     if hand_container and hand_container.has_method("_reposition_cards"):
         hand_container._reposition_cards()
+        print("Repositioned cards in hand container")
+    
+    # Update DragDrop original position after repositioning
+    if card.drag_drop:
+        card.drag_drop.original_position = card.global_position
+        print("Updated DragDrop original_position to: ", card.drag_drop.original_position)
     
     # Emit signal to update robot visuals after card removal
     emit_signal("chassis_updated", attached_parts)
+    
+    print("Card fully returned to hand with complete state reset")
