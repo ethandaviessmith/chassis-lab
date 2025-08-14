@@ -280,6 +280,18 @@ func attach_part_to_slot(card, slot_name) -> bool:
             
         # Add the card to the slot (after setting its state and position)
         target_slot.set_part(card)
+        
+        # Play attach sound
+        var sound_manager = get_node_or_null("/root/SoundManager")
+        if sound_manager and sound_manager.has_method("play_attach_part"):
+            sound_manager.play_attach_part()
+            
+        # Trigger screen shake
+        var main = get_tree().get_root().get_node_or_null("Main")
+        if main:
+            var screen_shake = main.get_node_or_null("ScreenShake") 
+            if screen_shake and screen_shake.has_method("start_shake"):
+                screen_shake.start_shake()
     
     # Emit signal to update any robot visuals
     emit_signal("chassis_updated", attached_parts)
