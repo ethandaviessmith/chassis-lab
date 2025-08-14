@@ -16,6 +16,9 @@ var energy_label: Label = null
 @export var robot_fighter: RobotFighter = null
 @export var enemy_manager: EnemyManager = null
 @export var stat_manager: StatManager = null
+@export var build_view: BuildView = null
+@export var chassis_manager: ChassisManager
+@export var deck_manager: DeckManager
 
 func _ready():
     # Initialize energy for the first turn (but don't start turn yet)
@@ -30,25 +33,14 @@ func _ready():
     # Try to find and connect to BuildView
     call_deferred("_connect_to_build_view")
     
+    if build_view:
+        build_view.connect("robot_frame_updated", _on_robot_frame_updated)
+        build_view.connect("chassis_updated", _on_chassis_updated)
+        print("TurnManager: Connected to BuildView signals")
+
     # Request next enemy from enemy manager
     if enemy_manager:
         enemy_manager.determine_next_enemy()
-
-# Deferred connection to BuildView to ensure scene is ready
-func _connect_to_build_view():
-    var build_view = get_node_or_null("../../BuildView")
-    if not build_view:
-        build_view = get_node_or_null("../BuildView") 
-    if not build_view:
-        # Try to find BuildView in the scene tree
-        var scene_root = get_tree().current_scene
-        if scene_root:
-            build_view = scene_root.find_child("BuildView", true, false)
-    
-    if build_view:
-        connect_to_build_view(build_view)
-    else:
-        print("TurnManager: Warning - Could not find BuildView to connect to")
 
 func initialize():
     # Call this to start the first turn properly
@@ -59,12 +51,6 @@ func _on_robot_frame_updated():
     print("TurnManager: Robot frame updated - triggering visual refresh")
     # This gets called whenever the robot frame changes
     # We can add visual effects or animations here if needed
-
-# Connect to BuildView to listen for chassis changes
-func connect_to_build_view(build_view):
-    if build_view and build_view.has_signal("chassis_updated"):
-        build_view.connect("chassis_updated", _on_chassis_updated)
-        print("TurnManager: Connected to BuildView chassis updates")
 
 # Handle chassis updates from BuildView
 func _on_chassis_updated(attached_parts):
@@ -155,6 +141,9 @@ func build_robot_and_start_combat(build_view, game_manager = null):
     else:
         print("Warning: No RobotFighter assigned, combat stats will not be updated")
     
+    # Process scrapper parts - decrease durability by 1 for all cards in scrapper slots
+    _process_scrapper_parts()
+    
     # Discard remaining hand cards before combat
     var hand_manager = get_node_or_null("../HandManager")
     if hand_manager and hand_manager.has_method("discard_hand"):
@@ -170,3 +159,22 @@ func build_robot_and_start_combat(build_view, game_manager = null):
         game_manager.start_combat_phase()
     else:
         print("Warning: No GameManager provided or missing start_combat_phase method")
+        
+# Process cards in scrapper slots before combat
+func _process_scrapper_parts():
+
+    for card in chassis_manager.get_scrapper_cards():
+        # Decrease durability by 1
+        var current_durability = card.data.get("durability", 1)
+        current_durability -= 1
+        
+        if current_durability <= 0:
+            print("TurnManager: Scrapper part destroyed")
+            chassis_manager.discard_scrapper_card(card)
+            # Add to discard pile if DeckManager available
+            deck_manager.discard_card(card)
+        else:
+            # Update durability on the card
+            card.data["durability"] = current_durability
+            print("TurnManager: Scrapper durability reduced to ", current_durability)
+    

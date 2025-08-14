@@ -262,7 +262,7 @@ func attack_target(target_node):
                 print(enemy_name, " attacked for ", damage, " damage with melee")
                 
                 # Play attack sound
-                Sound.play_sound("attack", -5.0)
+                Sound.play_attack()
                 
                 # Show attack indicator via combat view
                 if combat_view:
@@ -272,7 +272,7 @@ func attack_target(target_node):
         elif attack_type == "range":
             # Ranged attack - fire a projectile
             # Play ranged attack sound
-            Sound.play_sound("attack", -5.0, 1.2)  # Higher pitch for ranged attacks
+            Sound.play_range_attack()  # Higher pitch for ranged attacks
             
             if combat_view:
                 print(enemy_name, " fired a projectile for ", damage, " damage")

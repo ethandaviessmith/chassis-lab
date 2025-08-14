@@ -346,18 +346,14 @@ func perform_attack(target):
             target.take_damage(damage)
             print("RobotFighter: Attacked for ", damage, " damage with melee")
             
-            # Show attack indicator via combat view
-            # Play melee attack sound
-            Sound.play_sound("attack", -5.0)
+            Sound.play_attack()
             
             if combat_view:
                 combat_view.show_combat_effect("melee_attack", self)
                 combat_view.show_damage_number(damage, target)
                 
     elif attack_type == "range":
-        # Ranged attack - fire a projectile
-        # Play range attack sound
-        Sound.play_sound("attack", -5.0, 1.2)  # Higher pitch for ranged attacks
+        Sound.play_range_attack()
         
         if combat_view:
             print("RobotFighter: Fired a projectile for ", damage, " damage")

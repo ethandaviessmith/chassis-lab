@@ -284,9 +284,7 @@ func attach_part_to_slot(card, slot_name) -> bool:
         
         # Play attach sound
         Sound.play_attach_part()
-        
-        # Also play success sound for user feedback
-        Sound.play_success()
+
             
         # Trigger screen shake
         var main = get_tree().get_root().get_node_or_null("Main")
@@ -299,6 +297,16 @@ func attach_part_to_slot(card, slot_name) -> bool:
     emit_signal("chassis_updated", attached_parts)
     
     return true
+
+func discard_scrapper_card(card):
+    if !chassis_slots_map["scrapper"]:
+        return null
+    chassis_slots_map["scrapper"].remove_card(card)
+
+func get_scrapper_cards():
+    if !chassis_slots_map["scrapper"]:
+        return null
+    return chassis_slots_map["scrapper"].scrapper_cards
 
 # Attach card to the scrapper slot
 func _attach_card_to_scrapper(card) -> bool:
@@ -401,9 +409,7 @@ func clear_all_chassis_parts() -> Array:
             
     # Play detach sound if we have parts to detach
     if cards_to_return.size() > 0:
-        var sound_manager = get_node_or_null("/root/SoundManager")
-        if sound_manager and sound_manager.has_method("play_detach_part"):
-            sound_manager.play_detach_part()
+        Sound.play_detach_part()
     
     # Clear the attached_parts tracking first
     attached_parts.clear()

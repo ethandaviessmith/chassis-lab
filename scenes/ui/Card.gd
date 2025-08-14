@@ -83,14 +83,10 @@ func set_card_state(new_state: State):
 # Handle mouse hover
 func _on_mouse_entered():
     # Apply hover effect (slight scale up or highlight)
-    if not is_being_dragged:
+    if not drag_drop or not drag_drop.is_currently_dragging():
         set_card_scale(1.05, "hover")
-        
-        # Play hover sound
+        z_index = 1  # Bring card to front
         Sound.play_hover()
-        
-    # Store hover state
-    set_meta("hover", true)
 
 # Handle mouse exit
 func _on_mouse_exited():
@@ -188,6 +184,11 @@ func set_hand_container(container: HandContainer):
 func _process(delta):
     # If not being dragged, animate toward target position if set
     if not drag_drop or not drag_drop.is_currently_dragging():
+        # If we're animating a discard, handle that separately
+        if has_meta("animating_discard"):
+            _process_discard_animation(delta)
+            return
+            
         # For attached cards, we don't need to animate if we're already parented to the slot
         # But still allow for initial movement to the correct position
         if has_meta("attached_to_chassis") and get_parent() is ChassisSlot:
@@ -441,3 +442,76 @@ func reset_position():
     parent = get_parent()
     if parent:
         parent.move_child(self, parent.get_child_count() - 1)
+        
+# Discard card with animation to the discard pile
+func discard_card(discard_pile_position: Vector2):
+    print("Card: Animating discard of ", data.get("name", "Unknown"))
+    
+    # Store discard target position
+    set_meta("discard_target", discard_pile_position)
+    
+    # Start animation
+    set_meta("animating_discard", true)
+    set_meta("discard_progress", 0.0)
+    
+    # Store original position and scale for animation
+    set_meta("discard_start_pos", global_position)
+    set_meta("discard_start_scale", scale)
+    
+    # Get deck manager to handle actual discard after animation
+    var deck_manager = get_node_or_null("/root/Main/Managers/DeckManager")
+    if not deck_manager:
+        deck_manager = get_node_or_null("../../Managers/DeckManager")
+    
+    set_meta("deck_manager", deck_manager)
+    
+    # Make sure we're on top
+    z_index = 10
+    
+    # Play discard sound
+    Sound.play_card_place()
+
+# Process the discard animation
+func _process_discard_animation(delta):
+    if not has_meta("animating_discard"):
+        return
+        
+    # Update progress
+    var progress = get_meta("discard_progress") + delta * 2.0  # Animation speed
+    set_meta("discard_progress", progress)
+    
+    if progress >= 1.0:
+        # Animation complete
+        _complete_discard_animation()
+        return
+    
+    # Get start and target positions
+    var start_pos = get_meta("discard_start_pos")
+    var target_pos = get_meta("discard_target")
+    var start_scale = get_meta("discard_start_scale")
+    
+    # Calculate current position and scale
+    global_position = start_pos.lerp(target_pos, progress)
+    scale = start_scale * (1.0 - progress * 0.7)  # Shrink to 30% of original size
+    
+    # Fade out
+    modulate.a = 1.0 - progress * 0.8
+
+# Complete the discard animation
+func _complete_discard_animation():
+    # Get DeckManager from metadata
+    var deck_manager = get_meta("deck_manager")
+    if deck_manager and deck_manager.has_method("discard_card"):
+        # Add card data to discard pile
+        deck_manager.discard_card(self)
+    
+    # Clean up
+    remove_meta("animating_discard")
+    remove_meta("discard_progress")
+    remove_meta("discard_start_pos")
+    remove_meta("discard_target")
+    remove_meta("discard_start_scale")
+    remove_meta("deck_manager")
+    
+    # Remove card from scene
+    queue_free()

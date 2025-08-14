@@ -1,0 +1,222 @@
+extends Control
+class_name DeckControl
+
+# References to UI elements
+@onready var draw_pile_button = $DrawPileButton
+@onready var draw_pile_count = $DrawPileButton/CountLabel
+@onready var discard_pile_button = $DiscardPileButton
+@onready var discard_pile_count = $DiscardPileButton/CountLabel
+@onready var deck_button = $DeckButton
+@onready var deck_count = $DeckButton/CountLabel
+@onready var deck_view_container = $DeckViewContainer
+@onready var deck_grid = $DeckViewContainer/ScrollContainer/GridContainer
+@onready var back_button = $DeckViewContainer/BackButton
+
+# External references
+@export var deck_manager: DeckManager
+@export var card_scene: PackedScene
+
+# State tracking
+var is_deck_view_open = false
+
+
+
+func _ready():
+    # Hide deck view initially
+    if deck_view_container:
+        deck_view_container.visible = false
+        
+        # Set up proper mouse filtering for components
+        # When hidden, the container shouldn't capture input
+        deck_view_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+        
+        # Make sure the ScrollContainer can receive mouse events (scroll wheel)
+        var scroll_container = deck_view_container.get_node_or_null("ScrollContainer")
+        if scroll_container:
+            scroll_container.mouse_filter = Control.MOUSE_FILTER_PASS
+            
+            # Make sure the GridContainer passes mouse events to the ScrollContainer
+            if deck_grid:
+                deck_grid.mouse_filter = Control.MOUSE_FILTER_PASS
+    
+    # Connect button signals
+    if draw_pile_button:
+        draw_pile_button.pressed.connect(_on_draw_pile_button_pressed)
+    if discard_pile_button:
+        discard_pile_button.pressed.connect(_on_discard_pile_button_pressed)
+    if deck_button:
+        deck_button.pressed.connect(_on_deck_button_pressed)
+    if back_button:
+        back_button.pressed.connect(_on_back_button_pressed)
+    
+    # Connect to deck manager signals
+    if deck_manager:
+        deck_manager.connect("deck_updated", _update_counters)
+        _update_counters()  # Initial update
+
+func _update_counters():
+    if not deck_manager:
+        return
+    
+    var status = deck_manager.get_deck_status()
+    
+    # Update draw pile count
+    if draw_pile_count:
+        draw_pile_count.text = str(status.deck_size)
+    
+    # Update discard pile count
+    if discard_pile_count:
+        discard_pile_count.text = str(status.discard_size)
+        
+    # Update total deck count
+    if deck_count:
+        var total_cards = status.deck_size + status.discard_size + status.exhausted_size
+        deck_count.text = str(total_cards)
+
+func _on_draw_pile_button_pressed():
+    _show_deck_view("draw")
+
+func _on_discard_pile_button_pressed():
+    _show_deck_view("discard")
+
+func _on_deck_button_pressed():
+    _show_deck_view("all")
+
+func _on_back_button_pressed():
+    _hide_deck_view()
+
+func _show_deck_view(pile_type = "all"):
+    if not deck_view_container or not deck_manager:
+        return
+    
+    # Start with the container invisible but activate it
+    deck_view_container.visible = true
+    deck_view_container.modulate.a = 0.0  # Start transparent for fade-in
+    is_deck_view_open = true
+    
+    # MOUSE_FILTER_STOP = intercepts all mouse events, blocks anything beneath
+    deck_view_container.mouse_filter = Control.MOUSE_FILTER_STOP
+
+    # Create fade-in effect
+    var tween = create_tween()
+    tween.tween_property(deck_view_container, "modulate:a", 1.0, 0.2)
+    
+    # Play sound effect
+    Sound.play_card_draw()
+    
+    # Clear existing cards
+    for child in deck_grid.get_children():
+        child.queue_free()
+    
+    # Get cards based on pile type
+    var cards_to_show = []
+    match pile_type:
+        "draw":
+            cards_to_show = deck_manager.deck
+        "discard":
+            cards_to_show = deck_manager.discard_pile
+        "all":
+            # Show all cards including draw pile, discard pile, and exhausted cards
+            cards_to_show = deck_manager.deck + deck_manager.discard_pile
+            
+            # Optionally include exhausted cards as well
+            if deck_manager.exhausted_pile:
+                cards_to_show += deck_manager.exhausted_pile
+    
+    # Update the title based on which pile is being viewed
+    var title_label = deck_view_container.get_node_or_null("Label")
+    if title_label:
+        match pile_type:
+            "draw":
+                title_label.text = "Draw Pile"
+            "discard":
+                title_label.text = "Discard Pile"
+            "all":
+                title_label.text = "All Cards"
+    
+    # Create card instances for each card with a staggered animation
+    var delay = 0.0
+    for card_data in cards_to_show:
+        var card = card_scene.instantiate()
+        deck_grid.add_child(card)
+        
+        # Start cards invisible for animation
+        
+        # Prepare the card data
+        var prepared_data = card_data.duplicate()
+        if not "effects" in prepared_data:
+            prepared_data["effects"] = []
+        if not "rarity" in prepared_data:
+            prepared_data["rarity"] = "Common"
+        if not "image" in prepared_data:
+            prepared_data["image"] = ""
+        
+        # Initialize the card
+        card.initialize(prepared_data)
+
+        # Disable drag/drop in deck view
+        if card.drag_drop:
+            card.drag_drop.set_enabled(false)
+            
+        # When showing all cards, add visual indicator for which pile each card belongs to
+        if pile_type == "all":
+            # Add a small indicator for which pile the card is in
+            var indicator_color = Color.WHITE
+            
+            if deck_manager.deck.has(card_data):
+                indicator_color = Color(0.2, 0.6, 0.8, 0.7)  # Blue for draw pile
+            elif deck_manager.discard_pile.has(card_data):
+                indicator_color = Color(0.8, 0.4, 0.2, 0.7)  # Orange for discard pile
+            elif deck_manager.exhausted_pile.has(card_data):
+                indicator_color = Color(0.5, 0.5, 0.5, 0.7)  # Gray for exhausted
+                
+            # Add a colored indicator
+            var indicator = ColorRect.new()
+            indicator.size = Vector2(12, 12)
+            indicator.position = Vector2(8, 8)
+            indicator.color = indicator_color
+            card.add_child(indicator)
+            
+        # Animate each card with a slight delay
+        card.modulate.a = 0.0
+        var card_tween:Tween = create_tween()
+        card_tween.tween_property(card, "modulate:a", 1.0, delay)
+        
+        # Increase delay for next card, but use a smaller increment for larger decks
+        if cards_to_show.size() > 20:
+            delay += 0.02  # 20ms stagger for large decks
+        else:
+            delay += 0.05  # 50ms stagger for small decks
+        if delay > 1.5:
+            delay = 1.5
+
+func _hide_deck_view():
+    if not deck_view_container:
+        return
+    
+    # Optionally play a sound when closing
+    if Sound and Sound.has_method("play_back"):
+        Sound.play_back()
+    
+    # Create fade-out effect
+    var tween = create_tween()
+    tween.tween_property(deck_view_container, "modulate:a", 0.0, 0.2)
+    tween.tween_callback(func():
+        # After fade completes, hide the container and reset properties
+        deck_view_container.visible = false
+        is_deck_view_open = false
+        
+        # Reset mouse filter when hiding
+        deck_view_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+        
+        # Clear existing cards to free memory
+        for child in deck_grid.get_children():
+            child.queue_free()
+    )
+
+# Handle input to close deck view with Escape key
+func _input(event):
+    if event is InputEventKey and event.pressed:
+        if event.keycode == KEY_ESCAPE and is_deck_view_open:
+            _hide_deck_view()
+            get_viewport().set_input_as_handled()

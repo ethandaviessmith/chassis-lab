@@ -502,6 +502,9 @@ func highlight_valid_targets(highlight: bool):
 
 # Helper methods to control dragging programmatically
 
+func set_enabled(enable: bool):
+    enabled = enable
+
 func enable_dragging():
     """Enable drag functionality"""
     enabled = true

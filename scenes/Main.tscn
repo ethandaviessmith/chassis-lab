@@ -1,4 +1,4 @@
-[gd_scene load_steps=50 format=4 uid="uid://brqbdkycilxbm"]
+[gd_scene load_steps=51 format=4 uid="uid://brqbdkycilxbm"]
 
 [ext_resource type="Script" uid="uid://db0n6tl4t48du" path="res://scripts/managers/GameManager.gd" id="1_ebyi6"]
 [ext_resource type="Script" uid="uid://c7w4x7sp1qi1s" path="res://game.gd" id="1_nxtc6"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" uid="uid://cl0lrw5yogklt" path="res://scenes/ui/TerminalBackground.gd" id="4_yxlcp"]
 [ext_resource type="Script" uid="uid://cesmin8sfofsx" path="res://scenes/entities/RobotFrame.gd" id="5_bjd11"]
 [ext_resource type="Script" uid="uid://bhxuylddcuvp" path="res://scenes/ui/ChassisSlot.gd" id="5_eba30"]
+[ext_resource type="PackedScene" uid="uid://c1e03o7n6go55" path="res://scenes/ui/DeckControl.tscn" id="5_fs0b5"]
 [ext_resource type="Script" uid="uid://w2gk6u6vkang" path="res://scripts/managers/CombatResolver.gd" id="5_jlsqs"]
 [ext_resource type="Texture2D" uid="uid://bcnbtl6x5xv0n" path="res://assets/frame.png" id="5_wp0k4"]
 [ext_resource type="Script" uid="uid://bsqyfsrcw1o5c" path="res://scripts/utils/DataLoader.gd" id="6_q8u5g"]
@@ -1217,7 +1218,7 @@ _data = {
 script = ExtResource("1_nxtc6")
 game_manager = NodePath("Managers/GameManager")
 
-[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("game_manager", "deck_manager", "turn_manager", "chassis_manager", "hand_manager", "energy_label", "heat_label", "end_phase_button", "clear_chassis_button", "energy_bar", "heat_bar", "stat_display", "enemy_display", "stat_manager", "enemy_manager", "hand_container", "deck_container")]
+[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("game_manager", "deck_manager", "turn_manager", "chassis_manager", "hand_manager", "energy_label", "heat_label", "end_phase_button", "clear_chassis_button", "energy_bar", "heat_bar", "stat_display", "enemy_display", "stat_manager", "enemy_manager", "hand_container")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -1241,7 +1242,6 @@ enemy_display = NodePath("NextEnemyDisplay")
 stat_manager = NodePath("../Managers/StatManager")
 enemy_manager = NodePath("../Managers/EnemyManager")
 hand_container = NodePath("HandContainer")
-deck_container = NodePath("DeckControl")
 
 [node name="Background" type="ColorRect" parent="BuildView"]
 layout_mode = 1
@@ -1281,12 +1281,9 @@ offset_bottom = 46.0
 grow_horizontal = 2
 text = "CHASSIS LAB - BUILD PHASE"
 
-[node name="DeckControl" type="Control" parent="BuildView"]
-anchors_preset = 0
-offset_left = 89.0
-offset_top = 463.0
-offset_right = 129.0
-offset_bottom = 503.0
+[node name="DeckControl" parent="BuildView" node_paths=PackedStringArray("deck_manager") instance=ExtResource("5_fs0b5")]
+layout_mode = 1
+deck_manager = NodePath("../../Managers/DeckManager")
 
 [node name="HandContainer" type="Container" parent="BuildView"]
 unique_name_in_owner = true
@@ -1950,10 +1947,10 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -1124.0
-offset_top = 437.0
-offset_right = -1014.0
-offset_bottom = 468.0
+offset_left = -1055.0
+offset_top = 421.0
+offset_right = -963.0
+offset_bottom = 452.0
 grow_horizontal = 0
 text = "New Build"
 
@@ -2017,12 +2014,15 @@ data_loader = NodePath("../../Utils/DataLoader")
 turn_manager = NodePath("../TurnManager")
 metadata/_custom_type_script = "uid://c4ap0o0bfb38"
 
-[node name="TurnManager" type="Node" parent="Managers" node_paths=PackedStringArray("robot_frame", "robot_fighter", "enemy_manager", "stat_manager")]
+[node name="TurnManager" type="Node" parent="Managers" node_paths=PackedStringArray("robot_frame", "robot_fighter", "enemy_manager", "stat_manager", "build_view", "chassis_manager", "deck_manager")]
 script = ExtResource("4_nxtc6")
 robot_frame = NodePath("../../BuildView/ChassisContainer/RobotFrame")
 robot_fighter = NodePath("../../CombatView/RobotFighter")
 enemy_manager = NodePath("../EnemyManager")
 stat_manager = NodePath("../StatManager")
+build_view = NodePath("../../BuildView")
+chassis_manager = NodePath("../ChassisManager")
+deck_manager = NodePath("../DeckManager")
 metadata/_custom_type_script = "uid://td5q8x8qdwtt"
 
 [node name="CombatResolver" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "enemy_manager", "combat_view", "robot_fighter")]

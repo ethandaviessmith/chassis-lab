@@ -31,7 +31,7 @@ signal chassis_updated(attach_part)
 
 # Card container
 @export var hand_container: Container
-@export var deck_container: Control
+@export var deck_control: DeckControl
 var cards_in_hand = []
 
 
@@ -229,53 +229,16 @@ func start_build_phase():
 
 # Setup the visual deck container
 func setup_deck_container():
-    if not deck_container:
+    if not deck_control:
         return
     
-    # Clear existing deck visuals
-    for child in deck_container.get_children():
-        child.queue_free()
-    
-    # Create deck stack visual
-    create_deck_stack_visual()
+    # Connect deck_manager to deck_control
+    if deck_control and deck_manager:
+        deck_control.deck_manager = deck_manager
 
-# Create visual representation of the deck stack
+# This function is no longer needed as DeckControl handles this now
 func create_deck_stack_visual():
-    if not deck_container or not deck_manager:
-        return
-    
-    # Create a stack of card backs to represent the deck
-    var deck_status = deck_manager.get_deck_status()
-    var total_cards = deck_status.deck_size + deck_status.discard_size
-    
-    # Create main deck visual (a stack of card backs)
-    var deck_visual = ColorRect.new()
-    deck_visual.name = "DeckStack"
-    deck_visual.color = Color(0.2, 0.3, 0.5, 0.8)  # Dark blue for deck
-    deck_visual.size = Vector2(100, 150)
-    deck_visual.position = Vector2(10, 10)
-    
-    # Add deck count label
-    var count_label = Label.new()
-    count_label.name = "DeckCount"
-    count_label.text = str(total_cards)
-    count_label.position = Vector2(35, 60)
-    count_label.add_theme_font_size_override("font_size", 24)
-    deck_visual.add_child(count_label)
-    
-    # Add deck title label
-    var title_label = Label.new()
-    title_label.name = "DeckTitle"
-    title_label.text = "DECK"
-    title_label.position = Vector2(30, 10)
-    title_label.add_theme_font_size_override("font_size", 14)
-    deck_visual.add_child(title_label)
-    
-    # Make deck clickable for drawing cards
-    deck_visual.mouse_filter = Control.MOUSE_FILTER_STOP
-    deck_visual.gui_input.connect(_on_deck_clicked)
-    
-    deck_container.add_child(deck_visual)
+    pass  # Functionality moved to DeckControl
 
 # Draw chassis slots (this is now more of a visual function)
 func draw_chassis_slots():
@@ -391,24 +354,10 @@ func _on_clear_chassis_button_pressed():
     for card in returned_cards:
         await hand_manager.return_card_to_hand(card)
 
-# Update the deck visual counter
+# This function is no longer needed as DeckControl handles deck display
 func update_deck_visual():
-    if not deck_container:
-        return
-    
-    var deck_stack = deck_container.get_node_or_null("DeckStack")
-    if not deck_stack:
-        return
-    
-    var count_label = deck_stack.get_node_or_null("DeckCount")
-    if not count_label:
-        return
-        
-    # Update the card count
-    if deck_manager:
-        var deck_status = deck_manager.get_deck_status()
-        var total_cards = deck_status.deck_size + deck_status.discard_size
-        count_label.text = str(total_cards)
+    # Functionality moved to DeckControl which automatically updates
+    pass
     
 # Handle when a card is drawn
 func _on_card_drawn(card):
@@ -424,8 +373,7 @@ func _on_card_drawn(card):
                 card.drag_started.connect(Callable(self, "_handle_card_drag"))
                 print("Connected drag_started signal for newly drawn card")
         
-        # Update the deck visual after drawing
-        update_deck_visual()
+        # Deck visuals are automatically updated by DeckControl now
 
 # Connect signals for all cards in hand
 func connect_card_signals():
@@ -442,11 +390,9 @@ func connect_card_signals():
                     card.drag_started.connect(Callable(self, "_handle_card_drag"))
                     print("Connected drag_started signal for card")
 
-# Handle deck container clicks to draw cards
-func _on_deck_clicked(event):
-    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-        hand_manager.draw_single_card()
-        update_deck_visual()
+# This function is no longer needed as DeckControl handles deck interaction
+func _on_deck_clicked(_event):
+    pass # Functionality moved to DeckControl
 
 # Handle card drop event - delegate to chassis_manager
 func _handle_card_drop(card, drop_pos, target = null):

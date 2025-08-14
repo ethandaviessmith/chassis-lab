@@ -1,0 +1,189 @@
+[gd_scene load_steps=7 format=3 uid="uid://c1e03o7n6go55"]
+
+[ext_resource type="Script" uid="uid://bigosvdxms0q4" path="res://scenes/ui/DeckControl.gd" id="1_c5bde"]
+[ext_resource type="PackedScene" uid="uid://7265h3h34unm" path="res://scenes/ui/Card.tscn" id="2_rhgop"]
+[ext_resource type="FontFile" uid="uid://15cp2ypsqwdc" path="res://assets/BoldPixels1.4.ttf" id="3_qmicv"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tdige"]
+bg_color = Color(0.164706, 0.164706, 0.164706, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0, 0, 0, 0.392157)
+shadow_size = 3
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_e8khc"]
+bg_color = Color(0.137255, 0.137255, 0.137255, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0, 0, 0, 0.392157)
+shadow_size = 3
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_60g6t"]
+bg_color = Color(0.1, 0.1, 0.1, 0.784314)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="DeckControl" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_c5bde")
+card_scene = ExtResource("2_rhgop")
+
+[node name="DrawPileButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 504.0
+offset_right = 120.0
+offset_bottom = 624.0
+theme_override_styles/hover = SubResource("StyleBoxFlat_tdige")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tdige")
+theme_override_styles/normal = SubResource("StyleBoxFlat_e8khc")
+text = "Draw
+Pile"
+
+[node name="CountLabel" type="Label" parent="DrawPileButton"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -31.0
+offset_right = 20.0
+offset_bottom = -5.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_fonts/font = ExtResource("3_qmicv")
+theme_override_font_sizes/font_size = 24
+text = "10"
+horizontal_alignment = 1
+
+[node name="DeckButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 420.0
+offset_right = 78.0
+offset_bottom = 492.0
+theme_override_styles/hover = SubResource("StyleBoxFlat_tdige")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tdige")
+theme_override_styles/normal = SubResource("StyleBoxFlat_e8khc")
+text = "Deck
+
+
+
+"
+
+[node name="CountLabel" type="Label" parent="DeckButton"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -34.0
+offset_right = 20.0
+offset_bottom = -5.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_fonts/font = ExtResource("3_qmicv")
+theme_override_font_sizes/font_size = 24
+text = "10"
+horizontal_alignment = 1
+
+[node name="DiscardPileButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 1036.0
+offset_top = 504.0
+offset_right = 1136.0
+offset_bottom = 624.0
+theme_override_styles/hover = SubResource("StyleBoxFlat_tdige")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tdige")
+theme_override_styles/normal = SubResource("StyleBoxFlat_e8khc")
+text = "Discard
+Pile"
+
+[node name="CountLabel" type="Label" parent="DiscardPileButton"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -31.0
+offset_right = 20.0
+offset_bottom = -5.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_fonts/font = ExtResource("3_qmicv")
+theme_override_font_sizes/font_size = 24
+text = "5"
+horizontal_alignment = 1
+
+[node name="DeckViewContainer" type="Panel" parent="."]
+z_index = 10
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_60g6t")
+
+[node name="Label" type="Label" parent="DeckViewContainer"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -38.5
+offset_top = 20.0
+offset_right = 38.5
+offset_bottom = 46.0
+grow_horizontal = 2
+theme_override_fonts/font = ExtResource("3_qmicv")
+theme_override_font_sizes/font_size = 32
+text = "Card Collection"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="DeckViewContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 72.0
+offset_top = 62.0
+offset_right = -358.0
+offset_bottom = -202.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.4, 1.4)
+
+[node name="GridContainer" type="GridContainer" parent="DeckViewContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 4
+
+[node name="BackButton" type="Button" parent="DeckViewContainer"]
+layout_mode = 0
+offset_left = 27.0
+offset_top = 24.0
+offset_right = 87.0
+offset_bottom = 58.0
+text = "Back"
