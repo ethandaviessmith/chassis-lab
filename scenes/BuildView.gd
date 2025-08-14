@@ -100,8 +100,70 @@ func setup_ui():
     if heat_label:
         heat_label.text = "Heat: 0/0"
 
+# Check and discard any cards on slots with 0 or lower durability
+func check_and_discard_broken_parts():
+    if not chassis_manager or not chassis_manager.attached_parts:
+        return
+        
+    var parts_to_discard = []
+    
+    # Check each slot for parts with zero durability
+    for slot_name in chassis_manager.attached_parts:
+        var part = chassis_manager.attached_parts[slot_name]
+        
+        if part is Card:
+            # Check if card has 0 or lower durability
+            if part.data.has("durability") and int(part.data.durability) <= 0:
+                print("Discarding broken part from slot: ", slot_name)
+                parts_to_discard.append({
+                    "slot": slot_name,
+                    "part": part
+                })
+        elif part is Array:
+            # Check scrapper array
+            var cards_to_remove = []
+            for card in part:
+                if card is Card and card.data.has("durability") and int(card.data.durability) <= 0:
+                    cards_to_remove.append(card)
+            
+            # Remove broken cards from scrapper
+            for card in cards_to_remove:
+                part.erase(card)
+                print("Discarding broken part from scrapper")
+                # Send directly to discard pile if available
+                if deck_manager and deck_manager.has_method("discard_card"):
+                    deck_manager.discard_card(card)
+                else:
+                    card.queue_free()
+    
+    # Remove broken parts from regular slots
+    for item in parts_to_discard:
+        var slot_name = item["slot"]
+        var part = item["part"]
+        
+        # Remove from chassis
+        chassis_manager.attached_parts.erase(slot_name)
+        
+        # Clear slot UI
+        var slot = chassis_manager.chassis_slots_map[slot_name]
+        if slot and slot.has_method("clear_part"):
+            slot.clear_part()
+        
+        # Send to discard pile
+        if deck_manager and deck_manager.has_method("discard_card"):
+            deck_manager.discard_card(part)
+        else:
+            part.queue_free()
+    
+    # Update UI if any parts were discarded
+    if parts_to_discard.size() > 0 or chassis_manager.attached_parts.has("scrapper"):
+        chassis_manager.emit_signal("chassis_updated", chassis_manager.attached_parts)
+
 # Initialize the build phase
 func start_build_phase():
+    # Check for broken parts and discard them
+    check_and_discard_broken_parts()
+    
     # Initialize turn manager for energy
     if turn_manager:
         turn_manager.initialize()
@@ -296,11 +358,23 @@ func _on_deck_clicked(event):
 # Handle card drop event - delegate to chassis_manager
 func _handle_card_drop(card, drop_pos, target = null):
     print("BuildView: Handling card drop at position: ", drop_pos)
+    
+    # Check if we're already processing this card to prevent recursion
+    if card.has_meta("being_processed_by_buildview"):
+        print("BuildView: Preventing recursive card drop handling")
+        return
+    
+    # Set guard flag
+    card.set_meta("being_processed_by_buildview", true)
+    
     if chassis_manager:
         chassis_manager.handle_card_drop(card, drop_pos, target)
     else:
         print("ERROR: chassis_manager is null in _handle_card_drop")
     _update_heat_display()  # Update heat display after card is handled
+    
+    # Remove guard flag
+    card.remove_meta("being_processed_by_buildview")
 
 # Handle card drag event - delegate to chassis_manager
 func _handle_card_drag(card):

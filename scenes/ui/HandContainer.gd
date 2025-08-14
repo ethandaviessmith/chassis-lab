@@ -54,14 +54,22 @@ func _on_child_entered_tree(node):
         if not cards.has(node):
             cards.append(node)
             
-        # If it's a card with DragDrop component, register as drop target
-        if node is Card and node.drag_drop != null:
-            node.drag_drop.register_drop_target(self, [])
-            
-            # Also register the Area2D if it exists
-            var hand_area = find_hand_area()
-            if hand_area:
-                node.drag_drop.register_drop_target(hand_area, [])
+        # If it's a card, set the hand container reference and register as drop target
+        if node is Card:
+            # Directly set this HandContainer as the card's hand container
+            if node.has_method("set_hand_container"):
+                print("HandContainer: Setting self as hand_container for card: ", node.data.get("name", "Unknown"))
+                node.set_hand_container(self)
+                
+            # Also directly register with DragDrop if available
+            if node.drag_drop != null:
+                print("HandContainer: Registering self as drop target for card: ", node.data.get("name", "Unknown"))
+                node.drag_drop.register_drop_target(self, [])
+                
+                # Also register the Area2D if it exists
+                var hand_area = find_hand_area()
+                if hand_area:
+                    node.drag_drop.register_drop_target(hand_area, [])
             
         # Reposition all cards when a new one is added
         _reposition_cards()

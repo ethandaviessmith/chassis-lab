@@ -24,6 +24,7 @@ var drag_offset: Vector2 = Vector2.ZERO
 var original_position: Vector2 = Vector2.ZERO
 var original_parent = null
 var valid_drop_targets: Array = []
+var _checking_drop_target: bool = false  # Flag to prevent recursion
 
 # The parent node (the one this component is attached to)
 var parent_control: Control = null
@@ -198,8 +199,45 @@ func end_drag():
     if debug_mode:
         Log.pr("[DragDrop] Ending drag of: " + parent_control.name)
     
-    # Find drop target under mouse
+    # First check if we're dealing with a Card that has a HandContainer reference
+    var hand_container = null
+    if parent_control.has_method("get_hand_container"):
+        hand_container = parent_control.get_hand_container()
+        print("[DragDrop] Card has HandContainer reference: ", hand_container != null)
+        
+    # Get the current mouse position
     var mouse_pos = parent_control.get_viewport().get_mouse_position()
+    
+    # If we have a HandContainer reference, check if we're over it first
+    if hand_container and is_instance_valid(hand_container):
+        # Create a slightly larger detection area for the hand container to make it easier to drop
+        var padding = Vector2(20, 20)
+        var hand_rect = Rect2(hand_container.global_position - padding, hand_container.size + padding * 2)
+        
+        print("[DragDrop] Mouse position: ", mouse_pos)
+        print("[DragDrop] Hand rect: ", hand_rect)
+        
+        if hand_rect.has_point(mouse_pos):
+            print("[DragDrop] Detected drop on HandContainer via direct reference")
+            emit_signal("drop_attempted", parent_control, hand_container)
+            emit_signal("drop_succeeded", parent_control, hand_container)
+            
+            # Update drop targets to hide highlights
+            highlight_valid_targets(false)
+            
+            # Reset state
+            emit_signal("drag_ended", parent_control)
+            is_dragging = false
+            
+            # Reset z-index if we changed it
+            if "z_index" in parent_control:
+                parent_control.z_index = 0
+                
+            # Stop processing unhandled input
+            set_process_unhandled_input(false)
+            return
+    
+    # Standard drop target detection
     var drop_target = get_drop_target_at_position(mouse_pos)
     
     if drop_target:
@@ -219,6 +257,24 @@ func end_drag():
             emit_signal("drop_failed", parent_control)
     else:
         # No target found, return to original position if configured to do so
+        print("[DragDrop] No valid drop target found, returning to original position: ", return_on_invalid_drop)
+        
+        # If this is a card, try to return it to hand directly
+        if not _checking_drop_target and parent_control.has_method("get_hand_container"):
+            var hand = parent_control.get_hand_container()
+            if hand and is_instance_valid(hand):
+                print("[DragDrop] Returning card to hand container: ", hand.name)
+                
+                # Set a flag on the parent_control to prevent recursive handling
+                parent_control.set_meta("being_returned_to_hand", true)
+                
+                emit_signal("drop_attempted", parent_control, hand)
+                emit_signal("drop_succeeded", parent_control, hand)
+                
+                # Clear the flag
+                parent_control.remove_meta("being_returned_to_hand")
+        
+        # Otherwise use default behavior
         if return_on_invalid_drop:
             parent_control.global_position = original_position
         emit_signal("drop_failed", parent_control)
@@ -287,9 +343,18 @@ func _process(_delta):
             end_drag()
 
 func get_drop_target_at_position(position: Vector2):
+    # Prevent recursion
+    if _checking_drop_target:
+        print("DragDrop: Recursion detected in get_drop_target_at_position, returning null")
+        return null
+        
+    # Set the class flag for recursion protection
+    _checking_drop_target = true
+    
     print("DragDrop: Checking drop targets at position: ", position, 
           " - Valid targets count: ", valid_drop_targets.size())
     
+    var found_target = null
     # Check if the position is over any of the registered drop targets
     for target in valid_drop_targets:
         var node = target.node
@@ -298,12 +363,31 @@ func get_drop_target_at_position(position: Vector2):
             continue
             
         print("DragDrop: Testing if position is over target: ", node.name)
-        if is_position_over_node(position, node):
+        var is_over = false
+        
+        # Special handling for ChassisSlot which often needs a larger hit area
+        if node.get_script() and "ChassisSlot" in node.get_script().resource_path:
+            # Use a much bigger detection area for slots to make them easier to hit
+            var slot_rect = Rect2(node.global_position - Vector2(40, 40), node.size + Vector2(80, 80))
+            is_over = slot_rect.has_point(position)
+            if is_over:
+                print("DragDrop: Position is over ChassisSlot using expanded bounds: ", node.name)
+        else:
+            # Normal detection
+            is_over = is_position_over_node(position, node)
+            
+        if is_over:
             print("DragDrop: FOUND VALID drop target: ", node.name)
-            return target
+            found_target = target
+            break
     
-    print("DragDrop: No valid drop target found at position")
-    return null
+    # Reset the checking flag before returning
+    _checking_drop_target = false
+    
+    if not found_target:
+        print("DragDrop: No valid drop target found at position")
+    
+    return found_target
 
 func is_position_over_node(position: Vector2, node: Node) -> bool:
     # Handle Area2D nodes with collision detection
@@ -312,35 +396,65 @@ func is_position_over_node(position: Vector2, node: Node) -> bool:
     # Handle Control nodes with rect bounds
     elif node is Control:
         return is_position_over_control(position, node)
-    else:
-        if debug_mode:
-            Log.pr("[DragDrop] Unsupported drop target type: ", node.get_class())
-        return false
+    # Special case for HandContainer nodes (might be using a custom class)
+    elif node.get_class() == "HandContainer" or (node.get_script() and "HandContainer" in node.get_script().resource_path):
+        print("[DragDrop] Checking special case for HandContainer")
+        if node is Control:
+            return is_position_over_control(position, node)
+    
+    # Default case for other node types
+    if debug_mode:
+        print("[DragDrop] Unsupported drop target type: ", node.get_class())
+    
+    # Default return
+    return false
 
 func _check_area2d_collision(position: Vector2, area: Area2D) -> bool:
-    # Use physics collision detection for Area2D
-    var space_state = area.get_world_2d().direct_space_state
-    var query = PhysicsPointQueryParameters2D.new()
-    query.position = position
-    query.collision_mask = area.collision_mask
+    # Simple collision detection using rectangles to avoid physics recursion
     
-    var results = space_state.intersect_point(query, 1)
+    # Get bounds from any CollisionShape2D if available
+    var collision_shape = null
+    for child in area.get_children():
+        if child is CollisionShape2D:
+            collision_shape = child
+            break
     
-    # Check if any collision shape belongs to our target area
-    for result in results:
-        if result.collider == area:
-            if debug_mode:
-                Log.pr("[DragDrop] Area2D collision detected with: ", area.name)
-            return true
+    if collision_shape and collision_shape.shape:
+        # For RectangleShape2D
+        if collision_shape.shape is RectangleShape2D:
+            var shape_size = collision_shape.shape.size
+            var rect = Rect2(
+                area.global_position + collision_shape.position - shape_size/2, 
+                shape_size
+            )
+            return rect.has_point(position)
+        
+        # For CircleShape2D
+        elif collision_shape.shape is CircleShape2D:
+            var radius = collision_shape.shape.radius
+            var center = area.global_position + collision_shape.position
+            var distance = position.distance_to(center)
+            return distance <= radius
     
-    return false
+    # Fallback to a generic rectangle around the area
+    var area_global_rect = Rect2(area.global_position - area.scale * Vector2(50, 50), 
+                                area.scale * Vector2(100, 100))
+    return area_global_rect.has_point(position)
 
 func is_position_over_control(position: Vector2, control: Control) -> bool:
     # Convert global position to control's local space
     var local_pos = control.get_global_transform_with_canvas().affine_inverse() * position
     
-    # Check if point is within control bounds
-    var rect = Rect2(Vector2.ZERO, control.size)
+    # Add a small margin to make it easier to hit controls
+    var margin = Vector2(5, 5)
+    var rect = Rect2(Vector2.ZERO - margin, control.size + margin * 2)
+    
+    # Print debugging info for ChassisSlots
+    if control.get_script() and "ChassisSlot" in control.get_script().resource_path:
+        print("Checking ChassisSlot rect: ", rect, " against local_pos: ", local_pos)
+        print("Global position: ", position, " - Control global position: ", control.global_position)
+    
+    # Check if point is within control bounds (with margin)
     return rect.has_point(local_pos)
 
 func is_valid_drop(draggable, drop_target) -> bool:
@@ -360,6 +474,13 @@ func highlight_valid_targets(highlight: bool):
     if not parent_control:
         return
         
+    # Prevent recursion by using a static flag
+    if _checking_drop_target:
+        print("[DragDrop] Recursion detected in highlight_valid_targets, skipping")
+        return
+        
+    _checking_drop_target = true
+    
     var draggable_type = ""
     if parent_control.has_method("get_card_type"):
         draggable_type = parent_control.get_card_type()
@@ -368,11 +489,16 @@ func highlight_valid_targets(highlight: bool):
     
     # Update highlights on drop targets
     for target in valid_drop_targets:
+        if not is_instance_valid(target.node):
+            continue
+            
         var is_valid = target.valid_types.size() == 0 or draggable_type in target.valid_types
         
         # Set highlight if target has the method
         if target.node.has_method("set_highlight"):
             target.node.set_highlight(highlight and is_valid)
+    
+    _checking_drop_target = false
 
 # Helper methods to control dragging programmatically
 
@@ -390,8 +516,11 @@ func disable_dragging():
 
 func force_end_drag():
     """Force end the current drag operation"""
-    if is_dragging:
+    # Add a guard to prevent recursive calls
+    if is_dragging and not _checking_drop_target:
+        _checking_drop_target = true
         end_drag()
+        _checking_drop_target = false
 
 func reset_to_original_position():
     """Reset the control to its original position"""

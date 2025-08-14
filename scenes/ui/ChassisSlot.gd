@@ -75,7 +75,7 @@ func is_compatible_with_card(card_data) -> bool:
         "Legs":
             return card_data.type == "Legs"
         "Scrapper":
-            return card_data.type == "Scrapper"
+            return true # card_data.type == "Scrapper"
         "Utility":
             return card_data.type == "Utility"
         _:
@@ -109,6 +109,14 @@ func highlight(is_valid: bool = true):
         # modulate = Color(1.2, 0.8, 0.8, 1.0)  # Slightly reddish
         
     is_highlighted = true
+
+# Set highlight state (compatible with DragDrop system)
+func set_highlight(enabled: bool, is_compatible: bool = true):
+    print("ChassisSlot.set_highlight called for: ", slot_type, " - enabled: ", enabled, ", compatible: ", is_compatible)
+    if enabled:
+        highlight(is_compatible)
+    else:
+        unhighlight()
 
 # Remove highlight
 func unhighlight():
@@ -154,6 +162,11 @@ func set_part(part):
         # This is important to prevent animation issues
         if part is Card:
             part.set_meta("attached_to_chassis", slot_type)
+            
+            # Ensure drag/drop still works
+            if part.has_node("DragDrop"):
+                var drag_drop = part.get_node("DragDrop")
+                drag_drop.enabled = true # Make sure dragging is enabled
         
         # Make sure the part is a child of this slot
         if part.get_parent() != self:
@@ -189,3 +202,7 @@ func clear_part():
     has_part = false
     background.color = normal_color
     print("Slot " + slot_type + " cleared")
+
+# Returns card of part
+func get_part() -> Node:
+    return current_part

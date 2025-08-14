@@ -43,7 +43,7 @@ func _ready():
         drag_drop.drag_started.connect(_on_drag_started)
         drag_drop.drag_ended.connect(_on_drag_ended)
         drag_drop.drop_attempted.connect(_on_drop_attempted)
-    
+            
     # Connect mouse enter/exit signals
     mouse_entered.connect(_on_mouse_entered)
     mouse_exited.connect(_on_mouse_exited)
@@ -134,6 +134,52 @@ func initialize(card_data: Dictionary):
     background.modulate = bg_color
     background2.modulate = bg_color
 
+var _hand_container: HandContainer = null
+
+func get_hand_container() -> HandContainer:
+    # If we already have a stored reference, return it
+    if _hand_container and is_instance_valid(_hand_container):
+        return _hand_container
+        
+    # Otherwise, try to find the HandContainer, but only check parent
+    # to avoid deep recursion when scanning the scene
+    var parent = get_parent()
+    if parent and parent is HandContainer:
+        # If we're directly parented to a HandContainer, use that
+        _hand_container = parent
+        print("Card found HandContainer as direct parent: ", parent.name)
+    
+    # Note: We removed the full scene scan to prevent recursion
+    
+    # Register it as a drop target if found
+    if _hand_container and drag_drop:
+        drag_drop.register_drop_target(_hand_container)
+        
+    return _hand_container
+
+func set_hand_container(container: HandContainer):
+    if not container or not is_instance_valid(container):
+        return
+        
+    # Store reference to hand container
+    _hand_container = container
+    print("Card ", data.get("name", "Unknown"), " - Stored HandContainer reference: ", container.name)
+        
+    if not drag_drop:
+        return
+        
+    print("Card ", data.get("name", "Unknown"), " - Setting HandContainer target: ", container.name)
+    
+    # Register the container as a drop target directly
+    drag_drop.register_drop_target(container)
+    
+    # Also register any Area2D child that might be used for collision detection
+    for child in container.get_children():
+        if child is Area2D:
+            print("Also registering HandContainer's Area2D as drop target")
+            drag_drop.register_drop_target(child)
+            break
+
 func _process(delta):
     # If not being dragged, animate toward target position if set
     if not drag_drop or not drag_drop.is_currently_dragging():
@@ -146,19 +192,28 @@ func _process(delta):
             else:
                 return
             
+        # If the card was just returned to hand from a slot, we need to make sure it gets repositioned
+        var just_returned = has_meta("was_attached")
+        
         if target_position != Vector2.ZERO:
             # Only animate if we're not already at the target
             if global_position.distance_to(target_position) > 1.0:
                 # Debug for position tracking
                 print("Card moving to target_position: current=", global_position, " target=", target_position)
                     
-                # Use delta for frame-rate independent movement with increased speed (15.0)
-                global_position = global_position.lerp(target_position, delta * 15.0)
+                # Use delta for frame-rate independent movement with increased speed
+                # Use higher speed for cards just returned from slots
+                var speed_factor = 30.0 if just_returned else 15.0
+                global_position = global_position.lerp(target_position, delta * speed_factor)
                 
                 # If very far off (either at origin or far away), just snap to position
-                if global_position == Vector2.ZERO or global_position.distance_to(target_position) > 500:
+                if global_position == Vector2.ZERO or global_position.distance_to(target_position) > 500 or just_returned:
                     print("Card snapping to target_position: ", target_position)
                     global_position = target_position
+                    
+                    # Clear the was_attached flag after we've snapped to position
+                    if has_meta("was_attached"):
+                        remove_meta("was_attached")
 
 # DragDrop event handlers
 func _on_drag_started(_draggable):
@@ -180,6 +235,11 @@ func _on_drop_attempted(_draggable, target):
     # Get the drop position
     var mouse_pos = get_viewport().get_mouse_position()
     
+    # Check if we're already handling this card in another part of the code
+    if has_meta("being_returned_to_hand") or has_meta("handling_drop") or has_meta("being_processed_by_buildview"):
+        print("Card: Preventing recursive drop handling in _on_drop_attempted")
+        return
+    
     # Let external systems handle the drop attempt
     emit_signal("drop_attempted", self, mouse_pos, target)
 
@@ -198,6 +258,23 @@ func _find_chassis_slots(node, result_array):
 
 func is_being_dragged() -> bool:
     return drag_drop and drag_drop.is_currently_dragging()
+    
+# Support part durability functionality
+func reduce_durability(amount: int = 1):
+    if data.has("durability"):
+        data["durability"] = int(data["durability"]) - amount
+        
+        # Update the durability display
+        if durability_label:
+            durability_label.text = str(int(data["durability"]))
+        
+        # Visual feedback for damaged part
+        if int(data["durability"]) <= 0:
+            modulate = Color(0.7, 0.7, 0.7, 0.8)  # Grayed out
+        elif int(data["durability"]) <= 2:
+            modulate = Color(1.0, 0.7, 0.7, 1.0)  # Reddish for low durability
+        
+        print("Card durability reduced to: ", data["durability"])
 
 func _get_drop_target():
     # Raycast to find potential drop targets
@@ -212,7 +289,13 @@ func _get_drop_target():
         return result[0].collider
     return null
 
-# Input handling is now managed by the DragDrop component
+        
+# Helper to find all nodes in scene
+func _find_all_nodes(node, result_array):
+    result_array.append(node)
+    for child in node.get_children():
+        _find_all_nodes(child, result_array)
+
 
 func set_highlight(enabled: bool, is_compatible: bool = true):
     highlight.visible = enabled
@@ -282,9 +365,8 @@ func reset_position():
     # Ask parent container for proper position
     var parent = get_parent()
     
-    # Make sure drag operations are ended
-    if drag_drop and drag_drop.is_currently_dragging():
-        drag_drop.force_end_drag()
+    # We should NOT call force_end_drag here as it causes recursion
+    # Just reset positions and let drag end naturally
     
     # Handle differently based on parent
     if parent and parent is HandContainer:
@@ -295,12 +377,17 @@ func reset_position():
         # Get the global position from the hand container
         var new_pos = parent.get_original_position(self)
         
+        print("Resetting card position to: ", new_pos)
+        
         # Set target position for smooth animation
         target_position = new_pos
         
-        # If card position is at origin or very far from target, set it directly
-        if global_position.distance_to(Vector2.ZERO) < 10 or global_position.distance_to(new_pos) > 500:
+        # If card position is at origin, very far from target, or was previously attached to a slot
+        # set it directly to avoid long animations when returning from slots
+        if global_position.distance_to(Vector2.ZERO) < 10 or global_position.distance_to(new_pos) > 500 or has_meta("was_attached"):
             global_position = new_pos
+            remove_meta("was_attached")
+            print("Card position snap to: ", global_position)
         
         # Trigger a reposition in the parent container
         if parent.has_method("_reposition_cards"):
@@ -312,25 +399,25 @@ func reset_position():
         # We're in a different container (like a chassis slot)
         
         # If we were dragged from a slot and not dropped on another slot,
-        # we need to be returned to the hand
-        var hand_container = get_tree().root.find_node("HandContainer", true, false)
-        if hand_container and hand_container is HandContainer:
+        # we need to be returned to the hand - use our stored reference
+        if _hand_container and _hand_container is HandContainer:
             # Remove from current parent
             parent.remove_child(self)
             
             # Add to hand container
-            hand_container.add_child(self)
+            _hand_container.add_child(self)
             
             # Let hand container reposition
-            hand_container._reposition_cards()
+            if _hand_container.has_method("_reposition_cards"):
+                _hand_container._reposition_cards()
     else:
         # No parent at all
         
-        # Try to find hand container
-        var hand_container = get_tree().root.find_node("HandContainer", true, false)
-        if hand_container and hand_container is HandContainer:
-            hand_container.add_child(self)
-            hand_container._reposition_cards()
+        # Use our stored reference to hand container
+        if _hand_container and _hand_container is HandContainer:
+            _hand_container.add_child(self)
+            if _hand_container.has_method("_reposition_cards"):
+                _hand_container._reposition_cards()
     
     # Reset scale and z-index
     scale = Vector2(1.0, 1.0)

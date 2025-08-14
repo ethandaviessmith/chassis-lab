@@ -146,6 +146,7 @@ func create_card_sprite(card_data, index):
         # Initialize the card data
         if card.has_method("initialize"):
             card.initialize(prepared_data)
+            card.set_hand_container(hand_container)
             
             # Set initial card state to hand
             if card.has_method("set_card_state"):
@@ -197,17 +198,32 @@ func return_card_to_hand(card):
             
             # Restore the card's global position after reparenting
             card.global_position = card_global_pos
+            
+            # Make sure the hand container is registered as a drop target
+            if card.has_method("set_hand_container"):
+                card.set_hand_container(hand_container)
     
     # Make sure the card is properly tracked in hand
     if not cards_in_hand.has(card):
         cards_in_hand.append(card)
     
-    # Reposition cards in hand container
+    # If card was attached to chassis, clear that metadata
+    if card.has_meta("attached_to_chassis"):
+        card.remove_meta("attached_to_chassis")
+    
+    # Set a guard flag on the card to prevent recursion
+    card.set_meta("returning_to_hand", true)
+    
+    # Explicitly call the card's reset_position method to ensure target_position is set correctly
+    if card.has_method("reset_position"):
+        card.reset_position()
+    
+    # Remove the guard flag
+    card.remove_meta("returning_to_hand")
+    
+    # Reposition cards in hand container (this will update all target positions)
     if hand_container and hand_container.has_method("_reposition_cards"):
         hand_container._reposition_cards()
-    elif card.has_method("reset_position"):
-        # Fallback if no hand container repositioning
-        card.reset_position()
         
     return true
 

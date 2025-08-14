@@ -139,7 +139,7 @@ func calculate_heat() -> Dictionary:
 func attach_part_to_slot(card, slot_name) -> bool:
     var card_data = card.data if card is Card else card.get_meta("card_data")
     
-    # Handle scrapper slot specially (accepts any card type)
+    # Handle scrapper slot specially (accepts any card type and multiple cards)
     if slot_name == "scrapper":
         return _attach_card_to_scrapper(card)
     
@@ -157,7 +157,7 @@ func attach_part_to_slot(card, slot_name) -> bool:
         "Utility":
             valid_slot = (slot_name == "utility")
         "Scrapper":
-            valid_slot = (slot_name == "scrapper")
+            valid_slot = true #(slot_name == "scrapper")
     
     if not valid_slot:
         return false
@@ -190,8 +190,8 @@ func attach_part_to_slot(card, slot_name) -> bool:
     # Calculate net energy change
     var energy_change = 0
     
-    # For moves between slots (not new attachments), no energy cost
-    if card_current_slot != "":
+    # For moves between slots, scrapper, or already attached cards, no energy cost
+    if card_current_slot != "" or slot_name == "scrapper":
         energy_change = 0
     else:
         # Calculate net energy requirement: cost of new card minus refund from old card
@@ -204,7 +204,15 @@ func attach_part_to_slot(card, slot_name) -> bool:
     
     # If the card is moving from one slot to another, clean up the old slot first
     if card_current_slot != "" and card_current_slot != slot_name:
-        attached_parts.erase(card_current_slot)
+        # Handle differently based on the source slot type
+        if card_current_slot == "scrapper" and attached_parts[card_current_slot] is Array:
+            # For scrapper, just remove from the array
+            var scrapper_cards = attached_parts[card_current_slot] as Array
+            if scrapper_cards.has(card):
+                scrapper_cards.erase(card)
+        else:
+            # For regular slots, remove the slot entirely
+            attached_parts.erase(card_current_slot)
         
         # Clear the old slot's part reference
         var old_slot_control = chassis_slots_map[card_current_slot]
@@ -216,20 +224,30 @@ func attach_part_to_slot(card, slot_name) -> bool:
     if attached_parts.has(slot_name) and is_instance_valid(attached_parts[slot_name]) and attached_parts[slot_name] != card:
         _previous_card = attached_parts[slot_name]
         
-        # Returning previous card to hand should be handled by calling function
+        # For regular slots (not scrapper), we need to return the previous card to hand
+        if slot_name != "scrapper" and hand_manager and _previous_card is Card:
+            hand_manager.return_card_to_hand(_previous_card)
         
     # Apply energy cost if this is a new card from hand
     if energy_change > 0 and turn_manager:
         turn_manager.spend_energy(energy_change)
     
-    # Update attached_parts dictionary
-    attached_parts[slot_name] = card
+    # Update attached_parts dictionary - only replace for regular slots, scrapper is handled separately
+    if slot_name != "scrapper":
+        attached_parts[slot_name] = card
     
     # Get the target slot
     var target_slot = chassis_slots_map[slot_name]
     
     # Update the target slot with the part
     if target_slot and target_slot is ChassisSlot:
+        # Check if there's already a part in this slot (non-scrapper slots)
+        if slot_name != "scrapper" and target_slot.get_part() != null and target_slot.get_part() != card:
+            var previous_card = target_slot.get_part()
+            if previous_card is Card and hand_manager:
+                print("Returning previous card from slot to hand: ", previous_card.data.get("name", "Unknown"))
+                hand_manager.return_card_to_hand(previous_card)
+        
         # Position the card in the center of the slot
         if card is Card:
             # Set state to CHASSIS_SLOT to trigger scaling
@@ -261,6 +279,13 @@ func _attach_card_to_scrapper(card) -> bool:
     var scrapper_slot_control = chassis_slots_map["scrapper"]
     if not scrapper_slot_control or not scrapper_slot_control is ScrapperSlot:
         return false
+    
+    # Check if the card has heat (must have at least 1 heat for scrapper)
+    if card is Card and card.data.has("heat"):
+        var heat_value = int(card.data.heat)
+        if heat_value < 1:
+            print("Card rejected from scrapper: must have at least 1 heat")
+            return false
     
     # Check if there's room in the scrapper
     var max_cards = 5 # Default capacity
@@ -455,15 +480,29 @@ func handle_card_drop(card, drop_pos, target = null):
                 if old_slot and old_slot is ChassisSlot:
                     old_slot.clear_part()
                 
-                # Remove attached_to_chassis metadata if it exists
-                if card is Card and card.has_meta("attached_to_chassis"):
-                    card.remove_meta("attached_to_chassis")
+                # Mark that the card was attached to a slot (for positioning)
+                if card is Card:
+                    card.set_meta("was_attached", true)
+                    # Remove attached_to_chassis metadata if it exists
+                    if card.has_meta("attached_to_chassis"):
+                        card.remove_meta("attached_to_chassis")
                 
                 # Update UI for robot visuals
                 emit_signal("chassis_updated", attached_parts)
             
+            # Check for recursion guard
+            if card.has_meta("handling_drop"):
+                print("ChassisManager: Preventing recursive drop handling")
+                return
+                
+            # Set a guard to prevent recursion
+            card.set_meta("handling_drop", true)
+            
             if hand_manager:
                 hand_manager.return_card_to_hand(card)
+            
+            # Remove the guard
+            card.remove_meta("handling_drop")
             return
         
         # Check if it's one of our chassis slots

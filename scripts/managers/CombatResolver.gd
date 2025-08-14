@@ -90,10 +90,33 @@ func apply_damage(source, target, amount):
     
     emit_signal("damage_dealt", source, target, actual_damage)
     
+    # When the player's robot is attacked, also damage a random part
+    if target == player_robot and source != player_robot:
+        damage_random_part()
+    
     # Check for defeat
     if target.is_defeated():
         emit_signal("entity_defeated", target)
 
+func damage_random_part():
+    if not player_robot or not player_robot.has_method("get_parts"):
+        return
+        
+    var parts = player_robot.get_parts()
+    if parts.is_empty():
+        return
+        
+    # Randomly select a part to damage
+    var rng = RandomNumberGenerator.new()
+    rng.randomize()
+    var random_index = rng.randi() % parts.size()
+    var random_part = parts[random_index]
+    
+    if random_part and random_part.has_method("reduce_durability"):
+        random_part.reduce_durability(1)
+        print("Random part damaged: ", random_part.name if random_part.has_method("get_name") else "Unknown")
+        emit_signal("part_durability_changed", random_part, random_part.durability)
+    
 func update_robot_heat(new_heat):
     emit_signal("robot_heat_changed", new_heat)
     
