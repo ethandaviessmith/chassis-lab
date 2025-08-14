@@ -2,6 +2,7 @@ extends Control
 class_name Card
 
 signal drop_attempted(card, drop_position, target)
+signal drag_started(draggable)
 
 # Card data
 var data: Dictionary = {}
@@ -30,6 +31,15 @@ func _ready():
 
     # Configure the DragDrop component
     if drag_drop:
+        # Disconnect any existing connections first
+        if drag_drop.drag_started.is_connected(_on_drag_started):
+            drag_drop.drag_started.disconnect(_on_drag_started)
+        if drag_drop.drag_ended.is_connected(_on_drag_ended):
+            drag_drop.drag_ended.disconnect(_on_drag_ended)
+        if drag_drop.drop_attempted.is_connected(_on_drop_attempted):
+            drag_drop.drop_attempted.disconnect(_on_drop_attempted)
+            
+        # Connect the signals
         drag_drop.drag_started.connect(_on_drag_started)
         drag_drop.drag_ended.connect(_on_drag_ended)
         drag_drop.drop_attempted.connect(_on_drop_attempted)
@@ -125,25 +135,35 @@ func initialize(card_data: Dictionary):
     background2.modulate = bg_color
 
 func _process(delta):
-    # If not being dragged and not attached to chassis, animate toward target position if set
+    # If not being dragged, animate toward target position if set
     if not drag_drop or not drag_drop.is_currently_dragging():
-        # Don't animate if card is attached to a chassis slot
-        if has_meta("attached_to_chassis"):
-            return
+        # For attached cards, we don't need to animate if we're already parented to the slot
+        # But still allow for initial movement to the correct position
+        if has_meta("attached_to_chassis") and get_parent() is ChassisSlot:
+            # Still allow movement if not yet positioned correctly
+            if target_position != Vector2.ZERO and global_position.distance_to(target_position) > 10.0:
+                print("Card attached to chassis but needs positioning: ", target_position)
+            else:
+                return
             
         if target_position != Vector2.ZERO:
             # Only animate if we're not already at the target
             if global_position.distance_to(target_position) > 1.0:
+                # Debug for position tracking
+                print("Card moving to target_position: current=", global_position, " target=", target_position)
+                    
                 # Use delta for frame-rate independent movement with increased speed (15.0)
                 global_position = global_position.lerp(target_position, delta * 15.0)
                 
                 # If very far off (either at origin or far away), just snap to position
                 if global_position == Vector2.ZERO or global_position.distance_to(target_position) > 500:
+                    print("Card snapping to target_position: ", target_position)
                     global_position = target_position
 
 # DragDrop event handlers
 func _on_drag_started(_draggable):
     # Card is being dragged, emit signal to notify listeners
+    emit_signal("drag_started", self)
     set_card_state(State.DRAGGING)
     z_index = 100
     set_card_scale(1.05, "drag_start")
@@ -159,6 +179,7 @@ func _on_drag_ended(_draggable):
 func _on_drop_attempted(_draggable, target):
     # Get the drop position
     var mouse_pos = get_viewport().get_mouse_position()
+    
     # Let external systems handle the drop attempt
     emit_signal("drop_attempted", self, mouse_pos, target)
 

@@ -100,7 +100,19 @@ func _reposition_stacked_cards():
         
         # Position with stacking offset
         var base_pos = Vector2(10, 10)  # Base position within slot
+        
+        # Account for card visual size (scaled to 0.5 in chassis)
+        var card_visual_size = card.size * 0.5
+        
+        # Calculate stack position
         var stack_pos = base_pos + (stack_offset * i)
+        
+        # Center vertically within the slot
+        var slot_center_y = size.y / 2
+        var vertical_offset = slot_center_y - (card_visual_size.y / 2)
+        stack_pos.y = vertical_offset
+        
+        # Apply the calculated position
         card.position = stack_pos
         
         # Set z-index so newer cards appear on top

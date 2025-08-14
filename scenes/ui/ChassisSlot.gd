@@ -112,18 +112,29 @@ func highlight(is_valid: bool = true):
 
 # Remove highlight
 func unhighlight():
+    print("ChassisSlot.unhighlight called for: ", slot_type)
+    
     # Stop any running tweens - using stored reference
-    if background.has_meta("active_tween"):
+    if background and background.has_meta("active_tween"):
         var tween = background.get_meta("active_tween")
         if tween and tween.is_valid() and tween.is_running():
             tween.kill()
         background.remove_meta("active_tween")
-            
-    background.color = normal_color
+    
+    # Make sure we have a valid background reference
+    if background:
+        background.color = normal_color
+    
     is_highlighted = false
     
     # Reset modulate
     modulate = Color(1.0, 1.0, 1.0, 1.0)
+    
+    # Cancel any pending highlights
+    var active_tweens = get_tree().get_nodes_in_group("slot_highlight_tween")
+    for tween in active_tweens:
+        if tween.is_valid() and tween.is_running():
+            tween.kill()
 
 # Set the part in this slot
 func set_part(part):
@@ -139,11 +150,33 @@ func set_part(part):
         background.color = normal_color.darkened(0.2)
         print("Slot " + slot_type + " now has part: " + str(part))
         
+        # Mark the card as attached to the chassis
+        # This is important to prevent animation issues
+        if part is Card:
+            part.set_meta("attached_to_chassis", slot_type)
+        
         # Make sure the part is a child of this slot
         if part.get_parent() != self:
             if part.get_parent():
                 part.get_parent().remove_child(part)
             add_child(part)
+            
+            # Center the part in the slot
+            if part is Card:
+                # Calculate center position accounting for the card's scaled size
+                var slot_center = size / 2
+                var card_size = part.size
+                
+                # Account for the card's scale in chassis slot (0.5)
+                var card_visual_size = card_size * 0.5
+                
+                # Position should be such that the visual center of the card
+                # aligns with the center of the slot
+                var centered_position = slot_center - (card_visual_size / 2)
+                part.position = centered_position
+                
+                print("Centering part in slot " + slot_type + " at position: " + str(centered_position))
+                
             print("Added part to slot " + slot_type)
     else:
         background.color = normal_color

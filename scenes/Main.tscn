@@ -1,4 +1,4 @@
-[gd_scene load_steps=42 format=4 uid="uid://brqbdkycilxbm"]
+[gd_scene load_steps=44 format=4 uid="uid://brqbdkycilxbm"]
 
 [ext_resource type="Script" uid="uid://db0n6tl4t48du" path="res://scripts/managers/GameManager.gd" id="1_ebyi6"]
 [ext_resource type="Script" uid="uid://c7w4x7sp1qi1s" path="res://game.gd" id="1_nxtc6"]
@@ -18,6 +18,8 @@
 [ext_resource type="Script" uid="uid://cl4fy14wh7wam" path="res://scenes/ui/ScrapperSlot.gd" id="10_scrapperslot"]
 [ext_resource type="Script" uid="uid://cobesjmoxsp8l" path="res://scenes/CombatView.gd" id="13_mwfav"]
 [ext_resource type="Script" uid="uid://601a3qp8pcc1" path="res://scenes/RewardScreen.gd" id="15_3p2gp"]
+[ext_resource type="Script" uid="uid://cwdbc54u44yro" path="res://scripts/managers/ChassisManager.gd" id="17_1nqs0"]
+[ext_resource type="Script" uid="uid://fysuhph6o7wk" path="res://scripts/managers/HandManager.gd" id="18_1iba3"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wp0k4"]
 size = Vector2(740, 216)
@@ -1209,7 +1211,7 @@ _data = {
 script = ExtResource("1_nxtc6")
 game_manager = NodePath("Managers/GameManager")
 
-[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("game_manager", "deck_manager", "turn_manager", "energy_label", "heat_label", "end_phase_button", "clear_chassis_button", "energy_bar", "heat_bar", "hand_container", "deck_container", "head_slot", "core_slot", "arm_left_slot", "arm_right_slot", "legs_slot", "scrapper_slot", "utility_slot")]
+[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("game_manager", "deck_manager", "turn_manager", "chassis_manager", "hand_manager", "energy_label", "heat_label", "end_phase_button", "clear_chassis_button", "energy_bar", "heat_bar", "hand_container", "deck_container")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -1220,6 +1222,8 @@ script = ExtResource("2_jlsqs")
 game_manager = NodePath("../Managers/GameManager")
 deck_manager = NodePath("../Managers/DeckManager")
 turn_manager = NodePath("../Managers/TurnManager")
+chassis_manager = NodePath("../Managers/ChassisManager")
+hand_manager = NodePath("../Managers/HandManager")
 energy_label = NodePath("EnergyLabel")
 heat_label = NodePath("HeatLabel")
 end_phase_button = NodePath("StartCombatButton")
@@ -1228,14 +1232,6 @@ energy_bar = NodePath("EnergyHeatContainer/EnergyBar")
 heat_bar = NodePath("EnergyHeatContainer/HeatBar")
 hand_container = NodePath("HandContainer")
 deck_container = NodePath("DeckControl")
-head_slot = NodePath("ChassisContainer/HeadSlot")
-core_slot = NodePath("ChassisContainer/CoreSlot")
-arm_left_slot = NodePath("ChassisContainer/LeftArmSlot")
-arm_right_slot = NodePath("ChassisContainer/RightArmSlot")
-legs_slot = NodePath("ChassisContainer/LegsSlot")
-scrapper_slot = NodePath("ChassisContainer/ScrapperSlot")
-utility_slot = NodePath("ChassisContainer/UtilitySlot")
-card_scene = ExtResource("2_58qjv")
 
 [node name="Background" type="ColorRect" parent="BuildView"]
 layout_mode = 1
@@ -1985,6 +1981,29 @@ script = ExtResource("5_jlsqs")
 data_loader = NodePath("../../Utils/DataLoader")
 robot_fighter = NodePath("../../CombatView/RobotFighter")
 metadata/_custom_type_script = "uid://w2gk6u6vkang"
+
+[node name="ChassisManager" type="Node" parent="Managers" node_paths=PackedStringArray("turn_manager", "hand_manager", "build_view", "head_slot", "core_slot", "arm_left_slot", "arm_right_slot", "legs_slot", "scrapper_slot", "utility_slot")]
+script = ExtResource("17_1nqs0")
+turn_manager = NodePath("../TurnManager")
+hand_manager = NodePath("../HandManager")
+build_view = NodePath("../../BuildView")
+head_slot = NodePath("../../BuildView/ChassisContainer/HeadSlot")
+core_slot = NodePath("../../BuildView/ChassisContainer/CoreSlot")
+arm_left_slot = NodePath("../../BuildView/ChassisContainer/LeftArmSlot")
+arm_right_slot = NodePath("../../BuildView/ChassisContainer/RightArmSlot")
+legs_slot = NodePath("../../BuildView/ChassisContainer/LegsSlot")
+scrapper_slot = NodePath("../../BuildView/ChassisContainer/ScrapperSlot")
+utility_slot = NodePath("../../BuildView/ChassisContainer/UtilitySlot")
+metadata/_custom_type_script = "uid://cwdbc54u44yro"
+
+[node name="HandManager" type="Node" parent="Managers" node_paths=PackedStringArray("deck_manager", "hand_container", "turn_manager", "build_view")]
+script = ExtResource("18_1iba3")
+deck_manager = NodePath("../DeckManager")
+hand_container = NodePath("../../BuildView/HandContainer")
+turn_manager = NodePath("../TurnManager")
+build_view = NodePath("../../BuildView")
+card_scene = ExtResource("2_58qjv")
+metadata/_custom_type_script = "uid://fysuhph6o7wk"
 
 [node name="Utils" type="Node" parent="."]
 

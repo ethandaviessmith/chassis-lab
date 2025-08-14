@@ -86,13 +86,23 @@ func _configure_child_controls():
                 child.mouse_filter = Control.MOUSE_FILTER_PASS
 
 func register_drop_target(node: Node, valid_types: Array = []):
+    if not node:
+        print("ERROR: Attempted to register null node as drop target")
+        return
+        
     # Store valid drop target with acceptable types
     valid_drop_targets.append({
         "node": node,
         "valid_types": valid_types
     })
-    if debug_mode:
-        print("Registered drop target: ", node.name, " for types: ", valid_types)
+    
+    print("DragDrop: Registered drop target: ", node.name, " for types: ", valid_types, 
+          " (total targets: ", valid_drop_targets.size(), ")")
+
+func clear_drop_targets():
+    # Clear all registered drop targets
+    print("DragDrop: Clearing ", valid_drop_targets.size(), " drop targets")
+    valid_drop_targets.clear()
 
 func _on_parent_gui_input(event):
     if not enabled or not parent_control:
@@ -130,16 +140,21 @@ func _input(event):
                 get_viewport().set_input_as_handled()
             elif not event.pressed and is_dragging:
                 # End drag when mouse button is released
+                if debug_mode:
+                    print("[DragDrop] Mouse released in _input handler - ending drag")
                 end_drag()
                 get_viewport().set_input_as_handled()
 
 func _unhandled_input(event):
     if not enabled or not parent_control or not is_dragging:
         return
-        
-    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-        # This catches mouse releases that might happen outside the control
-        end_drag()
+    
+    if event is InputEventMouseButton:
+        if event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+            if debug_mode:
+                print("[DragDrop] Left mouse button released - ending drag")
+            # This catches mouse releases that might happen outside the control
+            end_drag()
 
 func start_drag(global_mouse_pos: Vector2):
     if is_dragging or not parent_control:
@@ -189,6 +204,8 @@ func end_drag():
     
     if drop_target:
         # Try to drop on target
+        if debug_mode:
+            print("[DragDrop] Attempting drop on: ", drop_target.node.name)
         emit_signal("drop_attempted", parent_control, drop_target.node)
         
         # Check if drop is valid
@@ -196,6 +213,7 @@ func end_drag():
             emit_signal("drop_succeeded", parent_control, drop_target.node)
         else:
             # Invalid drop
+            print("[DragDrop] Invalid drop detected")
             if return_on_invalid_drop:
                 parent_control.global_position = original_position
             emit_signal("drop_failed", parent_control)
@@ -207,6 +225,13 @@ func end_drag():
     
     # Update drop targets to hide highlights
     highlight_valid_targets(false)
+    
+    # Also force-unhighlight all targets explicitly
+    for target in valid_drop_targets:
+        if target.node.has_method("unhighlight"):
+            target.node.unhighlight()
+        elif target.node.has_method("highlight"):
+            target.node.highlight(false)
     
     # Reset state
     emit_signal("drag_ended", parent_control)
@@ -262,10 +287,22 @@ func _process(_delta):
             end_drag()
 
 func get_drop_target_at_position(position: Vector2):
+    print("DragDrop: Checking drop targets at position: ", position, 
+          " - Valid targets count: ", valid_drop_targets.size())
+    
+    # Check if the position is over any of the registered drop targets
     for target in valid_drop_targets:
         var node = target.node
+        if not is_instance_valid(node):
+            print("DragDrop: WARNING - Invalid node in drop targets")
+            continue
+            
+        print("DragDrop: Testing if position is over target: ", node.name)
         if is_position_over_node(position, node):
+            print("DragDrop: FOUND VALID drop target: ", node.name)
             return target
+    
+    print("DragDrop: No valid drop target found at position")
     return null
 
 func is_position_over_node(position: Vector2, node: Node) -> bool:

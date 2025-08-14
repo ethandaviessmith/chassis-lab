@@ -8,8 +8,6 @@ signal chassis_updated(attached_parts)
 @export var game_manager: GameManager
 @export var deck_manager: DeckManager
 @export var turn_manager: TurnManager
-@export var chassis_manager: ChassisManager
-@export var hand_manager: HandManager
 
 # UI elements
 @export var energy_label: Label
@@ -26,6 +24,17 @@ signal chassis_updated(attached_parts)
 @export var deck_container: Control
 var cards_in_hand = []
 
+# Chassis slots
+@export var head_slot: Control
+@export var core_slot: Control
+@export var arm_left_slot: Control
+@export var arm_right_slot: Control
+@export var legs_slot: Control
+@export var scrapper_slot: Control
+@export var utility_slot: Control
+
+# Exported card scene
+@export var card_scene: PackedScene
 
 # Dictionary to map slot names to controls
 var chassis_slots_map = {}
@@ -34,16 +43,25 @@ var chassis_slots_map = {}
 var attached_parts = {}
 
 # Managers
-
+var chassis_manager: ChassisManager
+var hand_manager: HandManager
+var drag_drop_manager: DragDropManager
 
 # Called when the node enters the scene tree for the first time
-func _ready():   
-    # Initialize managers first
-    _initialize_managers()
+func _ready():
+    # Initialize slot map
+    chassis_slots_map = {
+        "scrapper": scrapper_slot,
+        "head": head_slot,
+        "core": core_slot,
+        "arm_left": arm_left_slot,
+        "arm_right": arm_right_slot,
+        "legs": legs_slot,
+        "utility": utility_slot
+    }
     
-    # Connect chassis manager signals
-    if chassis_manager:
-        chassis_manager.chassis_updated.connect(func(parts): emit_signal("chassis_updated", parts))
+    # Initialize managers
+    _initialize_managers()
     
     # Connect TurnManager to energy label if both exist
     if turn_manager and energy_label:
@@ -68,20 +86,23 @@ func _ready():
     # Initialize the build phase
     start_build_phase()
 
-# Initialize all managers and connect signals
+# Initialize all managers
 func _initialize_managers():
-    # Initialize the chassis manager
-    if chassis_manager:
-        # Add the slot mappings from chassis manager to local copy
-        chassis_slots_map = chassis_manager.chassis_slots_map
-        # Connect to the chassis updated signal
-        chassis_manager.chassis_updated.connect(func(parts): 
-            attached_parts = parts
-            emit_signal("chassis_updated", parts)
-        )
-
-
-
+    # Create chassis manager
+    chassis_manager = ChassisManager.new()
+    chassis_manager.initialize(chassis_slots_map, turn_manager)
+    chassis_manager.chassis_updated.connect(func(parts): emit_signal("chassis_updated", parts))
+    add_child(chassis_manager)
+    
+    # Create hand manager
+    hand_manager = HandManager.new()
+    hand_manager.initialize(deck_manager, hand_container, card_scene, turn_manager)
+    add_child(hand_manager)
+    
+    # Create drag drop manager
+    drag_drop_manager = DragDropManager.new()
+    drag_drop_manager.initialize(chassis_manager, hand_manager, chassis_slots_map)
+    add_child(drag_drop_manager)
 
 # Set up the UI elements
 func setup_ui():
@@ -117,10 +138,6 @@ func start_build_phase():
     
     # Start drawing cards sequentially with delay
     hand_manager.start_sequential_card_draw()
-    
-    # Connect signals for all cards after a short delay to ensure they're created
-    await get_tree().create_timer(0.5).timeout
-    connect_card_signals()
 
 # Setup the visual deck container
 func setup_deck_container():
@@ -248,44 +265,10 @@ func update_deck_visual():
     var count_label = deck_stack.get_node_or_null("DeckCount")
     if not count_label:
         return
-        
-    # Update the card count
-    if deck_manager:
-        var deck_status = deck_manager.get_deck_status()
-        var total_cards = deck_status.deck_size + deck_status.discard_size
-        count_label.text = str(total_cards)
     
-# Handle when a card is drawn
-func _on_card_drawn(card):
-    if card:
-        # Connect signals for the new card
-        if card.has_signal("drop_attempted"):
-            if not card.drop_attempted.is_connected(Callable(self, "_handle_card_drop")):
-                card.drop_attempted.connect(Callable(self, "_handle_card_drop"))
-                print("Connected drop_attempted signal for newly drawn card")
-            
-        if card.has_signal("drag_started"):
-            if not card.drag_started.is_connected(Callable(self, "_handle_card_drag")):
-                card.drag_started.connect(Callable(self, "_handle_card_drag"))
-                print("Connected drag_started signal for newly drawn card")
-        
-        # Update the deck visual after drawing
-        update_deck_visual()
-
-# Connect signals for all cards in hand
-func connect_card_signals():
-    if hand_manager and hand_manager.cards_in_hand:
-        for card in hand_manager.cards_in_hand:
-            if card and card.has_signal("drop_attempted"):
-                # Connect drop_attempted signal to _handle_card_drop if not already connected
-                if not card.drop_attempted.is_connected(Callable(self, "_handle_card_drop")):
-                    card.drop_attempted.connect(Callable(self, "_handle_card_drop"))
-                    print("Connected drop_attempted signal for card: ", card.data.name if card.data.has("name") else "Unknown")
-                
-                # Connect drag_started signal if it exists and not already connected
-                if card.has_signal("drag_started") and not card.drag_started.is_connected(Callable(self, "_handle_card_drag")):
-                    card.drag_started.connect(Callable(self, "_handle_card_drag"))
-                    print("Connected drag_started signal for card")
+    var deck_status = deck_manager.get_deck_status()
+    var total_cards = deck_status.deck_size + deck_status.discard_size
+    count_label.text = str(total_cards)
 
 # Handle deck container clicks to draw cards
 func _on_deck_clicked(event):
@@ -293,22 +276,13 @@ func _on_deck_clicked(event):
         hand_manager.draw_single_card()
         update_deck_visual()
 
-# Handle card drop event - delegate to chassis_manager
+# Handle card drop event - delegate to drag_drop_manager
 func _handle_card_drop(card, drop_pos, target = null):
-    print("BuildView: Handling card drop at position: ", drop_pos)
-    if chassis_manager:
-        chassis_manager.handle_card_drop(card, drop_pos, target)
-    else:
-        print("ERROR: chassis_manager is null in _handle_card_drop")
-    _update_heat_display()  # Update heat display after card is handled
+    drag_drop_manager.handle_card_drop(card, drop_pos, target)
 
-# Handle card drag event - delegate to chassis_manager
+# Handle card drag event - delegate to drag_drop_manager
 func _handle_card_drag(card):
-    print("BuildView: Handling card drag")
-    if chassis_manager:
-        chassis_manager.handle_card_drag(card)
-    else:
-        print("ERROR: chassis_manager is null in _handle_card_drag")
+    drag_drop_manager.handle_card_drag(card)
 
 # Return card to hand - delegate to hand_manager
 func _return_card_to_hand(card):
