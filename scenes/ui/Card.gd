@@ -241,6 +241,22 @@ func set_highlight(enabled: bool, is_compatible: bool = true):
 func get_card_type() -> String:
     return data.type
 
+# Update visual state based on available energy
+func update_affordability(available_energy: int):
+    if not cost_label:
+        return
+    
+    var card_cost = int(data.get("cost", 0))
+    
+    if card_cost > available_energy:
+        # Card is too expensive - grey it out
+        cost_label.modulate = Color.RED
+        modulate = Color(0.7, 0.7, 0.7, 1.0)  # Grey out the entire card
+    else:
+        # Card is affordable - normal colors
+        cost_label.modulate = Color.WHITE
+        modulate = Color(1.0, 1.0, 1.0, 1.0)  # Normal color
+
 func reset_position():
     # Ask parent container for proper position
     var parent = get_parent()

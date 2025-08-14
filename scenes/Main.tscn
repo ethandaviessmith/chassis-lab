@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=4 uid="uid://brqbdkycilxbm"]
+[gd_scene load_steps=42 format=4 uid="uid://brqbdkycilxbm"]
 
 [ext_resource type="Script" uid="uid://db0n6tl4t48du" path="res://scripts/managers/GameManager.gd" id="1_ebyi6"]
 [ext_resource type="Script" uid="uid://c7w4x7sp1qi1s" path="res://game.gd" id="1_nxtc6"]
@@ -12,7 +12,10 @@
 [ext_resource type="Script" uid="uid://w2gk6u6vkang" path="res://scripts/managers/CombatResolver.gd" id="5_jlsqs"]
 [ext_resource type="Texture2D" uid="uid://bcnbtl6x5xv0n" path="res://assets/frame.png" id="5_wp0k4"]
 [ext_resource type="Script" uid="uid://bsqyfsrcw1o5c" path="res://scripts/utils/DataLoader.gd" id="6_q8u5g"]
+[ext_resource type="Script" uid="uid://caovaddupqk48" path="res://scenes/ui/EnergyBar.gd" id="8_energybar"]
 [ext_resource type="PackedScene" uid="uid://d2mi7h8d8goxg" path="res://scenes/entities/RobotFighter.tscn" id="9_3p2gp"]
+[ext_resource type="Script" uid="uid://bfe534k1fesqh" path="res://scenes/ui/HeatBar.gd" id="9_heatbar"]
+[ext_resource type="Script" uid="uid://cl4fy14wh7wam" path="res://scenes/ui/ScrapperSlot.gd" id="10_scrapperslot"]
 [ext_resource type="Script" uid="uid://cobesjmoxsp8l" path="res://scenes/CombatView.gd" id="13_mwfav"]
 [ext_resource type="Script" uid="uid://601a3qp8pcc1" path="res://scenes/RewardScreen.gd" id="15_3p2gp"]
 
@@ -1206,7 +1209,7 @@ _data = {
 script = ExtResource("1_nxtc6")
 game_manager = NodePath("Managers/GameManager")
 
-[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("game_manager", "deck_manager", "turn_manager", "energy_label", "heat_label", "end_phase_button", "clear_chassis_button", "hand_container", "deck_container", "head_slot", "core_slot", "arm_left_slot", "arm_right_slot", "legs_slot", "scrapper_slot", "utility_slot")]
+[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("game_manager", "deck_manager", "turn_manager", "energy_label", "heat_label", "end_phase_button", "clear_chassis_button", "energy_bar", "heat_bar", "hand_container", "deck_container", "head_slot", "core_slot", "arm_left_slot", "arm_right_slot", "legs_slot", "scrapper_slot", "utility_slot")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -1221,6 +1224,8 @@ energy_label = NodePath("EnergyLabel")
 heat_label = NodePath("HeatLabel")
 end_phase_button = NodePath("StartCombatButton")
 clear_chassis_button = NodePath("CleanChassis")
+energy_bar = NodePath("EnergyHeatContainer/EnergyBar")
+heat_bar = NodePath("EnergyHeatContainer/HeatBar")
 hand_container = NodePath("HandContainer")
 deck_container = NodePath("DeckControl")
 head_slot = NodePath("ChassisContainer/HeadSlot")
@@ -1702,8 +1707,8 @@ offset_right = -161.0
 offset_bottom = 150.5
 grow_horizontal = 2
 grow_vertical = 0
-script = ExtResource("5_eba30")
-slot_type = "Legs"
+script = ExtResource("10_scrapperslot")
+slot_type = "Scrapper"
 normal_color = Color(0.8, 0.3884, 0.296, 0.25098)
 highlight_color = Color(0.9, 0.198, 0.2682, 0.501961)
 invalid_color = Color(0.2, 0.48, 0.8, 0.301961)
@@ -1755,6 +1760,137 @@ grow_horizontal = 2
 grow_vertical = 2
 text = "Util"
 
+[node name="EnergyHeatContainer" type="Control" parent="BuildView"]
+layout_mode = 1
+anchor_left = 0.909
+anchor_top = 0.377
+anchor_right = 0.909
+anchor_bottom = 0.377
+offset_left = -971.168
+offset_top = -166.296
+offset_right = -832.168
+offset_bottom = 166.704
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EnergyBar" type="Control" parent="BuildView/EnergyHeatContainer"]
+layout_mode = 1
+anchors_preset = 0
+offset_right = 35.0
+offset_bottom = 300.0
+script = ExtResource("8_energybar")
+
+[node name="Background" type="ColorRect" parent="BuildView/EnergyHeatContainer/EnergyBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.3, 0.8)
+
+[node name="Fill" type="ColorRect" parent="BuildView/EnergyHeatContainer/EnergyBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.6, 1, 1)
+
+[node name="EnergyLabel" type="Label" parent="BuildView/EnergyHeatContainer/EnergyBar"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -15.0
+offset_top = 10.0
+offset_right = 15.0
+offset_bottom = 36.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "4/4"
+horizontal_alignment = 1
+
+[node name="EnergyTitle" type="Label" parent="BuildView/EnergyHeatContainer/EnergyBar"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -50.0
+offset_top = -25.0
+offset_right = 10.0
+offset_bottom = 1.0
+grow_horizontal = 0
+text = "ENERGY"
+horizontal_alignment = 1
+
+[node name="HeatBar" type="Control" parent="BuildView/EnergyHeatContainer"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 92.0
+offset_right = 127.0
+offset_bottom = 300.0
+script = ExtResource("9_heatbar")
+
+[node name="Background" type="ColorRect" parent="BuildView/EnergyHeatContainer/HeatBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.3, 0.2, 0.2, 0.8)
+
+[node name="NeededFill" type="ColorRect" parent="BuildView/EnergyHeatContainer/HeatBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 0.6, 0.2, 1)
+
+[node name="ScrapperFill" type="ColorRect" parent="BuildView/EnergyHeatContainer/HeatBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 0.2, 0.2, 0.8)
+
+[node name="HeatLabel" type="Label" parent="BuildView/EnergyHeatContainer/HeatBar"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -25.0
+offset_top = 10.0
+offset_right = 25.0
+offset_bottom = 36.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "N:0 S:0"
+horizontal_alignment = 1
+
+[node name="HeatTitle" type="Label" parent="BuildView/EnergyHeatContainer/HeatBar"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_top = -25.0
+offset_right = 10.0
+offset_bottom = 1.0
+grow_horizontal = 0
+text = "HEAT"
+horizontal_alignment = 1
+
 [node name="StartCombatButton" type="Button" parent="BuildView"]
 layout_mode = 1
 anchors_preset = 1
@@ -1772,14 +1908,15 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -1133.0
-offset_top = 94.0
-offset_right = -1023.0
-offset_bottom = 125.0
+offset_left = -1124.0
+offset_top = 437.0
+offset_right = -1014.0
+offset_bottom = 468.0
 grow_horizontal = 0
 text = "New Build"
 
 [node name="EnergyLabel" type="Label" parent="BuildView"]
+visible = false
 layout_mode = 0
 offset_left = 20.0
 offset_top = 20.0
@@ -1788,6 +1925,7 @@ offset_bottom = 46.0
 text = "Energy: 10/10"
 
 [node name="HeatLabel" type="Label" parent="BuildView"]
+visible = false
 layout_mode = 0
 offset_left = 20.0
 offset_top = 50.0
