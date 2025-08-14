@@ -36,6 +36,7 @@ func _ready():
     
     if reward_screen:
         reward_screen.continue_to_next_encounter.connect(_on_continue_to_next_encounter)
+        reward_screen.reward_selected.connect(_on_reward_selected)
     
     # Start new game
     start_new_game()
@@ -176,8 +177,9 @@ func _on_combat_ended(player_won: bool):
     emit_signal("combat_phase_ended")
     
     if player_won:
-        # Victory leads to rewards
-        start_reward_phase()
+        # Victory is handled through the show_reward_screen signal
+        # Do nothing here, the CombatView will emit show_reward_screen
+        pass
     else:
         # Defeat ends the game
         end_game(false)
@@ -187,20 +189,18 @@ func _on_show_reward_screen():
     print("GameManager: Combat view requesting reward screen")
     start_reward_phase()
 
-func _on_continue_to_next_encounter():
-    # Called by RewardScreen when player selects a reward and continues
-    print("GameManager: Continuing to next encounter")
+func _on_reward_selected(card_data: Dictionary):
+    # Called when the player selects a reward card
+    print("GameManager: Reward selected: ", card_data.get("name", "Unknown"))
     
     # Add selected card to deck
-    if reward_screen and deck_manager:
-        var selected_reward = reward_screen.get_selected_reward()
-        if selected_reward.size() > 0:
-            deck_manager.add_card_to_deck(selected_reward)
-            print("GameManager: Added reward card to deck: ", selected_reward.get("name", "Unknown"))
-    
-    # Hide reward screen
-    if reward_screen:
-        reward_screen.hide_screen()
+    if deck_manager and card_data.size() > 0:
+        deck_manager.add_card_to_deck(card_data)
+        print("GameManager: Added reward card to deck: ", card_data.get("name", "Unknown"))
+
+func _on_continue_to_next_encounter():
+    # Called by RewardScreen when player continues to next encounter
+    print("GameManager: Continuing to next encounter")
     
     # Advance to next encounter
     advance_to_next_encounter()

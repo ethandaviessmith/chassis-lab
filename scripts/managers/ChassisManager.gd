@@ -283,9 +283,10 @@ func attach_part_to_slot(card, slot_name) -> bool:
         target_slot.set_part(card)
         
         # Play attach sound
-        var sound_manager = get_node_or_null("/root/SoundManager")
-        if sound_manager and sound_manager.has_method("play_attach_part"):
-            sound_manager.play_attach_part()
+        Sound.play_attach_part()
+        
+        # Also play success sound for user feedback
+        Sound.play_success()
             
         # Trigger screen shake
         var main = get_tree().get_root().get_node_or_null("Main")
@@ -397,6 +398,12 @@ func clear_all_chassis_parts() -> Array:
         elif is_instance_valid(slot_content) and slot_content is Card:
             # Handle regular slots with single cards
             cards_to_return.append(slot_content)
+            
+    # Play detach sound if we have parts to detach
+    if cards_to_return.size() > 0:
+        var sound_manager = get_node_or_null("/root/SoundManager")
+        if sound_manager and sound_manager.has_method("play_detach_part"):
+            sound_manager.play_detach_part()
     
     # Clear the attached_parts tracking first
     attached_parts.clear()
@@ -622,6 +629,9 @@ func handle_card_drop(card, drop_pos, target = null):
             return
     
     # If we get here, the card wasn't successfully placed, return it to hand
+    # Play error sound
+    Sound.play_error()
+    
     if hand_manager:
         hand_manager.return_card_to_hand(card)
 

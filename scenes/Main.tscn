@@ -1938,10 +1938,10 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -175.0
-offset_top = 457.0
-offset_right = -30.0
-offset_bottom = 513.0
+offset_left = -160.0
+offset_top = 2.0
+offset_right = -15.0
+offset_bottom = 58.0
 grow_horizontal = 0
 text = "START COMBAT"
 
@@ -2025,10 +2025,11 @@ enemy_manager = NodePath("../EnemyManager")
 stat_manager = NodePath("../StatManager")
 metadata/_custom_type_script = "uid://td5q8x8qdwtt"
 
-[node name="CombatResolver" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "enemy_manager", "robot_fighter")]
+[node name="CombatResolver" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "enemy_manager", "combat_view", "robot_fighter")]
 script = ExtResource("5_jlsqs")
 data_loader = NodePath("../../Utils/DataLoader")
 enemy_manager = NodePath("../EnemyManager")
+combat_view = NodePath("../../CombatView")
 robot_fighter = NodePath("../../CombatView/RobotFighter")
 metadata/_custom_type_script = "uid://w2gk6u6vkang"
 
@@ -2076,8 +2077,7 @@ metadata/_custom_type_script = "uid://dil6mj5nw377n"
 script = ExtResource("6_q8u5g")
 metadata/_custom_type_script = "uid://bsqyfsrcw1o5c"
 
-[node name="RewardScreen" type="Control" parent="." node_paths=PackedStringArray("reward_title", "reward_container", "continue_button", "data_loader")]
-visible = false
+[node name="RewardScreen" type="Control" parent="." node_paths=PackedStringArray("reward_title", "reward_container", "data_loader")]
 layout_mode = 3
 anchors_preset = 8
 anchor_left = 0.5
@@ -2093,17 +2093,25 @@ grow_vertical = 2
 script = ExtResource("15_3p2gp")
 reward_title = NodePath("VBoxContainer/Label")
 reward_container = NodePath("VBoxContainer/HBoxContainer")
-continue_button = NodePath("VBoxContainer/Button")
 data_loader = NodePath("../Utils/DataLoader")
 metadata/_custom_type_script = "uid://601a3qp8pcc1"
 
 [node name="Panel" type="Panel" parent="RewardScreen"]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="TerminalBackground" type="Control" parent="RewardScreen"]
+anchors_preset = 0
+offset_right = 603.0
+offset_bottom = 516.0
+script = ExtResource("4_yxlcp")
+terminal_header = "REWARDS"
+metadata/_custom_type_script = "uid://cl0lrw5yogklt"
 
 [node name="VBoxContainer" type="VBoxContainer" parent="RewardScreen"]
 layout_mode = 1

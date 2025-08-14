@@ -6,6 +6,8 @@
     "armor": 0,
     "damage": 1,
     "attack_speed": 1.0,
+    "attack_type": ["melee"],
+    "attack_range": [1.0],
     "move_speed": 80,
     "behavior": "default",
     "special_abilities": [
@@ -26,6 +28,8 @@
     "armor": 0,
     "damage": 2,
     "attack_speed": 2.0,
+    "attack_type": ["melee", "range"],
+    "attack_range": [1.0, 4.0],
     "move_speed": 120,
     "behavior": "aggressive",
     "special_abilities": [
@@ -46,6 +50,8 @@
     "armor": 5,
     "damage": 3,
     "attack_speed": 0.8,
+    "attack_type": ["melee", "range"],
+    "attack_range": [1.0, 4.0],
     "move_speed": 50,
     "behavior": "defensive",
     "special_abilities": [
@@ -66,6 +72,8 @@
     "armor": 2,
     "damage": 2,
     "attack_speed": 1.5,
+    "attack_type": ["melee"],
+    "attack_range": [3.0],
     "move_speed": 100,
     "behavior": "flanking",
     "special_abilities": [
@@ -86,6 +94,8 @@
     "armor": 1,
     "damage": 3,
     "attack_speed": 1.8,
+    "attack_type": ["melee"],
+    "attack_range": [3.0],
     "move_speed": 110,
     "behavior": "aggressive",
     "special_abilities": [
@@ -106,6 +116,8 @@
     "armor": 8,
     "damage": 4,
     "attack_speed": 0.6,
+    "attack_type": ["range"],
+    "attack_range": [5.0],
     "move_speed": 30,
     "behavior": "defensive",
     "special_abilities": [
@@ -126,6 +138,8 @@
     "armor": 1,
     "damage": 2,
     "attack_speed": 1.2,
+    "attack_type": ["melee", "range"],
+    "attack_range": [2.0, 6.0],
     "move_speed": 140,
     "behavior": "flanking",
     "special_abilities": [
@@ -146,6 +160,8 @@
     "armor": 10,
     "damage": 4,
     "attack_speed": 1.0,
+    "attack_type": ["melee"],
+    "attack_range": [4.0],
     "move_speed": 70,
     "behavior": "adaptive",
     "special_abilities": [

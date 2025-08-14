@@ -30,7 +30,7 @@ var stat_pip_containers = {}
 var stat_pips = {}
 
 # Reference to StatManager - using generic Node to avoid dependency issues
-@export var stat_manager: Node
+@export var stat_manager: StatManager
 
 # Default stats for editor preview
 @export var show_preview_in_editor: bool = true

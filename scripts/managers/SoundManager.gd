@@ -15,31 +15,31 @@ var sfx = {}
 # Define sound effects to load
 var sound_definitions = {
 	# UI sounds
-	"click": "res://assets/sfx/click.wav",
+	"click": "res://assets/sfx/click.mp3",
 	"hover": "res://assets/sfx/hover.wav",
-	"select": "res://assets/sfx/select.wav",
-	"back": "res://assets/sfx/back.wav",
+	"select": "res://assets/sfx/click.mp3",
+	"back": "res://assets/sfx/click.mp3",
 	
 	# Card sounds
-	"card_pickup": "res://assets/sfx/card_pickup.wav",
-	"card_place": "res://assets/sfx/card_place.wav",
-	"card_flip": "res://assets/sfx/card_flip.wav",
+	"card_pickup": "res://assets/sfx/card_pick.mp3",
+	"card_place": "res://assets/sfx/card_down.mp3",
+	"card_flip": "res://assets/sfx/card_pick.mp3",
 	
 	# Robot/chassis sounds
 	"attach_part": "res://assets/sfx/attach_part.wav",
 	"detach_part": "res://assets/sfx/detach_part.wav",
-	"robot_complete": "res://assets/sfx/robot_complete.wav",
+	"robot_complete": "res://assets/sfx/robot_start.mp3",
 	"robot_power": "res://assets/sfx/robot_power.wav",
 	
 	# Combat sounds
-	"attack": "res://assets/sfx/attack.wav",
-	"damage": "res://assets/sfx/damage.wav",
-	"shield": "res://assets/sfx/shield.wav",
+	"attack": "res://assets/sfx/hit.mp3",
+	"damage": "res://assets/sfx/attack.mp3",
+	"shield": "res://assets/sfx/bomb.mp3",
 	
 	# System sounds
-	"error": "res://assets/sfx/error.wav",
-	"success": "res://assets/sfx/success.wav",
-	"level_up": "res://assets/sfx/level_up.wav",
+	"error": "res://assets/sfx/bomb.mp3",
+	"success": "res://assets/sfx/click.mp3",
+	"level_up": "res://assets/sfx/card_draw.mp3",
 }
 
 # Sound player nodes

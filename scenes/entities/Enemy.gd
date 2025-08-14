@@ -13,17 +13,31 @@ var attack_speed: float
 var move_speed: float
 var behavior: String
 var special_abilities = []
+var attack_types = ["melee"]    # Default to melee only
+var attack_ranges = [1.0]       # Default range
+var current_attack_index = 0    # Which attack type to use next
 
 # Combat state
 var attack_timer: float = 0.0
 var target = null
 var is_active: bool = false
+var combat_view = null          # Reference to combat view for effects
 
 # References
 @onready var sprite = $Sprite
 @onready var health_bar = $HealthBar
 @onready var animation_player = $AnimationPlayer
 @onready var attack_indicator = $AttackIndicator
+
+# Combat indicators with emojis
+var INDICATORS = {
+    "melee_attack": "🗡️",
+    "range_attack": "🏹",
+    "shield": "🛡️",
+    "heal": "❤️",
+    "overheat": "🔥",
+    "cooldown": "❄️",
+}
 
 func _ready():
     # Set up the sprite emoji
@@ -36,7 +50,7 @@ func _ready():
     
     update_health_bar()
 
-func initialize_from_data(data: Dictionary):
+func initialize_from_data(data: Dictionary, view: CombatView):
     enemy_name = data.name
     hp = data.hp
     max_hp = data.hp
@@ -45,6 +59,18 @@ func initialize_from_data(data: Dictionary):
     attack_speed = data.attack_speed
     move_speed = data.move_speed
     behavior = data.behavior
+    
+    # Load attack types and ranges if present
+    if "attack_type" in data:
+        attack_types = data.attack_type
+    
+    if "attack_range" in data:
+        attack_ranges = data.attack_range
+        
+    # Make sure arrays are same length, otherwise use defaults
+    if attack_types.size() != attack_ranges.size():
+        attack_types = ["melee"]
+        attack_ranges = [1.0]
     
     # Load special abilities if present
     if "special_abilities" in data:
@@ -56,6 +82,9 @@ func initialize_from_data(data: Dictionary):
         if texture:
             sprite.texture = texture
     
+    # Find combat view
+    combat_view = view
+
     # Add to enemies group
     add_to_group("enemies")
 
@@ -193,16 +222,67 @@ func try_attack(delta, speed_modifier: float = 1.0):
     
     # Can attack based on attack speed (attacks per second) with behavior modifier
     var effective_attack_speed = attack_speed * speed_modifier
+    
     if attack_timer >= 1.0 / effective_attack_speed:
         attack_timer = 0.0
-        attack_target(target)
+        
+        # Get current attack range
+        var current_range = attack_ranges[current_attack_index] * 100.0  # Convert to pixels (approx)
+        
+        # Get distance to target
+        if target and is_instance_valid(target):
+            var distance = global_position.distance_to(target.global_position)
+            
+            # Check if within range for this attack type
+            if distance <= current_range:
+                attack_target(target)
+            else:
+                # Not in range for current attack type, try next attack type
+                current_attack_index = (current_attack_index + 1) % attack_types.size()
 
 func attack_target(target_node):
-    # Simple direct attack
-    if target_node and is_instance_valid(target_node) and global_position.distance_to(target_node.global_position) < 100:
-        if target_node.has_method("take_damage"):
-            target_node.take_damage(damage)
-            print(enemy_name, " attacked for ", damage, " damage")
+    # No valid target
+    if not target_node or not is_instance_valid(target_node):
+        return
+    
+    # Get current attack type and range
+    var attack_type = attack_types[current_attack_index]
+    var attack_range = attack_ranges[current_attack_index] * 100.0  # Convert to pixels (approx)
+    
+    # Get distance to target
+    var distance = global_position.distance_to(target_node.global_position)
+    
+    # Check if within range for this attack type
+    if distance <= attack_range:
+        # Attack based on type
+        if attack_type == "melee":
+            # Direct melee attack
+            if target_node.has_method("take_damage"):
+                target_node.take_damage(damage)
+                print(enemy_name, " attacked for ", damage, " damage with melee")
+                
+                # Play attack sound
+                Sound.play_sound("attack", -5.0)
+                
+                # Show attack indicator via combat view
+                if combat_view:
+                    combat_view.show_combat_effect("melee_attack", self)
+                    combat_view.show_damage_number(damage, target_node)
+            
+        elif attack_type == "range":
+            # Ranged attack - fire a projectile
+            # Play ranged attack sound
+            Sound.play_sound("attack", -5.0, 1.2)  # Higher pitch for ranged attacks
+            
+            if combat_view:
+                print(enemy_name, " fired a projectile for ", damage, " damage")
+                combat_view.show_combat_effect("range_attack", self)
+                combat_view.fire_projectile(self, target_node.global_position, damage, attack_range)
+        
+        # Cycle to next attack type
+        current_attack_index = (current_attack_index + 1) % attack_types.size()
+        
+        # Play attack animation
         play_attack_animation()
 
 func take_damage(amount: int):
@@ -213,6 +293,10 @@ func take_damage(amount: int):
     play_hurt_animation()
     
     print(enemy_name, " took ", actual_damage, " damage (", hp, "/", max_hp, " HP)")
+    
+    # Show shield indicator if armor reduced damage significantly
+    if armor > 0 and amount > actual_damage and combat_view:
+        combat_view.show_combat_effect("shield", self)
     
     # Check for defeat
     if hp <= 0:
@@ -229,10 +313,20 @@ func activate_special_ability(ability: Dictionary):
             hp += int(max_hp * 0.1)  # Heal 10% of max HP
             hp = min(hp, max_hp)
             update_health_bar()
+            if combat_view:
+                combat_view.show_combat_effect("heal", self)
         "speed_boost":
             move_speed *= 1.5
+            if combat_view:
+                combat_view.show_combat_effect("cooldown", self)  # Using cooldown as a speed boost indicator
             await get_tree().create_timer(3.0).timeout
             move_speed /= 1.5
+        "shield_up":
+            armor += 2  # Temporary armor boost
+            if combat_view:
+                combat_view.show_combat_effect("shield", self)
+            await get_tree().create_timer(2.0).timeout
+            armor -= 2
         # Add more special abilities as needed
 
 func update_health_bar():

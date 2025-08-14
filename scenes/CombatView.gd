@@ -15,6 +15,8 @@ var player_robot: RobotFighter = null
 var current_enemy = null
 var combat_active: bool = false
 var combat_timer: float = 0.0
+var effects_layer: CombatEffects = null
+var bullet_scene = preload("res://scenes/entities/Bullet.tscn")
 
 # Combat parameters
 var approach_distance: float = 150.0  # Distance robots approach before combat
@@ -35,6 +37,13 @@ func _ready():
     if start_combat_button:
         start_combat_button.pressed.connect(_on_start_combat_pressed)
         start_combat_button.text = "Start Combat"
+    
+    # Create effects layer for combat indicators
+    effects_layer = CombatEffects.new()
+    add_child(effects_layer)
+    
+    # Add to combat_view group so entities can find it
+    add_to_group("combat_view")
     
     # Hide this view initially (BuildView should be shown first)
     visible = false
@@ -100,7 +109,7 @@ func spawn_enemy(enemy_data: Dictionary = {}):
     current_enemy = enemy_scene.instantiate()
     
     # Initialize enemy with data
-    current_enemy.initialize_from_data(enemy_data)
+    current_enemy.initialize_from_data(enemy_data, self)
     
     # Position enemy
     if enemy_spawn_point:
@@ -214,6 +223,8 @@ func _on_enemy_defeated():
 
 func _on_start_combat_pressed():
     print("CombatView: Start combat button pressed")
+    # Play click sound
+    Sound.play_click()
     # This should be called by the GameManager with a properly built robot
 
 # Utility functions
@@ -223,6 +234,41 @@ func hide_combat_view():
     # Clean up any active combat
     if combat_active:
         end_combat(false)
+
+# Show combat effect at entity position
+func show_combat_effect(effect_type: String, entity):
+    if effects_layer and is_instance_valid(entity):
+        effects_layer.show_effect(effect_type, entity.global_position)
+
+# Show damage numbers
+func show_damage_number(amount: int, entity):
+    if effects_layer and is_instance_valid(entity):
+        effects_layer.show_damage_number(amount, entity.global_position)
+
+# Fire a projectile from source to target
+func fire_projectile(source, target_pos: Vector2, damage: int, range_value: float = 200.0):
+    if not bullet_scene:
+        return
+    
+    # Create bullet instance
+    var bullet = bullet_scene.instantiate()
+    add_child(bullet)
+    
+    # Position at source
+    bullet.global_position = source.global_position
+    
+    # Setup bullet properties
+    bullet.setup(source, target_pos, damage, range_value)
+    
+    # Connect hit signal
+    bullet.hit_target.connect(_on_bullet_hit_target)
+    
+    return bullet
+
+func _on_bullet_hit_target(target):
+    if target:
+        # Show hit effect
+        show_combat_effect("range_attack", target)
 
 func get_combat_status() -> String:
     if not combat_active:

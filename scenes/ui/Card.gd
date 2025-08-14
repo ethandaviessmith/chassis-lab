@@ -83,9 +83,14 @@ func set_card_state(new_state: State):
 # Handle mouse hover
 func _on_mouse_entered():
     # Apply hover effect (slight scale up or highlight)
-    if not drag_drop or not drag_drop.is_currently_dragging():
+    if not is_being_dragged:
         set_card_scale(1.05, "hover")
-        z_index = 1  # Bring card to front
+        
+        # Play hover sound
+        Sound.play_hover()
+        
+    # Store hover state
+    set_meta("hover", true)
 
 # Handle mouse exit
 func _on_mouse_exited():
@@ -222,11 +227,17 @@ func _on_drag_started(_draggable):
     set_card_state(State.DRAGGING)
     z_index = 100
     set_card_scale(1.05, "drag_start")
+    
+    # Play card pickup sound
+    Sound.play_card_pickup()
 
 func _on_drag_ended(_draggable):
     # Card drag has ended - state will be set by BuildView when dropped
     z_index = 0
     set_card_scale(1.0, "drag_end")
+    
+    # Play card place sound
+    Sound.play_card_place()
     
     # Remove all highlights
     set_highlight(false)

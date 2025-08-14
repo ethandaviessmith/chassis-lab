@@ -36,6 +36,7 @@ func _ready():
 	# Connect to chassis updates to recalculate stats
 	if chassis_manager:
 		chassis_manager.chassis_updated.connect(_on_chassis_updated)
+	emit_signal("stats_updated", get_current_stats())
 
 # Calculate robot stats based on attached parts
 func calculate_stats(attached_parts) -> Dictionary:

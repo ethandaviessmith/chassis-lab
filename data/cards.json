@@ -102,6 +102,8 @@
     "heat": 1,
     "durability": 2,
     "frame": 4,
+    "attack_type": ["melee", "range"],
+    "attack_range": [1.0, 4.0],
     "manufacturer": "Military",
     "effects": [
       {
@@ -127,6 +129,8 @@
     "heat": 2,
     "durability": 3,
     "frame": 5,
+    "attack_type": ["melee"],
+    "attack_range": [2.0],
     "manufacturer": "Construction",
     "effects": [
       {
@@ -152,6 +156,8 @@
     "heat": 0,
     "durability": 3,
     "frame": 6,
+    "attack_type": ["range"],
+    "attack_range": [5.0],
     "manufacturer": "Clean Energy",
     "effects": [
       {
@@ -177,6 +183,8 @@
     "heat": 2,
     "durability": 2,
     "frame": 7,
+    "attack_type": ["melee", "range"],
+    "attack_range": [2.0, 4.0],
     "manufacturer": "Futuristic",
     "effects": [
       {

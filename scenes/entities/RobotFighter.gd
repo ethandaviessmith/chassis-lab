@@ -32,8 +32,13 @@ var effects = {}
 @onready var combat_sprite = $CombatSprite
 @onready var health_bar = $HealthBar
 @onready var heat_bar = $HeatBar
-@onready var attack_indicator = $AttackIndicator
 @onready var animation_player = $AnimationPlayer
+
+# Attack properties
+var attack_types = ["melee"]    # Default to melee only
+var attack_ranges = [1.0]       # Default range
+var current_attack_index = 0    # Which attack type to use next
+var combat_view = null          # Reference to combat view for effects
 
 # Combat behavior variables
 var current_target = null
@@ -46,11 +51,15 @@ func _ready():
         combat_sprite.text = "🤖"  # Robot emoji placeholder
         combat_sprite.add_theme_font_size_override("font_size", 48)
     
-    # Set up attack indicator
-    if attack_indicator and attack_indicator is Label:
-        attack_indicator.add_theme_font_size_override("font_size", 32)
+    # Find combat view for effects
+    find_combat_view()
     
     update_bars()
+
+# Find reference to combat view
+func find_combat_view():
+    await get_tree().process_frame  # Wait for scene to be ready
+    combat_view = get_tree().get_first_node_in_group("combat_view")
 
 func _physics_process(delta):
     if is_combat_active:
@@ -101,6 +110,13 @@ func create_part_from_card(card_data: Dictionary):
         "effects": card_data.get("effects", [])
     }
     
+    # Add attack type and range if present (for arms)
+    if card_data.has("attack_type"):
+        part["attack_type"] = card_data.attack_type
+    
+    if card_data.has("attack_range"):
+        part["attack_range"] = card_data.attack_range
+    
     # Parse effects for stat modifications
     if card_data.has("effects"):
         var parsed_effects = []
@@ -129,8 +145,14 @@ func attach_part(part, slot: String):
             core = part
         "left_arm":
             left_arm = part
+            # Update attack types and ranges from arm
+            if part.has("attack_type") and part.has("attack_range"):
+                update_attack_capabilities()
         "right_arm":
             right_arm = part
+            # Update attack types and ranges from arm
+            if part.has("attack_type") and part.has("attack_range"):
+                update_attack_capabilities()
         "legs":
             legs = part
         "utility":
@@ -139,6 +161,33 @@ func attach_part(part, slot: String):
     # Apply part effects to stats
     apply_part_effects(part)
     emit_signal("robot_updated")
+    
+# Update attack types and ranges based on equipped arms
+func update_attack_capabilities():
+    attack_types = ["melee"]  # Default melee
+    attack_ranges = [1.0]     # Default range
+    
+    # Check left arm
+    if left_arm and left_arm.has("attack_type") and left_arm.has("attack_range"):
+        for i in range(left_arm.attack_type.size()):
+            var attack_type = left_arm.attack_type[i]
+            var attack_range = left_arm.attack_range[i]
+            
+            # Add if not already present
+            if not attack_type in attack_types:
+                attack_types.append(attack_type)
+                attack_ranges.append(attack_range)
+    
+    # Check right arm
+    if right_arm and right_arm.has("attack_type") and right_arm.has("attack_range"):
+        for i in range(right_arm.attack_type.size()):
+            var attack_type = right_arm.attack_type[i]
+            var attack_range = right_arm.attack_range[i]
+            
+            # Add if not already present
+            if not attack_type in attack_types:
+                attack_types.append(attack_type)
+                attack_ranges.append(attack_range)
 
 # Remove a part and its effects
 func remove_part(part):
@@ -286,9 +335,37 @@ func perform_attack(target):
     if right_arm:
         damage += 2  # Example: right arm adds damage
     
-    # Apply damage to target
-    if target.has_method("take_damage"):
-        target.take_damage(damage)
+    # Get current attack type and range
+    var attack_type = attack_types[current_attack_index]
+    var attack_range = attack_ranges[current_attack_index] * 100.0  # Convert to pixels
+    
+    # Attack based on type
+    if attack_type == "melee":
+        # Direct melee attack
+        if target.has_method("take_damage"):
+            target.take_damage(damage)
+            print("RobotFighter: Attacked for ", damage, " damage with melee")
+            
+            # Show attack indicator via combat view
+            # Play melee attack sound
+            Sound.play_sound("attack", -5.0)
+            
+            if combat_view:
+                combat_view.show_combat_effect("melee_attack", self)
+                combat_view.show_damage_number(damage, target)
+                
+    elif attack_type == "range":
+        # Ranged attack - fire a projectile
+        # Play range attack sound
+        Sound.play_sound("attack", -5.0, 1.2)  # Higher pitch for ranged attacks
+        
+        if combat_view:
+            print("RobotFighter: Fired a projectile for ", damage, " damage")
+            combat_view.show_combat_effect("range_attack", self)
+            combat_view.fire_projectile(self, target.global_position, damage, attack_range)
+    
+    # Cycle to next attack type
+    current_attack_index = (current_attack_index + 1) % attack_types.size()
     
     # Show attack animation
     if animation_player and animation_player.has_animation("attack"):
@@ -308,12 +385,20 @@ func take_damage(amount: int):
     update_bars()
     print("RobotFighter: Took ", actual_damage, " damage (", amount, " - ", armor, " armor)")
     
+    # Show shield indicator if armor reduced damage significantly
+    if armor > 0 and amount > actual_damage and combat_view:
+        combat_view.show_combat_effect("shield", self)
+    
     if energy <= 0:
         emit_signal("robot_defeated")
 
 func heal(amount: int):
     energy = min(energy + amount, max_energy)
     update_bars()
+    
+    # Show healing indicator
+    if amount > 0 and combat_view:
+        combat_view.show_combat_effect("heal", self)
 
 func add_heat(amount: int):
     heat = min(heat + amount, max_heat)
@@ -321,11 +406,23 @@ func add_heat(amount: int):
     
     if heat >= max_heat:
         emit_signal("robot_overheated")
+        # Show overheat indicator
+        if combat_view:
+            combat_view.show_combat_effect("overheat", self)
         # Overheating penalties could be applied here
+    elif heat >= 8 and heat < max_heat:
+        # High heat warning
+        if combat_view:
+            combat_view.show_combat_effect("overheat", self)
 
 func reduce_heat(amount: int):
+    var previous_heat = heat
     heat = max(0, heat - amount)
     update_bars()
+    
+    # Show cooldown indicator when significant heat reduction happens
+    if previous_heat > 5 and amount >= 2 and combat_view:
+        combat_view.show_combat_effect("cooldown", self)
 
 # Combat state management
 func start_combat():

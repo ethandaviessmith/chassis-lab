@@ -76,14 +76,14 @@ func _ready():
             # Fallback if chassis manager isn't available yet
             heat_bar.set_heat(0, 2, 10)
     
-    # Setup info panels
-    setup_info_panels()
-    
     # Setup UI elements
     setup_ui()
     
     # Initialize the build phase
     start_build_phase()
+
+    # Setup info panels
+    setup_info_panels()
     
 # Setup the info panels for stats and next enemy
 func setup_info_panels():
@@ -334,8 +334,10 @@ func _on_end_phase_button_pressed():
     # We have enough heat, proceed to combat
     if turn_manager and turn_manager.has_method("build_robot_and_start_combat"):
         turn_manager.build_robot_and_start_combat(self, game_manager)
+        Sound.play_error()
     else:
         # Fallback to old behavior
+        Sound.play_robot_power()
         emit_signal("combat_requested")
 
 # Show a warning when there isn't enough heat to build
@@ -381,6 +383,7 @@ func _show_not_enough_heat_warning():
 
 # Handle button press to clear all chassis parts
 func _on_clear_chassis_button_pressed():
+    Sound.play_click()
     # Use chassis manager to clear parts
     var returned_cards = chassis_manager.clear_all_chassis_parts()
     

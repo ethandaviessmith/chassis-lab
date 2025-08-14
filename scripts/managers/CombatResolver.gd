@@ -24,7 +24,7 @@ var current_enemy_data = null
 # References
 @export var data_loader: DataLoader
 @export var enemy_manager: EnemyManager
-@onready var combat_view = $"../../CombatView"
+@export var combat_view: CombatView
 @export var robot_fighter: RobotFighter
 
 func _ready():
@@ -98,6 +98,9 @@ func apply_damage(source, target, amount):
     # Apply damage
     target.take_damage(actual_damage)
     
+    # Play damage sound
+    Sound.play_sound("damage", -3.0)
+    
     emit_signal("damage_dealt", source, target, actual_damage)
     
     # When the player's robot is attacked, also damage a random part
@@ -149,7 +152,7 @@ func _create_enemy_for_encounter(encounter_id: int):
 
 func _create_enemy_from_data(enemy_data):
     var enemy = Enemy.new()
-    enemy.initialize_from_data(enemy_data)
+    enemy.initialize_from_data(enemy_data, combat_view)
     
     return enemy
 
