@@ -135,6 +135,15 @@ func get_total_heat() -> int:
             total_heat += int(card.data.heat)
     return total_heat
 
+# Add a card to the scrapper (for compatibility with ChassisManager._attach_card_to_scrapper)
+func add_scrapper_card(card: Card) -> bool:
+    print("ScrapperSlot.add_scrapper_card called with card: ", card.data.name if card.data else "Unknown")
+    return set_part(card)
+
+# Get the capacity of the scrapper
+func get_capacity() -> int:
+    return MAX_SCRAPPER_CARDS
+    
 # Override highlight to show stack capacity
 func highlight(is_compatible: bool = true):
     super.highlight(is_compatible)

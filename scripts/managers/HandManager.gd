@@ -207,8 +207,19 @@ func return_card_to_hand(card):
     if not cards_in_hand.has(card):
         cards_in_hand.append(card)
     
-    # If card was attached to chassis, clear that metadata
+    # If card was attached to chassis, refund energy cost and clear metadata
     if card.has_meta("attached_to_chassis"):
+        # Get the energy cost of the card
+        var card_cost = 0
+        if card is Card and card.data.has("cost"):
+            card_cost = int(card.data.cost)
+        
+        # Refund energy if cost is greater than 0 and turn_manager exists
+        if card_cost > 0 and turn_manager and turn_manager.has_method("gain_energy"):
+            print("HandManager: Refunding ", card_cost, " energy for returned card")
+            turn_manager.gain_energy(card_cost)
+        
+        # Clear the chassis attachment metadata
         card.remove_meta("attached_to_chassis")
     
     # Set a guard flag on the card to prevent recursion

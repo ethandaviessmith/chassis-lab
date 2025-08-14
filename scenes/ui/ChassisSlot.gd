@@ -64,20 +64,31 @@ func _on_resized():
 func is_compatible_with_card(card_data) -> bool:
     if not card_data or not card_data.has("type"):
         return false
-        
-    match slot_type:
-        "Head":
-            return card_data.type == "Head"
-        "Core":
-            return card_data.type == "Core"
-        "Arm":
-            return card_data.type == "Arm"
-        "Legs":
-            return card_data.type == "Legs"
-        "Scrapper":
-            return true # card_data.type == "Scrapper"
-        "Utility":
-            return card_data.type == "Utility"
+    
+    # Special case for scrapper - it accepts any card with heat > 0
+    if slot_type == "Scrapper":
+        if card_data.has("heat") and int(card_data.heat) > 0:
+            print("Card is compatible with Scrapper: ", card_data.name, " - Heat: ", card_data.heat)
+            return true
+        else:
+            print("Card rejected by Scrapper (no heat): ", card_data.name)
+            return false
+            
+    # Case insensitive comparison for better compatibility
+    var card_type_lower = card_data.type.to_lower()
+    var slot_type_lower = slot_type.to_lower()
+    
+    match slot_type_lower:
+        "head":
+            return card_type_lower == "head"
+        "core":
+            return card_type_lower == "core"
+        "arm":
+            return card_type_lower == "arm"
+        "legs":
+            return card_type_lower == "legs" or card_type_lower == "leg"
+        "utility":
+            return card_type_lower == "utility"
         _:
             return false
 

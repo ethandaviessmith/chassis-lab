@@ -59,8 +59,14 @@ func _ready():
     if heat_bar:
         # Connect chassis updates to heat calculation
         chassis_updated.connect(_on_chassis_updated_heat)
-        # Initialize heat bar with zero values
-        heat_bar.set_heat(0, 0, 10)
+        
+        # Initialize heat bar with starting values (2 default heat)
+        if chassis_manager:
+            var heat_data = chassis_manager.calculate_heat()
+            heat_bar.set_heat(heat_data.needed_heat, heat_data.scrapper_heat, heat_data.max_heat)
+        else:
+            # Fallback if chassis manager isn't available yet
+            heat_bar.set_heat(0, 2, 10)
     
     # Setup UI elements
     setup_ui()
@@ -277,17 +283,64 @@ func _update_heat_display():
     # Get heat values from chassis manager
     var heat_data = chassis_manager.calculate_heat()
     
-    # Update the heat bar
+    # Update the heat bar - include default heat value
     heat_bar.set_heat(heat_data.needed_heat, heat_data.scrapper_heat, heat_data.max_heat)
 
 # Handle button press to end the build phase
 func _on_end_phase_button_pressed():
-    # Build robot and start combat through TurnManager
+    # First check if there's enough heat to build the robot
+    if chassis_manager and not chassis_manager.has_enough_heat():
+        # Not enough heat - show warning message
+        _show_not_enough_heat_warning()
+        return
+        
+    # We have enough heat, proceed to combat
     if turn_manager and turn_manager.has_method("build_robot_and_start_combat"):
         turn_manager.build_robot_and_start_combat(self, game_manager)
     else:
         # Fallback to old behavior
         emit_signal("combat_requested")
+
+# Show a warning when there isn't enough heat to build
+func _show_not_enough_heat_warning():
+    # Check if we already have a warning label
+    var existing_warning = find_child("NotEnoughHeatWarning", false)
+    if existing_warning:
+        # Refresh the existing warning (flash it)
+        existing_warning.modulate = Color(1, 0, 0, 1)  # Bright red
+        
+        # Create a tween to fade out the warning
+        var existing_tween = create_tween()
+        existing_tween.tween_property(existing_warning, "modulate:a", 0.7, 0.5)
+        return
+    
+    # Create a new warning label
+    var warning_label = Label.new()
+    warning_label.name = "NotEnoughHeatWarning"
+    warning_label.text = "NOT ENOUGH HEAT TO BUILD"
+    warning_label.add_theme_color_override("font_color", Color(1, 0.2, 0.2)) # Red color
+    warning_label.add_theme_font_size_override("font_size", 24) # Larger font
+    
+    # Position it near the heat bar or at a prominent location
+    if heat_bar:
+        warning_label.global_position = heat_bar.global_position + Vector2(0, -40)
+    else:
+        # Fallback position in the upper part of the screen
+        warning_label.global_position = Vector2(get_viewport_rect().size.x / 2, 100)
+        warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    
+    add_child(warning_label)
+    
+    # Make it pulsate to draw attention
+    var tween = create_tween()
+    tween.tween_property(warning_label, "modulate:a", 0.7, 0.5)
+    tween.tween_property(warning_label, "modulate:a", 1.0, 0.5)
+    tween.set_loops(3)
+    
+    # Remove after a few seconds
+    await get_tree().create_timer(3.0).timeout
+    if is_instance_valid(warning_label) and warning_label.is_inside_tree():
+        warning_label.queue_free()
 
 # Handle button press to clear all chassis parts
 func _on_clear_chassis_button_pressed():

@@ -1816,13 +1816,21 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -50.0
+offset_left = -44.9999
 offset_top = -25.0
-offset_right = 10.0
+offset_right = 17.0001
 offset_bottom = 1.0
 grow_horizontal = 0
 text = "ENERGY"
 horizontal_alignment = 1
+
+[node name="CostIcon" type="Label" parent="BuildView/EnergyHeatContainer/EnergyBar"]
+offset_left = 6.00006
+offset_top = 275.0
+offset_right = 28.0001
+offset_bottom = 298.0
+mouse_filter = 1
+text = "⚡"
 
 [node name="HeatBar" type="Control" parent="BuildView/EnergyHeatContainer"]
 layout_mode = 1
@@ -1887,6 +1895,13 @@ offset_bottom = 1.0
 grow_horizontal = 0
 text = "HEAT"
 horizontal_alignment = 1
+
+[node name="HeatIcon" type="Label" parent="BuildView/EnergyHeatContainer/HeatBar"]
+offset_left = 6.00006
+offset_top = 272.0
+offset_right = 28.0001
+offset_bottom = 295.0
+text = "🔥"
 
 [node name="StartCombatButton" type="Button" parent="BuildView"]
 layout_mode = 1

@@ -74,7 +74,7 @@ func register_slots_as_drop_targets(card):
 # Get valid card types for each slot type
 func _get_valid_types_for_slot(slot_name: String) -> Array:
     # Each slot only accepts certain card types
-    match slot_name:
+    match slot_name.to_lower():
         "head":
             return ["head"]
         "core":
@@ -82,12 +82,13 @@ func _get_valid_types_for_slot(slot_name: String) -> Array:
         "arm_left", "arm_right":
             return ["arm"]
         "legs":
-            return ["legs"]
+            return ["legs", "leg"]  # Accept both singular and plural
         "utility":
             return ["utility"]
         "scrapper":
-            # Scrapper accepts all types
-            return ["head", "core", "arm", "legs", "utility"]
+            # Scrapper accepts all types as long as they have heat
+            # Returning all types, but heat check is done in _attach_card_to_scrapper
+            return ["head", "core", "arm", "legs", "leg", "utility"]
     
     return []
 
@@ -127,13 +128,24 @@ func calculate_heat() -> Dictionary:
             if "heat" in scrapper_content:
                 scrapper_heat += int(scrapper_content.heat)
     
-    var max_heat = max(10, needed_heat + scrapper_heat + 2)  # Dynamic max based on content
+    # Start with 2 base heat in the scrapper
+    var base_scrapper_heat = 2
+    var total_scrapper_heat = scrapper_heat + base_scrapper_heat
+    var max_heat = max(10, needed_heat + total_scrapper_heat)  # Dynamic max based on content
     
     return {
         "needed_heat": needed_heat,
-        "scrapper_heat": scrapper_heat,
-        "max_heat": max_heat
+        "scrapper_heat": total_scrapper_heat, # Include base 2 heat
+        "max_heat": max_heat,
+        "total_needed": needed_heat,
+        "total_available": total_scrapper_heat,
+        "has_enough_heat": total_scrapper_heat >= needed_heat
     }
+
+# Check if there's enough heat to build the robot
+func has_enough_heat() -> bool:
+    var heat_data = calculate_heat()
+    return heat_data.scrapper_heat >= heat_data.needed_heat
 
 # Attach a part to a specific slot
 func attach_part_to_slot(card, slot_name) -> bool:
