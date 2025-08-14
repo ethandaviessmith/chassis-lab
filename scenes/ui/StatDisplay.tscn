@@ -1,0 +1,47 @@
+[gd_scene load_steps=3 format=3 uid="uid://btu4roygvg44u"]
+
+[ext_resource type="Script" uid="uid://bk70av7r4ecxu" path="res://scenes/ui/StatDisplay.gd" id="1_o42ky"]
+[ext_resource type="Script" uid="uid://cl0lrw5yogklt" path="res://scenes/ui/TerminalBackground.gd" id="2_1l8pl"]
+
+[node name="StatDisplay" type="Control"]
+custom_minimum_size = Vector2(200, 170)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -952.0
+offset_bottom = -468.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_o42ky")
+
+[node name="TerminalBackground" type="Control" parent="."]
+anchors_preset = 0
+offset_left = 1.0
+offset_top = -24.0
+offset_right = 207.0
+offset_bottom = 145.0
+script = ExtResource("2_1l8pl")
+terminal_header = "MECH STATS"
+metadata/_custom_type_script = "uid://cl0lrw5yogklt"
+
+[node name="Background" type="Panel" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 190.0
+offset_bottom = 36.0
+theme_override_font_sizes/font_size = 16
+text = "ROBOT STATS"
+horizontal_alignment = 1

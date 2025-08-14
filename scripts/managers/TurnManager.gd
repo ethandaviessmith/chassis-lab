@@ -14,6 +14,8 @@ var energy_label: Label = null
 # Robot references - set these in the editor
 @export var robot_frame: RobotFrame = null
 @export var robot_fighter: RobotFighter = null
+@export var enemy_manager: EnemyManager = null
+@export var stat_manager: StatManager = null
 
 func _ready():
     # Initialize energy for the first turn (but don't start turn yet)
@@ -27,6 +29,10 @@ func _ready():
     
     # Try to find and connect to BuildView
     call_deferred("_connect_to_build_view")
+    
+    # Request next enemy from enemy manager
+    if enemy_manager:
+        enemy_manager.determine_next_enemy()
 
 # Deferred connection to BuildView to ensure scene is ready
 func _connect_to_build_view():
@@ -83,11 +89,7 @@ func start_turn():
     emit_signal("energy_changed", current_energy, max_energy)
     _update_energy_display()
     emit_signal("turn_started")
-    
-    # Draw new hand
-    var deck_manager = get_node_or_null("../DeckManager")
-    if deck_manager:
-        deck_manager.draw_hand()
+
 
 func end_turn():
     emit_signal("turn_ended")
@@ -152,6 +154,14 @@ func build_robot_and_start_combat(build_view, game_manager = null):
         robot_fighter.build_from_chassis(attached_parts)
     else:
         print("Warning: No RobotFighter assigned, combat stats will not be updated")
+    
+    # Discard remaining hand cards before combat
+    var hand_manager = get_node_or_null("../HandManager")
+    if hand_manager and hand_manager.has_method("discard_hand"):
+        print("TurnManager: Discarding remaining hand cards before combat...")
+        hand_manager.discard_hand()
+    else:
+        print("TurnManager: No HandManager found or missing discard_hand method")
     
     print("Robot build complete! Starting combat phase...")
     

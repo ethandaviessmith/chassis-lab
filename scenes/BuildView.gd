@@ -2,7 +2,7 @@ extends Control
 class_name BuildView
 
 signal combat_requested()
-signal chassis_updated(attached_parts)
+signal chassis_updated(attach_part)
 
 # References to managers - set these in the editor
 @export var game_manager: GameManager
@@ -20,6 +20,14 @@ signal chassis_updated(attached_parts)
 # Energy and Heat Bars
 @export var energy_bar: EnergyBar
 @export var heat_bar: HeatBar
+
+# Info panels
+@export var stat_display: StatDisplay
+@export var enemy_display: NextEnemyDisplay
+
+# Managers for info panels
+@export var stat_manager: StatManager
+@export var enemy_manager: EnemyManager
 
 # Card container
 @export var hand_container: Container
@@ -68,11 +76,40 @@ func _ready():
             # Fallback if chassis manager isn't available yet
             heat_bar.set_heat(0, 2, 10)
     
+    # Setup info panels
+    setup_info_panels()
+    
     # Setup UI elements
     setup_ui()
     
     # Initialize the build phase
     start_build_phase()
+    
+# Setup the info panels for stats and next enemy
+func setup_info_panels():
+    # Setup stat display panel
+    if stat_display and stat_manager:
+        # Make sure the stat display is properly configured
+        if stat_display.has_method("_ready"):
+            if not stat_display.stat_manager:
+                stat_display.stat_manager = stat_manager
+        
+        # Initialize stats display with current stats
+        if stat_manager.has_method("get_current_stats"):
+            var current_stats = stat_manager.get_current_stats()
+            # Use the update_display method directly if it exists
+            if stat_display.has_method("update_display"):
+                stat_display.update_display(current_stats)
+            # Otherwise emit the stats_updated signal for the stat display to catch
+            elif stat_manager.has_method("_on_chassis_updated") and chassis_manager:
+                stat_manager._on_chassis_updated(chassis_manager.attached_parts)
+    
+    # Setup enemy display panel
+    if enemy_display and enemy_manager:
+        # Make sure the enemy display is properly configured
+        if enemy_display.has_method("_ready"):
+            if not enemy_display.enemy_manager:
+                enemy_display.enemy_manager = enemy_manager
 
 # Initialize all managers and connect signals
 func _initialize_managers():

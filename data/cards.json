@@ -4,9 +4,10 @@
     "name": "Scope Visor",
     "type": "Head",
     "cost": 1,
-    "heat": 0,
-    "durability": 3,
+    "heat": 1,
+    "durability": 2,
     "frame": 12,
+    "manufacturer": "Construction",
     "effects": [
       {
         "type": "crit_chance",
@@ -27,10 +28,11 @@
     "id": "overseer_ai",
     "name": "Overseer AI",
     "type": "Head",
-    "cost": 2,
-    "heat": 1,
-    "durability": 4,
+    "cost": 1,
+    "heat": 0,
+    "durability": 3,
     "frame": 13,
+    "manufacturer": "Clean Energy",
     "effects": [
       {
         "type": "target_priority",
@@ -52,9 +54,10 @@
     "name": "Fusion Core",
     "type": "Core",
     "cost": 2,
-    "heat": 1,
-    "durability": 5,
+    "heat": 2,
+    "durability": 3,
     "frame": 16,
+    "manufacturer": "Military",
     "effects": [
       {
         "type": "energy_next_turn",
@@ -76,9 +79,10 @@
     "name": "Coolant Tank",
     "type": "Core",
     "cost": 1,
-    "heat": 0,
-    "durability": 3,
+    "heat": -2,
+    "durability": 2,
     "frame": 17,
+    "manufacturer": "Clean Energy",
     "effects": [
       {
         "type": "heat_dissipation",
@@ -96,8 +100,9 @@
     "type": "Arm",
     "cost": 2,
     "heat": 1,
-    "durability": 3,
+    "durability": 2,
     "frame": 4,
+    "manufacturer": "Military",
     "effects": [
       {
         "type": "damage",
@@ -119,9 +124,10 @@
     "name": "Saw Arm",
     "type": "Arm",
     "cost": 1,
-    "heat": 1,
-    "durability": 4,
+    "heat": 2,
+    "durability": 3,
     "frame": 5,
+    "manufacturer": "Construction",
     "effects": [
       {
         "type": "damage",
@@ -146,6 +152,7 @@
     "heat": 0,
     "durability": 3,
     "frame": 6,
+    "manufacturer": "Clean Energy",
     "effects": [
       {
         "type": "damage",
@@ -166,10 +173,11 @@
     "id": "flak_arm",
     "name": "Flak Arm",
     "type": "Arm",
-    "cost": 2,
-    "heat": 1,
-    "durability": 4,
+    "cost": 1,
+    "heat": 2,
+    "durability": 2,
     "frame": 7,
+    "manufacturer": "Futuristic",
     "effects": [
       {
         "type": "damage",
@@ -191,9 +199,10 @@
     "name": "Heavy Plating",
     "type": "Core",
     "cost": 1,
-    "heat": 0,
-    "durability": 5,
+    "heat": 2,
+    "durability": 4,
     "frame": 18,
+    "manufacturer": "Construction",
     "effects": [
       {
         "type": "armor",
@@ -215,9 +224,10 @@
     "name": "Tracked Legs",
     "type": "Legs",
     "cost": 1,
-    "heat": 0,
-    "durability": 4,
+    "heat": 1,
+    "durability": 3,
     "frame": 0,
+    "manufacturer": "Construction",
     "effects": [
       {
         "type": "stability",
@@ -239,9 +249,10 @@
     "name": "Jump Jets",
     "type": "Legs",
     "cost": 2,
-    "heat": 1,
-    "durability": 3,
+    "heat": 2,
+    "durability": 2,
     "frame": 1,
+    "manufacturer": "Military",
     "effects": [
       {
         "type": "dodge_chance",
@@ -262,10 +273,11 @@
     "id": "overclock",
     "name": "Overclock",
     "type": "Utility",
-    "cost": 1,
-    "heat": 2,
-    "durability": 2,
+    "cost": 0,
+    "heat": 3,
+    "durability": 1,
     "frame": 20,
+    "manufacturer": "Futuristic",
     "effects": [
       {
         "type": "damage_percent",
@@ -286,10 +298,11 @@
     "id": "patch_kit",
     "name": "Patch Kit",
     "type": "Utility",
-    "cost": 1,
+    "cost": 0,
     "heat": 0,
     "durability": 1,
     "frame": 21,
+    "manufacturer": "Futuristic",
     "effects": [
       {
         "type": "heal",
@@ -312,8 +325,9 @@
     "type": "Head",
     "cost": 2,
     "heat": 1,
-    "durability": 4,
+    "durability": 2,
     "frame": 14,
+    "manufacturer": "Military",
     "effects": [
       {
         "type": "attack_speed_percent",
@@ -331,8 +345,9 @@
     "type": "Core",
     "cost": 0,
     "heat": 0,
-    "durability": 3,
+    "durability": 1,
     "frame": 19,
+    "manufacturer": "Futuristic",
     "effects": [
       {
         "type": "energy_storage",
@@ -355,8 +370,9 @@
     "type": "Legs",
     "cost": 1,
     "heat": 0,
-    "durability": 4,
+    "durability": 3,
     "frame": 2,
+    "manufacturer": "Clean Energy",
     "effects": [
       {
         "type": "move_speed_percent",

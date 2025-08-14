@@ -262,3 +262,33 @@ func update_card_affordability(available_energy: int):
     for card in cards_in_hand:
         if card is Card and card.has_method("update_affordability"):
             card.update_affordability(available_energy)
+
+# Discard all cards in hand to the discard pile
+func discard_hand():
+    if not deck_manager:
+        print("HandManager: No deck_manager found, cannot discard hand")
+        return
+    
+    print("HandManager: Discarding all cards in hand...")
+    
+    # Keep track of how many cards we discard
+    var discard_count = 0
+    
+    # Process each card in hand
+    for card in cards_in_hand.duplicate():
+        # Check if card is instance valid
+        if is_instance_valid(card):
+            # Only discard cards that aren't attached to the chassis
+            if not card.has_meta("attached_to_chassis"):
+                # Add to discard pile if it's a Card object with data
+                if card is Card and card.data:
+                    deck_manager.discard_card(card.data)
+                    discard_count += 1
+                
+                # Queue free the card object
+                card.queue_free()
+    
+    # Clear our tracking array
+    cards_in_hand.clear()
+    
+    print("HandManager: Discarded " + str(discard_count) + " cards from hand")

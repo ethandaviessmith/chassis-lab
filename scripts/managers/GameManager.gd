@@ -19,6 +19,7 @@ var victory: bool = false
 # Export references - set these in the editor
 @export var deck_manager: DeckManager
 @export var turn_manager: TurnManager
+@export var hand_manager: HandManager
 @export var build_view: Control
 @export var combat_view: CombatView
 @export var reward_screen: RewardScreen
@@ -54,7 +55,17 @@ func start_build_phase():
     reward_screen.visible = false
     
     # Reset turn state
-    turn_manager.start_turn()
+    turn_manager.initialize()  # Initialize the turn manager (reset energy)
+    
+    # Clear and redraw hand for the new build phase
+    if hand_manager and hand_manager.has_method("start_sequential_card_draw"):
+        print("GameManager: Starting card draw for new build phase...")
+        hand_manager.clear_hand()  # Clear existing hand first
+        hand_manager.start_sequential_card_draw()  # Draw a new hand
+    else:
+        print("GameManager: No HandManager found or missing card draw methods")
+        # Fallback - use turn_manager's start_turn which includes drawing cards
+        turn_manager.start_turn()
     
     emit_signal("build_phase_started")
 

@@ -19,9 +19,11 @@ var combat_speed = 1.0  # Multiplier for combat speed
 # Combat entities
 var player_robot = null
 var current_enemy = null
+var current_enemy_data = null
 
 # References
 @export var data_loader: DataLoader
+@export var enemy_manager: EnemyManager
 @onready var combat_view = $"../../CombatView"
 @export var robot_fighter: RobotFighter
 
@@ -53,8 +55,16 @@ func start_combat(encounter_id: int):
     # Set up player robot
     player_robot = combat_view.get_player_robot()
     
-    # Create enemy for this encounter
-    current_enemy = _create_enemy_for_encounter(encounter_id)
+    # Get enemy data from EnemyManager if available
+    if enemy_manager and enemy_manager.get_next_enemy():
+        current_enemy_data = enemy_manager.get_next_enemy()
+        current_enemy = _create_enemy_from_data(current_enemy_data)
+        # Advance to next encounter for future battles
+        enemy_manager.advance_encounter()
+    else:
+        # Fallback to legacy method if EnemyManager not available
+        current_enemy = _create_enemy_for_encounter(encounter_id)
+        
     combat_view.spawn_enemy(current_enemy)
     
     print("Combat started: Player vs ", current_enemy.name)
@@ -135,6 +145,9 @@ func _create_enemy_for_encounter(encounter_id: int):
         var enemies = data_loader.load_enemy_data()
         enemy_data = enemies[encounter_id % enemies.size()]
     
+    return _create_enemy_from_data(enemy_data)
+
+func _create_enemy_from_data(enemy_data):
     var enemy = Enemy.new()
     enemy.initialize_from_data(enemy_data)
     

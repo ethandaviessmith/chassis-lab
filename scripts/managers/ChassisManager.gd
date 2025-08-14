@@ -7,6 +7,7 @@ signal chassis_updated(attached_parts)
 @export var turn_manager: TurnManager
 @export var hand_manager: HandManager
 @export var build_view: BuildView
+@export var stat_manager: Node
 
 @export var head_slot: Control
 @export var core_slot: Control
@@ -460,6 +461,59 @@ func handle_card_drag(card):
                     slot.highlight(true)  # Pass true for valid highlight
                 else:
                     slot.highlight(false)  # Pass false for invalid highlight
+
+    # Setup mouse enter/exit signals for slots to show stat previews
+    if stat_manager:
+        # Connect to mouse hover events for each slot
+        for slot_name in chassis_slots_map:
+            var slot = chassis_slots_map[slot_name]
+            if slot and slot is Control:
+                # Check if this slot type matches the card type
+                var valid_slot = is_valid_slot_for_card(card, slot_name)
+                if valid_slot:
+                    # Disconnect existing signals if any
+                    if slot.is_connected("mouse_entered", Callable(self, "_on_slot_mouse_entered")):
+                        slot.disconnect("mouse_entered", Callable(self, "_on_slot_mouse_entered"))
+                    if slot.is_connected("mouse_exited", Callable(self, "_on_slot_mouse_exited")):
+                        slot.disconnect("mouse_exited", Callable(self, "_on_slot_mouse_exited"))
+                    
+                    # Connect new signals
+                    slot.mouse_entered.connect(Callable(self, "_on_slot_mouse_entered").bind(card, slot_name))
+                    slot.mouse_exited.connect(Callable(self, "_on_slot_mouse_exited"))
+
+# Check if slot is valid for a card type
+func is_valid_slot_for_card(card, slot_name: String) -> bool:
+    if not card or not card.data or not card.data.has("type"):
+        return false
+    
+    # Special case for scrapper slot (accepts any card)
+    if slot_name == "scrapper":
+        return true
+    
+    # Check card type against slot type
+    match card.data.type:
+        "Head":
+            return slot_name == "head"
+        "Core":
+            return slot_name == "core"
+        "Arm":
+            return slot_name == "arm_left" or slot_name == "arm_right"
+        "Leg", "Legs":
+            return slot_name == "legs"
+        "Utility":
+            return slot_name == "utility"
+    
+    return false
+
+# Handler for mouse entering a valid slot
+func _on_slot_mouse_entered(card: Card, slot_name: String):
+    if stat_manager and stat_manager.has_method("card_hover_over_slot"):
+        stat_manager.card_hover_over_slot(card, slot_name)
+
+# Handler for mouse exiting a slot
+func _on_slot_mouse_exited():
+    if stat_manager and stat_manager.has_method("card_hover_end"):
+        stat_manager.card_hover_end()
 
 # Handle card drop event - place card at target or determine best target
 func handle_card_drop(card, drop_pos, target = null):

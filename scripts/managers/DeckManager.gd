@@ -213,3 +213,16 @@ func generate_rewards(count: int) -> Array:
 func add_card_to_deck(card: Dictionary):
     # Add a new card to discard pile
     discard_pile.append(card)
+
+func discard_card(card):
+    # Handle discarding both Dictionary data and Card objects
+    if card is Dictionary:
+        # Add to discard pile directly
+        discard_pile.append(card)
+        print("DeckManager: Card data added to discard pile")
+    elif card is Card and card.data:
+        # Extract card data from Card object and add to discard pile
+        discard_pile.append(card.data)
+        print("DeckManager: Card object's data added to discard pile")
+    else:
+        print("DeckManager: Unable to discard - invalid card type:", typeof(card))

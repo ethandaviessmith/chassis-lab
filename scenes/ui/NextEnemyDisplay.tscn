@@ -1,0 +1,47 @@
+[gd_scene load_steps=3 format=3 uid="uid://vous8ot0opdb"]
+
+[ext_resource type="Script" uid="uid://bqfdxhlqn80dw" path="res://scenes/ui/NextEnemyDisplay.gd" id="1_3iusv"]
+[ext_resource type="Script" uid="uid://cl0lrw5yogklt" path="res://scenes/ui/TerminalBackground.gd" id="2_1ntbw"]
+
+[node name="NextEnemyDisplay" type="Control"]
+modulate = Color(1.12564, 1.12564, 1.12564, 1)
+custom_minimum_size = Vector2(90, 160)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -952.0
+offset_bottom = -488.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_3iusv")
+
+[node name="BackgroundPanel" type="Panel" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 190.0
+offset_bottom = 36.0
+theme_override_font_sizes/font_size = 16
+text = "NEXT ENEMY"
+horizontal_alignment = 1
+
+[node name="TerminalBackground" type="Control" parent="."]
+anchors_preset = 0
+offset_right = 200.0
+offset_bottom = 160.0
+script = ExtResource("2_1ntbw")
+border_color = Color(1, 0.2, 0.2, 1)
+terminal_header = "NEXT ENEMY"
+header_color = Color(1, 1, 1, 1)
+metadata/_custom_type_script = "uid://cl0lrw5yogklt"
