@@ -99,7 +99,7 @@ func apply_damage(source, target, amount):
     target.take_damage(actual_damage)
     
     # Play damage sound
-    Sound.play_sound("damage", -3.0)
+    Sound.play_damage()
     
     emit_signal("damage_dealt", source, target, actual_damage)
     

@@ -1281,10 +1281,6 @@ offset_bottom = 46.0
 grow_horizontal = 2
 text = "CHASSIS LAB - BUILD PHASE"
 
-[node name="DeckControl" parent="BuildView" node_paths=PackedStringArray("deck_manager") instance=ExtResource("5_fs0b5")]
-layout_mode = 1
-deck_manager = NodePath("../../Managers/DeckManager")
-
 [node name="HandContainer" type="Container" parent="BuildView"]
 unique_name_in_owner = true
 layout_mode = 1
@@ -1320,6 +1316,16 @@ offset_right = 72.0
 offset_bottom = 87.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="TerminalBackground3" type="Control" parent="BuildView/ChassisContainer"]
+anchors_preset = 0
+offset_left = -288.0
+offset_top = -18.0
+offset_right = -110.0
+offset_bottom = 330.0
+script = ExtResource("4_yxlcp")
+terminal_header = "INPUT // READY"
+metadata/_custom_type_script = "uid://cl0lrw5yogklt"
 
 [node name="TerminalBackground" type="Control" parent="BuildView/ChassisContainer"]
 anchors_preset = 0
@@ -1789,9 +1795,9 @@ anchor_top = 0.377
 anchor_right = 0.909
 anchor_bottom = 0.377
 offset_left = -971.168
-offset_top = -166.296
+offset_top = -121.296
 offset_right = -832.168
-offset_bottom = 166.704
+offset_bottom = 158.704
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -1799,7 +1805,7 @@ grow_vertical = 2
 layout_mode = 1
 anchors_preset = 0
 offset_right = 35.0
-offset_bottom = 300.0
+offset_bottom = 250.0
 script = ExtResource("8_energybar")
 
 [node name="Background" type="ColorRect" parent="BuildView/EnergyHeatContainer/EnergyBar"]
@@ -1852,9 +1858,9 @@ horizontal_alignment = 1
 [node name="CostIcon" type="Label" parent="BuildView/EnergyHeatContainer/EnergyBar"]
 layout_mode = 0
 offset_left = 6.00006
-offset_top = 275.0
+offset_top = 222.0
 offset_right = 28.0001
-offset_bottom = 298.0
+offset_bottom = 245.0
 mouse_filter = 1
 text = "⚡"
 
@@ -1863,7 +1869,7 @@ layout_mode = 1
 anchors_preset = 0
 offset_left = 92.0
 offset_right = 127.0
-offset_bottom = 300.0
+offset_bottom = 250.0
 script = ExtResource("9_heatbar")
 
 [node name="Background" type="ColorRect" parent="BuildView/EnergyHeatContainer/HeatBar"]
@@ -1925,9 +1931,9 @@ horizontal_alignment = 1
 [node name="HeatIcon" type="Label" parent="BuildView/EnergyHeatContainer/HeatBar"]
 layout_mode = 0
 offset_left = 6.00006
-offset_top = 272.0
+offset_top = 219.0
 offset_right = 28.0001
-offset_bottom = 295.0
+offset_bottom = 242.0
 text = "🔥"
 
 [node name="StartCombatButton" type="Button" parent="BuildView"]
@@ -1997,7 +2003,7 @@ offset_bottom = 40.0
 
 [node name="Managers" type="Node" parent="."]
 
-[node name="GameManager" type="Node" parent="Managers" node_paths=PackedStringArray("deck_manager", "turn_manager", "hand_manager", "build_view", "combat_view", "reward_screen", "data_loader")]
+[node name="GameManager" type="Node" parent="Managers" node_paths=PackedStringArray("deck_manager", "turn_manager", "hand_manager", "build_view", "combat_view", "reward_screen", "data_loader", "deck_control")]
 script = ExtResource("1_ebyi6")
 deck_manager = NodePath("../DeckManager")
 turn_manager = NodePath("../TurnManager")
@@ -2006,6 +2012,7 @@ build_view = NodePath("../../BuildView")
 combat_view = NodePath("../../CombatView")
 reward_screen = NodePath("../../RewardScreen")
 data_loader = NodePath("../../Utils/DataLoader")
+deck_control = NodePath("../../DeckControl")
 metadata/_custom_type_script = "uid://db0n6tl4t48du"
 
 [node name="DeckManager" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "turn_manager")]
@@ -2077,7 +2084,11 @@ metadata/_custom_type_script = "uid://dil6mj5nw377n"
 script = ExtResource("6_q8u5g")
 metadata/_custom_type_script = "uid://bsqyfsrcw1o5c"
 
+[node name="DeckControl" parent="." node_paths=PackedStringArray("deck_manager") instance=ExtResource("5_fs0b5")]
+deck_manager = NodePath("../Managers/DeckManager")
+
 [node name="RewardScreen" type="Control" parent="." node_paths=PackedStringArray("reward_title", "reward_container", "data_loader")]
+visible = false
 layout_mode = 3
 anchors_preset = 8
 anchor_left = 0.5

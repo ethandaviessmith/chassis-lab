@@ -24,6 +24,7 @@ var victory: bool = false
 @export var combat_view: CombatView
 @export var reward_screen: RewardScreen
 @export var data_loader: DataLoader
+@export var deck_control: DeckControl
 
 func _ready():
     # Connect signals when components are available
@@ -133,6 +134,8 @@ func start_reward_phase():
     # Hide combat view, show reward screen
     if combat_view:
         combat_view.visible = false
+    if deck_control:
+        deck_control.visible = true
     if reward_screen:
         reward_screen.visible = true
         reward_screen.show_rewards(true)  # Always victory if we reach rewards

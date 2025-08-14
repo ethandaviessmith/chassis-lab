@@ -1,3 +1,4 @@
+@tool
 extends Control
 class_name DeckControl
 
@@ -18,8 +19,6 @@ class_name DeckControl
 
 # State tracking
 var is_deck_view_open = false
-
-
 
 func _ready():
     # Hide deck view initially
@@ -70,7 +69,7 @@ func _update_counters():
         
     # Update total deck count
     if deck_count:
-        var total_cards = status.deck_size + status.discard_size + status.exhausted_size
+        var total_cards = status.deck_size + status.discard_size + status.exhausted_size + status.hand_size
         deck_count.text = str(total_cards)
 
 func _on_draw_pile_button_pressed():

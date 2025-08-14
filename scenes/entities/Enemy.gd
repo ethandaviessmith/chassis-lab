@@ -28,6 +28,7 @@ var combat_view = null          # Reference to combat view for effects
 @onready var health_bar = $HealthBar
 @onready var animation_player = $AnimationPlayer
 @onready var attack_indicator = $AttackIndicator
+var enemy_visuals: EnemyVisuals
 
 # Combat indicators with emojis
 var INDICATORS = {
@@ -40,9 +41,13 @@ var INDICATORS = {
 }
 
 func _ready():
-    # Set up the sprite emoji
-    if sprite and sprite is Label:
-        sprite.add_theme_font_size_override("font_size", 48)
+    # Set up the enemy visuals
+    enemy_visuals = EnemyVisuals.new()
+    add_child(enemy_visuals)
+    
+    # Hide old sprite if present
+    if sprite:
+        sprite.visible = false
     
     # Set up attack indicator
     if attack_indicator and attack_indicator is Label:
@@ -188,6 +193,10 @@ func move_to_target(target_node):
     var direction = (target_node.global_position - global_position).normalized()
     velocity = direction * move_speed
     move_and_slide()
+    
+    # Update visuals for walking animation
+    if enemy_visuals:
+        enemy_visuals.start_walking()
 
 func keep_distance(target_node, ideal_distance):
     var direction = (global_position - target_node.global_position)
@@ -220,8 +229,13 @@ func circle_target(target_node):
 func try_attack(delta, speed_modifier: float = 1.0):
     attack_timer += delta
     
-    # Can attack based on attack speed (attacks per second) with behavior modifier
-    var effective_attack_speed = attack_speed * speed_modifier
+    # Add randomization to attack speed (±15%)
+    var rng = RandomNumberGenerator.new()
+    rng.randomize()
+    var speed_variation = rng.randf_range(0.85, 1.15)
+    
+    # Can attack based on attack speed with randomization and behavior modifier
+    var effective_attack_speed = attack_speed * speed_modifier * speed_variation
     
     if attack_timer >= 1.0 / effective_attack_speed:
         attack_timer = 0.0
@@ -254,12 +268,19 @@ func attack_target(target_node):
     
     # Check if within range for this attack type
     if distance <= attack_range:
+        # Apply damage randomization (±20%)
+        var rng = RandomNumberGenerator.new()
+        rng.randomize()
+        var damage_variation = rng.randf_range(0.8, 1.2)
+        var varied_damage = round(damage * damage_variation)
+        varied_damage = max(1, varied_damage)  # Ensure minimum damage of 1
+        
         # Attack based on type
         if attack_type == "melee":
             # Direct melee attack
             if target_node.has_method("take_damage"):
-                target_node.take_damage(damage)
-                print(enemy_name, " attacked for ", damage, " damage with melee")
+                target_node.take_damage(varied_damage)
+                print(enemy_name, " attacked for ", varied_damage, " damage with melee")
                 
                 # Play attack sound
                 Sound.play_attack()
@@ -275,9 +296,9 @@ func attack_target(target_node):
             Sound.play_range_attack()  # Higher pitch for ranged attacks
             
             if combat_view:
-                print(enemy_name, " fired a projectile for ", damage, " damage")
+                print(enemy_name, " fired a projectile for ", varied_damage, " damage")
                 combat_view.show_combat_effect("range_attack", self)
-                combat_view.fire_projectile(self, target_node.global_position, damage, attack_range)
+                combat_view.fire_projectile(self, target_node.global_position, varied_damage, attack_range)
         
         # Cycle to next attack type
         current_attack_index = (current_attack_index + 1) % attack_types.size()
@@ -286,7 +307,14 @@ func attack_target(target_node):
         play_attack_animation()
 
 func take_damage(amount: int):
-    var actual_damage = max(0, amount - armor)
+    # Apply randomization to damage taken (±15%)
+    var rng = RandomNumberGenerator.new()
+    rng.randomize()
+    var damage_variation = rng.randf_range(0.85, 1.15)
+    var varied_amount = round(amount * damage_variation)
+    
+    # Calculate actual damage
+    var actual_damage = max(0, varied_amount - armor)
     hp -= actual_damage
     hp = max(0, hp)
     update_health_bar()
@@ -297,6 +325,10 @@ func take_damage(amount: int):
     # Show shield indicator if armor reduced damage significantly
     if armor > 0 and amount > actual_damage and combat_view:
         combat_view.show_combat_effect("shield", self)
+    
+    # Use visuals system for hit animation
+    if enemy_visuals:
+        enemy_visuals.play_hit()
     
     # Check for defeat
     if hp <= 0:
@@ -334,18 +366,23 @@ func update_health_bar():
         health_bar.value = 100.0 * hp / max_hp
 
 func play_attack_animation():
-    if animation_player and animation_player.has_animation("attack"):
+    # Use our visuals system for attack animation
+    if enemy_visuals:
+        enemy_visuals.play_attack()
+    elif animation_player and animation_player.has_animation("attack"):
         animation_player.play("attack")
     else:
-        # Simple feedback without animation
-        sprite.scale = Vector2(1.2, 1.2)
-        await get_tree().create_timer(0.1).timeout
-        sprite.scale = Vector2(1.0, 1.0)
+        # Simple feedback without animation (legacy support)
+        if sprite:
+            sprite.scale = Vector2(1.2, 1.2)
+            await get_tree().create_timer(0.1).timeout
+            sprite.scale = Vector2(1.0, 1.0)
 
 func play_hurt_animation():
+    # Already handled by enemy_visuals, but keep this for legacy support
     if animation_player and animation_player.has_animation("hurt"):
         animation_player.play("hurt")
-    else:
+    elif sprite:
         # Simple feedback without animation
         sprite.modulate = Color(1, 0.5, 0.5)  # Red tint
         await get_tree().create_timer(0.1).timeout

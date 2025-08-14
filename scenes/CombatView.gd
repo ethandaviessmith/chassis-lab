@@ -15,7 +15,7 @@ var player_robot: RobotFighter = null
 var current_enemy = null
 var combat_active: bool = false
 var combat_timer: float = 0.0
-var effects_layer: CombatEffects = null
+var effects_layer: CombatEffectsLayer = null
 var bullet_scene = preload("res://scenes/entities/Bullet.tscn")
 
 # Combat parameters
@@ -39,7 +39,7 @@ func _ready():
         start_combat_button.text = "Start Combat"
     
     # Create effects layer for combat indicators
-    effects_layer = CombatEffects.new()
+    effects_layer = CombatEffectsLayer.new()
     add_child(effects_layer)
     
     # Add to combat_view group so entities can find it

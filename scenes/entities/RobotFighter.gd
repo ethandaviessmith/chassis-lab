@@ -28,11 +28,11 @@ var utility = null
 # Part effects cache
 var effects = {}
 
-# Combat sprite (placeholder robot emoji for now)
-@onready var combat_sprite = $CombatSprite
+# Robot visuals
 @onready var health_bar = $HealthBar
 @onready var heat_bar = $HeatBar
 @onready var animation_player = $AnimationPlayer
+var robot_visuals: RobotVisuals
 
 # Attack properties
 var attack_types = ["melee"]    # Default to melee only
@@ -46,10 +46,9 @@ var last_attack_time = 0.0
 var is_combat_active = false
 
 func _ready():
-    # Set up the placeholder robot sprite
-    if combat_sprite and combat_sprite is Label:
-        combat_sprite.text = "🤖"  # Robot emoji placeholder
-        combat_sprite.add_theme_font_size_override("font_size", 48)
+    # Set up the robot visuals
+    robot_visuals = RobotVisuals.new()
+    add_child(robot_visuals)
     
     # Find combat view for effects
     find_combat_view()
@@ -310,6 +309,13 @@ func move_toward_target(target):
     if heat >= 8:
         velocity *= 0.8  # Slow down when overheating
     
+    # Update visuals based on movement
+    if robot_visuals:
+        if velocity.length() > 10:
+            robot_visuals.start_walking()
+        else:
+            robot_visuals.stop_walking()
+    
     move_and_slide()
 
 func try_attack(target, _delta):
@@ -317,23 +323,39 @@ func try_attack(target, _delta):
     var current_time = Time.get_time_dict_from_system()
     var time_since_last_attack = (current_time.hour * 3600 + current_time.minute * 60 + current_time.second) - last_attack_time
     
-    # Simple time-based attack cooldown
-    if time_since_last_attack >= (1.0 / attack_speed):
+    # Calculate attack speed with small randomization (±15%)
+    var rng = RandomNumberGenerator.new()
+    rng.randomize()
+    var randomized_attack_speed = attack_speed * rng.randf_range(0.85, 1.15)
+    
+    # Simple time-based attack cooldown with randomized speed
+    if time_since_last_attack >= (1.0 / randomized_attack_speed):
         # Check if close enough to attack
         var distance_to_target = global_position.distance_to(target.global_position)
         if distance_to_target <= 50:  # Attack range
             perform_attack(target)
             last_attack_time = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
+            
+            # Update visuals for attack animation
+            if robot_visuals:
+                robot_visuals.play_attack()
 
 func perform_attack(target):
-    # Calculate damage based on arms equipped
-    var damage = 1  # Base damage
+    # Calculate base damage
+    var base_damage = 1  # Base damage
     
     # Add damage from arms
     if left_arm:
-        damage += 2  # Example: left arm adds damage
+        base_damage += 2  # Example: left arm adds damage
     if right_arm:
-        damage += 2  # Example: right arm adds damage
+        base_damage += 2  # Example: right arm adds damage
+    
+    # Apply randomization to damage (±20%)
+    var rng = RandomNumberGenerator.new()
+    rng.randomize()
+    var damage_variation = rng.randf_range(0.8, 1.2)
+    var damage = round(base_damage * damage_variation)
+    damage = max(1, damage)  # Ensure minimum damage of 1
     
     # Get current attack type and range
     var attack_type = attack_types[current_attack_index]
@@ -363,14 +385,8 @@ func perform_attack(target):
     # Cycle to next attack type
     current_attack_index = (current_attack_index + 1) % attack_types.size()
     
-    # Show attack animation
-    if animation_player and animation_player.has_animation("attack"):
-        animation_player.play("attack")
-    
     # Generate heat from attacking
     add_heat(1)
-    
-    print("RobotFighter: Attacked for ", damage, " damage")
 
 # Health and resource management
 func take_damage(amount: int):
@@ -384,6 +400,10 @@ func take_damage(amount: int):
     # Show shield indicator if armor reduced damage significantly
     if armor > 0 and amount > actual_damage and combat_view:
         combat_view.show_combat_effect("shield", self)
+    
+    # Play hit animation
+    if robot_visuals and actual_damage > 0:
+        robot_visuals.play_hit()
     
     if energy <= 0:
         emit_signal("robot_defeated")
@@ -475,7 +495,7 @@ func get_status_summary() -> String:
         status += " | OVERHEATED"
     return status
 
-# Development helper to set placeholder sprite
-func set_placeholder_sprite(emoji: String):
-    if combat_sprite and combat_sprite is Label:
-        combat_sprite.text = emoji
+# No longer needed with RobotVisuals system
+func set_placeholder_sprite(_emoji: String):
+    # This is kept for backwards compatibility
+    pass
