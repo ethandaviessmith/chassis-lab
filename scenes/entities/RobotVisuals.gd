@@ -188,3 +188,34 @@ func play_hit():
     is_hit = true
     is_attacking = false
     # Keep walking if already walking
+    
+# Death animation where the robot falls on its back and flattens
+func play_death_animation():
+    # Stop other animations
+    is_walking = false
+    is_attacking = false
+    is_hit = false
+    
+    # Create tween for smooth animation
+    var tween = create_tween()
+    
+    # Falling backwards
+    # First move everything slightly up
+    tween.tween_property(head_label, "position:y", head_label.position.y - 10, 0.2)
+    tween.parallel().tween_property(body_label, "position:y", body_label.position.y - 5, 0.2)
+    tween.parallel().tween_property(left_arm_label, "position:y", left_arm_label.position.y - 5, 0.2)
+    tween.parallel().tween_property(right_arm_label, "position:y", right_arm_label.position.y - 5, 0.2)
+    
+    # Then rotate and fall back
+    tween.tween_property(self, "rotation_degrees", 90, 0.3)
+    
+    # Move to final position
+    tween.tween_property(self, "position:y", position.y + 20, 0.3)
+    
+    # Flatten by scaling vertically
+    tween.tween_property(self, "scale:y", 0.2, 0.5)
+    
+    # Fade out
+    tween.tween_property(self, "modulate:a", 0.5, 0.3)
+    
+    return tween

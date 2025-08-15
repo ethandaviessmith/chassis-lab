@@ -199,16 +199,21 @@ func end_combat(victory: bool):
     if player_robot:
         player_robot.end_combat()
     
-    # Clean up enemy
+    # For enemy, delay queue_free to allow death animation to be visible
+    # This is especially important for victory, as the enemy has already played the animation
     if current_enemy and is_instance_valid(current_enemy):
-        current_enemy.queue_free()
-        current_enemy = null
+        # Don't immediately remove the enemy
+        var timer = get_tree().create_timer(2.0)
+        await timer.timeout
+        if is_instance_valid(current_enemy):
+            current_enemy.queue_free()
+            current_enemy = null
     
     # Emit result signal
     emit_signal("combat_finished", victory)
     
-    # Show reward screen after a brief delay
-    await get_tree().create_timer(1.0).timeout
+    # Show reward screen after a brief delay (longer now to account for death animation)
+    await get_tree().create_timer(1.5).timeout
     if victory:
         emit_signal("show_reward_screen")
 

@@ -32,6 +32,7 @@ signal chassis_updated(attach_part)
 # Card container
 @export var hand_container: Container
 @export var deck_control: DeckControl
+
 var cards_in_hand = []
 
 

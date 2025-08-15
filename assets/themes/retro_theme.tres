@@ -1,9 +1,22 @@
-[gd_resource type="Theme" load_steps=3 format=3 uid="uid://dfvfulbps0yqm"]
+[gd_resource type="Theme" load_steps=4 format=3 uid="uid://dfvfulbps0yqm"]
 
 [ext_resource type="FontFile" uid="uid://15cp2ypsqwdc" path="res://assets/BoldPixels1.4.ttf" id="1_icxe7"]
 
 [sub_resource type="FontVariation" id="FontVariation_g4ikq"]
 base_font = ExtResource("1_icxe7")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8ysnc"]
+bg_color = Color(0.109804, 0.109804, 0.109804, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.0475577, 0.0475576, 0.0475576, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_size = 6
 
 [resource]
 Button/colors/font_color = Color(0.8, 0.8, 1, 1)
@@ -18,7 +31,7 @@ Label/fonts/font = SubResource("FontVariation_g4ikq")
 LineEdit/colors/font_color = Color(0.8, 0.8, 1, 1)
 LineEdit/font_sizes/font_size = 12
 LineEdit/fonts/font = SubResource("FontVariation_g4ikq")
-Panel/styles/panel = null
+Panel/styles/panel = SubResource("StyleBoxFlat_8ysnc")
 RichTextLabel/colors/default_color = Color(0.8, 0.8, 1, 1)
 RichTextLabel/font_sizes/normal_font_size = 12
 RichTextLabel/fonts/normal_font = SubResource("FontVariation_g4ikq")

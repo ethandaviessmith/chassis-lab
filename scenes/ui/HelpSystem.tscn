@@ -1,0 +1,196 @@
+[gd_scene load_steps=8 format=3 uid="uid://cbnlvq7aydh6s"]
+
+[ext_resource type="Script" uid="uid://cnwpesc3orr73" path="res://scenes/ui/HelpSystem.gd" id="1_vxixd"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_m3yx7"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yo4ig"]
+bg_color = Color(0.25, 0.25, 0.25, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9, 0.9, 0.9, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 4
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_82mcp"]
+bg_color = Color(0.15, 0.15, 0.15, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.6, 0.6, 0.6, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 2
+shadow_offset = Vector2(1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nkspv"]
+bg_color = Color(0.2, 0.2, 0.2, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 4
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0xdtp"]
+bg_color = Color(1, 1, 1, 0.25098)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.7, 0.7, 0.7, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 4
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j6e8s"]
+bg_color = Color(0.15, 0.15, 0.15, 0.9)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 8
+
+[node name="HelpSystem" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_vxixd")
+
+[node name="HelpButton" type="Button" parent="."]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 40.0
+offset_bottom = 40.0
+tooltip_text = "Show Help"
+theme_override_font_sizes/font_size = 18
+theme_override_styles/focus = SubResource("StyleBoxEmpty_m3yx7")
+theme_override_styles/hover = SubResource("StyleBoxFlat_yo4ig")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_82mcp")
+theme_override_styles/normal = SubResource("StyleBoxFlat_nkspv")
+text = "?"
+
+[node name="HelpPanel" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DarkOverlay" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.207843)
+
+[node name="HighlightRect" type="Panel" parent="."]
+offset_left = 251.0
+offset_top = 177.0
+offset_right = 451.0
+offset_bottom = 377.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_0xdtp")
+
+[node name="ExplanationPanel" type="Panel" parent="."]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -250.0
+offset_top = -214.0
+offset_right = 250.0
+offset_bottom = -91.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_j6e8s")
+
+[node name="TitleLabel" type="Label" parent="ExplanationPanel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 15.0
+offset_top = 5.0
+offset_right = -15.0
+offset_bottom = 25.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 16
+text = "Tutorial Step Title"
+horizontal_alignment = 1
+
+[node name="ExplanationText" type="Label" parent="ExplanationPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 15.0
+offset_top = 30.0
+offset_right = -15.0
+offset_bottom = -25.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 20
+text = "Tutorial text goes here. This explains the current highlighted feature."
+autowrap_mode = 3
+
+[node name="ProgressLabel" type="Label" parent="ExplanationPanel"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -25.0
+offset_right = 20.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 12
+text = "1/6"
+horizontal_alignment = 1
+
+[node name="NextButton" type="Button" parent="ExplanationPanel"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -80.0
+offset_top = -25.0
+offset_right = -10.0
+offset_bottom = -5.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 12
+text = "Next"

@@ -319,6 +319,10 @@ func move_toward_target(target):
     move_and_slide()
 
 func try_attack(target, _delta):
+    # Check if robot is defeated (energy <= 0)
+    if energy <= 0:
+        return  # Don't attack if defeated
+        
     # Check if enough time has passed since last attack
     var current_time = Time.get_time_dict_from_system()
     var time_since_last_attack = (current_time.hour * 3600 + current_time.minute * 60 + current_time.second) - last_attack_time
@@ -341,6 +345,10 @@ func try_attack(target, _delta):
                 robot_visuals.play_attack()
 
 func perform_attack(target):
+    # Double check that robot is not defeated
+    if energy <= 0:
+        return  # Don't attack if defeated
+        
     # Calculate base damage
     var base_damage = 1  # Base damage
     
@@ -406,6 +414,13 @@ func take_damage(amount: int):
         robot_visuals.play_hit()
     
     if energy <= 0:
+        # Play death animation before signaling defeat
+        if robot_visuals:
+            var tween = robot_visuals.play_death_animation()
+            # Wait for animation to finish
+            await tween.finished
+        
+        # Signal defeat
         emit_signal("robot_defeated")
 
 func heal(amount: int):

@@ -11,7 +11,7 @@ var max_energy: int = 4  # Default 4 energy per turn
 # UI References (can be set from BuildView or Main scene)
 var energy_label: Label = null
 
-# Robot references - set these in the editor
+# References - set these in the editor
 @export var robot_frame: RobotFrame = null
 @export var robot_fighter: RobotFighter = null
 @export var enemy_manager: EnemyManager = null
@@ -19,6 +19,7 @@ var energy_label: Label = null
 @export var build_view: BuildView = null
 @export var chassis_manager: ChassisManager
 @export var deck_manager: DeckManager
+@export var hand_manager: HandManager
 
 func _ready():
     # Initialize energy for the first turn (but don't start turn yet)
@@ -119,11 +120,11 @@ func _update_energy_display():
         energy_label.text = "Energy: " + str(current_energy) + "/" + str(max_energy)
 
 # Build robot before combat begins
-func build_robot_and_start_combat(build_view, game_manager = null):
+func build_robot_and_start_combat(view_instance, game_manager = null):
     print("Building robot from chassis...")
     
     # Get attached parts from BuildView
-    var attached_parts = build_view.attached_parts
+    var attached_parts = view_instance.attached_parts
     
     if not robot_frame and not robot_fighter:
         print("Error: No robot components assigned! Please set robot_frame and robot_fighter in the editor.")
@@ -144,13 +145,35 @@ func build_robot_and_start_combat(build_view, game_manager = null):
     # Process scrapper parts - decrease durability by 1 for all cards in scrapper slots
     _process_scrapper_parts()
     
+    # Track discard completion with a boolean flag
+    var cards_discarded = false
+    var scrapper_processed = false
+    
+    # Show a "Preparing for Combat..." message to indicate the transition
+    var preparing_label = _show_preparing_for_combat_message(view_instance)
+    
     # Discard remaining hand cards before combat
-    var hand_manager = get_node_or_null("../HandManager")
     if hand_manager and hand_manager.has_method("discard_hand"):
         print("TurnManager: Discarding remaining hand cards before combat...")
         hand_manager.discard_hand()
+        # We'll add a short delay to allow animations to complete
+        await get_tree().create_timer(0.7).timeout
+        cards_discarded = true
     else:
         print("TurnManager: No HandManager found or missing discard_hand method")
+        cards_discarded = true
+    
+    # Ensure all scrapper cards are properly processed with a visual delay
+    await get_tree().create_timer(0.5).timeout
+    scrapper_processed = true
+    
+    # Wait for both operations to complete
+    if !cards_discarded or !scrapper_processed:
+        await get_tree().process_frame
+    
+    # Remove the "Preparing" message if it exists
+    if is_instance_valid(preparing_label) and preparing_label.is_inside_tree():
+        preparing_label.queue_free()
     
     print("Robot build complete! Starting combat phase...")
     
@@ -178,3 +201,32 @@ func _process_scrapper_parts():
             card.data["durability"] = current_durability
             print("TurnManager: Scrapper durability reduced to ", current_durability)
     
+
+# Show a "Preparing for combat" message during the transition
+func _show_preparing_for_combat_message(view_node) -> Label:
+    # Create a new label for the transition message
+    var label = Label.new()
+    label.name = "PreparingForCombatLabel"
+    label.text = "PREPARING FOR COMBAT..."
+    label.add_theme_font_size_override("font_size", 24)
+    label.add_theme_color_override("font_color", Color(1, 0.8, 0.2)) # Yellow-ish color
+    
+    # Position it in the center of the screen
+    label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    label.size = Vector2(400, 100)
+    label.position = Vector2(
+        (view_node.get_viewport_rect().size.x - label.size.x) / 2,
+        (view_node.get_viewport_rect().size.y - label.size.y) / 2
+    )
+    
+    # Add a pulsing animation effect
+    var tween = view_node.create_tween()
+    tween.tween_property(label, "modulate:a", 0.5, 0.5)
+    tween.tween_property(label, "modulate:a", 1.0, 0.5)
+    tween.set_loops()
+    
+    # Add to the view
+    view_node.add_child(label)
+    
+    return label

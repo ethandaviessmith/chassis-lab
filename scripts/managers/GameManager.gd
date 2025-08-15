@@ -26,6 +26,8 @@ var victory: bool = false
 @export var data_loader: DataLoader
 @export var deck_control: DeckControl
 
+@export var level: Label
+
 func _ready():
     # Connect signals when components are available
     if build_view and build_view.has_signal("combat_requested"):
@@ -44,6 +46,7 @@ func _ready():
 
 func start_new_game():
     current_encounter = 0
+    set_level(1)
     victory = false
     emit_signal("game_started")
     start_build_phase()
@@ -59,6 +62,9 @@ func start_build_phase():
     # Reset turn state
     turn_manager.initialize()  # Initialize the turn manager (reset energy)
     
+    # Show "Ready to Build" message in green
+    var ready_label = _show_ready_to_build_message(build_view)
+    
     # Clear and redraw hand for the new build phase
     if hand_manager and hand_manager.has_method("start_sequential_card_draw"):
         print("GameManager: Starting card draw for new build phase...")
@@ -68,6 +74,11 @@ func start_build_phase():
         print("GameManager: No HandManager found or missing card draw methods")
         # Fallback - use turn_manager's start_turn which includes drawing cards
         turn_manager.start_turn()
+    
+    # Clean up the message after a short delay
+    await get_tree().create_timer(1.5).timeout
+    if is_instance_valid(ready_label) and ready_label.is_inside_tree():
+        ready_label.queue_free()
     
     emit_signal("build_phase_started")
 
@@ -142,8 +153,12 @@ func start_reward_phase():
     
     emit_signal("reward_phase_started")
 
+func set_level(lvl:int):
+    level.text = "Round 0" + str(lvl)
+
 func advance_to_next_encounter():
     current_encounter += 1
+    set_level(current_encounter + 1)
     print("GameManager: Advancing to encounter ", current_encounter)
     
     if current_encounter >= max_encounters:
@@ -159,9 +174,23 @@ func end_game(is_victory: bool):
     print("GameManager: Game ended. Victory: ", is_victory)
     emit_signal("game_over", victory)
     
+    # Show appropriate message based on victory status
+    var message_label = null
+    if is_victory:
+        # Victory message (can be implemented later)
+        pass
+    else:
+        # Defeat message - show "YOU LOSE" in red
+        message_label = _show_game_over_message(build_view)
+    
     # Show game over screen (implement later)
     # For now, restart the game
     await get_tree().create_timer(2.0).timeout
+    
+    # Clean up message if it exists
+    if is_instance_valid(message_label) and message_label.is_inside_tree():
+        message_label.queue_free()
+    
     start_new_game()
 
 # Signal handlers
@@ -186,6 +215,65 @@ func _on_combat_ended(player_won: bool):
     else:
         # Defeat ends the game
         end_game(false)
+
+# Shows a green "READY TO BUILD" message
+func _show_ready_to_build_message(view_node) -> Label:
+    # Create a new label for the build phase message
+    var label = Label.new()
+    label.name = "ReadyToBuildLabel"
+    label.text = "READY TO BUILD"
+    label.add_theme_font_size_override("font_size", 28)
+    label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.2))  # Green color
+    
+    # Position it in the center of the screen
+    label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    label.size = Vector2(400, 100)
+    label.position = Vector2(
+        (view_node.get_viewport_rect().size.x - label.size.x) / 2,
+        (view_node.get_viewport_rect().size.y - label.size.y) / 2
+    )
+    
+    # Add a growing/shrinking animation effect
+    var tween = view_node.create_tween()
+    tween.tween_property(label, "scale", Vector2(1.1, 1.1), 0.5)
+    tween.tween_property(label, "scale", Vector2(1.0, 1.0), 0.5)
+    tween.set_loops()
+    
+    # Add to the view
+    view_node.add_child(label)
+    
+    return label
+    
+# Shows a red "YOU LOSE" message
+func _show_game_over_message(view_node) -> Label:
+    # Create a new label for the game over message
+    var label = Label.new()
+    label.name = "GameOverLabel"
+    label.text = "YOU LOSE"
+    label.add_theme_font_size_override("font_size", 40)  # Larger font for impact
+    label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))  # Red color
+    
+    # Position it in the center of the screen
+    label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    label.size = Vector2(400, 100)
+    label.position = Vector2(
+        (view_node.get_viewport_rect().size.x - label.size.x) / 2,
+        (view_node.get_viewport_rect().size.y - label.size.y) / 2
+    )
+    
+    # Add a shaking animation effect to emphasize defeat
+    var tween = view_node.create_tween()
+    tween.tween_property(label, "position:x", label.position.x - 10, 0.1)
+    tween.tween_property(label, "position:x", label.position.x + 10, 0.1)
+    tween.tween_property(label, "position:x", label.position.x, 0.1)
+    tween.set_loops(3)  # Shake 3 times
+    
+    # Add to the view
+    view_node.add_child(label)
+    
+    return label
 
 func _on_show_reward_screen():
     # Called by CombatView when victory is achieved

@@ -1,9 +1,10 @@
-[gd_scene load_steps=51 format=4 uid="uid://brqbdkycilxbm"]
+[gd_scene load_steps=53 format=4 uid="uid://brqbdkycilxbm"]
 
 [ext_resource type="Script" uid="uid://db0n6tl4t48du" path="res://scripts/managers/GameManager.gd" id="1_ebyi6"]
 [ext_resource type="Script" uid="uid://c7w4x7sp1qi1s" path="res://game.gd" id="1_nxtc6"]
 [ext_resource type="PackedScene" uid="uid://7265h3h34unm" path="res://scenes/ui/Card.tscn" id="2_58qjv"]
 [ext_resource type="Script" uid="uid://c7p1hjor1eu7x" path="res://scenes/BuildView.gd" id="2_jlsqs"]
+[ext_resource type="PackedScene" uid="uid://cbnlvq7aydh6s" path="res://scenes/ui/HelpSystem.tscn" id="2_ma7h6"]
 [ext_resource type="PackedScene" uid="uid://vous8ot0opdb" path="res://scenes/ui/NextEnemyDisplay.tscn" id="3_36rkl"]
 [ext_resource type="Script" uid="uid://c4ap0o0bfb38" path="res://scripts/managers/DeckManager.gd" id="3_c01mt"]
 [ext_resource type="PackedScene" uid="uid://btu4roygvg44u" path="res://scenes/ui/StatDisplay.tscn" id="4_36rkl"]
@@ -21,6 +22,7 @@
 [ext_resource type="Script" uid="uid://bfe534k1fesqh" path="res://scenes/ui/HeatBar.gd" id="9_heatbar"]
 [ext_resource type="Script" uid="uid://cl4fy14wh7wam" path="res://scenes/ui/ScrapperSlot.gd" id="10_scrapperslot"]
 [ext_resource type="Script" uid="uid://cobesjmoxsp8l" path="res://scenes/CombatView.gd" id="13_mwfav"]
+[ext_resource type="FontFile" uid="uid://15cp2ypsqwdc" path="res://assets/BoldPixels1.4.ttf" id="14_e2s0e"]
 [ext_resource type="Script" uid="uid://601a3qp8pcc1" path="res://scenes/RewardScreen.gd" id="15_3p2gp"]
 [ext_resource type="Script" uid="uid://cwdbc54u44yro" path="res://scripts/managers/ChassisManager.gd" id="17_1nqs0"]
 [ext_resource type="Script" uid="uid://fysuhph6o7wk" path="res://scripts/managers/HandManager.gd" id="18_1iba3"]
@@ -1978,6 +1980,26 @@ offset_right = 120.0
 offset_bottom = 76.0
 text = "Heat: 0/10"
 
+[node name="HelpSystem" parent="BuildView" instance=ExtResource("2_ma7h6")]
+
+[node name="LevelLabel" type="Label" parent="BuildView"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = 271.0
+offset_top = -630.0
+offset_right = 362.0
+offset_bottom = -604.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_fonts/font = ExtResource("14_e2s0e")
+theme_override_font_sizes/font_size = 27
+text = "Round 01"
+horizontal_alignment = 1
+
 [node name="CombatView" type="Node2D" parent="." node_paths=PackedStringArray("player_spawn_point", "enemy_spawn_point", "combat_ui", "start_combat_button")]
 script = ExtResource("13_mwfav")
 player_spawn_point = NodePath("Spawn")
@@ -1985,13 +2007,24 @@ enemy_spawn_point = NodePath("Spawn2")
 combat_ui = NodePath("CombatUI")
 start_combat_button = NodePath("../BuildView/StartCombatButton")
 
+[node name="TerminalBackground" type="Control" parent="CombatView"]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 267.0
+offset_top = 55.0
+offset_right = 954.0
+offset_bottom = 496.0
+script = ExtResource("4_yxlcp")
+metadata/_custom_type_script = "uid://cl0lrw5yogklt"
+
 [node name="RobotFighter" parent="CombatView" instance=ExtResource("9_3p2gp")]
+position = Vector2(390, 248)
 
 [node name="Spawn" type="Marker2D" parent="CombatView"]
-position = Vector2(333, 298)
+position = Vector2(387, 294)
 
 [node name="Spawn2" type="Marker2D" parent="CombatView"]
-position = Vector2(806, 296)
+position = Vector2(860, 292)
 
 [node name="CombatUI" type="Control" parent="CombatView"]
 layout_mode = 3
@@ -2000,10 +2033,11 @@ offset_right = 40.0
 offset_bottom = 40.0
 
 [node name="UI" type="CanvasLayer" parent="."]
+visible = false
 
 [node name="Managers" type="Node" parent="."]
 
-[node name="GameManager" type="Node" parent="Managers" node_paths=PackedStringArray("deck_manager", "turn_manager", "hand_manager", "build_view", "combat_view", "reward_screen", "data_loader", "deck_control")]
+[node name="GameManager" type="Node" parent="Managers" node_paths=PackedStringArray("deck_manager", "turn_manager", "hand_manager", "build_view", "combat_view", "reward_screen", "data_loader", "deck_control", "level")]
 script = ExtResource("1_ebyi6")
 deck_manager = NodePath("../DeckManager")
 turn_manager = NodePath("../TurnManager")
@@ -2013,6 +2047,7 @@ combat_view = NodePath("../../CombatView")
 reward_screen = NodePath("../../RewardScreen")
 data_loader = NodePath("../../Utils/DataLoader")
 deck_control = NodePath("../../DeckControl")
+level = NodePath("../../BuildView/LevelLabel")
 metadata/_custom_type_script = "uid://db0n6tl4t48du"
 
 [node name="DeckManager" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "turn_manager")]

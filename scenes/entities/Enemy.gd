@@ -227,6 +227,10 @@ func circle_target(target_node):
     move_and_slide()
 
 func try_attack(delta, speed_modifier: float = 1.0):
+    # Check if robot is defeated (hp <= 0)
+    if hp <= 0:
+        return  # Don't attack if defeated
+
     attack_timer += delta
     
     # Add randomization to attack speed (±15%)
@@ -332,6 +336,13 @@ func take_damage(amount: int):
     
     # Check for defeat
     if hp <= 0:
+        # Play death animation before signaling defeat
+        if enemy_visuals:
+            var tween = enemy_visuals.play_death_animation()
+            # Wait for animation to finish
+            await tween.finished
+        
+        # Signal defeat
         emit_signal("enemy_defeated")
     
     # Check for special ability triggers
