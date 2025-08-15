@@ -27,8 +27,11 @@ var victory: bool = false
 @export var deck_control: DeckControl
 
 @export var level: Label
+@export var volume: HSlider
 
 func _ready():
+
+
     # Connect signals when components are available
     if build_view and build_view.has_signal("combat_requested"):
         build_view.combat_requested.connect(_on_combat_requested)
@@ -41,8 +44,15 @@ func _ready():
         reward_screen.continue_to_next_encounter.connect(_on_continue_to_next_encounter)
         reward_screen.reward_selected.connect(_on_reward_selected)
     
+    if volume:
+        volume.value_changed.connect(_on_volume_changed)
+
     # Start new game
     start_new_game()
+    Sound.start_background_music()
+
+func _on_volume_changed(value: float):
+    Sound.set_music_volume(value)
 
 func start_new_game():
     current_encounter = 0
@@ -58,6 +68,9 @@ func start_build_phase():
     build_view.visible = true
     combat_view.visible = false
     reward_screen.visible = false
+    
+    # Switch background music to build mode
+    Sound.switch_game_mode_music("build")
     
     # Reset turn state
     turn_manager.initialize()  # Initialize the turn manager (reset energy)
@@ -83,6 +96,7 @@ func start_build_phase():
     emit_signal("build_phase_started")
 
 func start_combat_phase():
+    Sound.switch_game_mode_music("combat")
     current_state = GameState.COMBAT
     print("GameManager: Starting combat phase")
     
@@ -148,8 +162,7 @@ func start_reward_phase():
     if deck_control:
         deck_control.visible = true
     if reward_screen:
-        reward_screen.visible = true
-        reward_screen.show_rewards(true)  # Always victory if we reach rewards
+        reward_screen.show_rewards(true)
     
     emit_signal("reward_phase_started")
 
@@ -191,7 +204,9 @@ func end_game(is_victory: bool):
     if is_instance_valid(message_label) and message_label.is_inside_tree():
         message_label.queue_free()
     
-    start_new_game()
+    #just reload the scene to restart
+    get_tree().reload_current_scene()
+
 
 # Signal handlers
 func _on_combat_requested():

@@ -53,7 +53,7 @@
     "id": "fusion_core",
     "name": "Fusion Core",
     "type": "Core",
-    "cost": 2,
+    "cost": 1,
     "heat": 2,
     "durability": 3,
     "frame": 16,

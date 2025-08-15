@@ -175,6 +175,9 @@ func build_robot_and_start_combat(view_instance, game_manager = null):
     if is_instance_valid(preparing_label) and preparing_label.is_inside_tree():
         preparing_label.queue_free()
     
+    # Switch background music to combat mode
+    
+
     print("Robot build complete! Starting combat phase...")
     
     # Tell GameManager to start combat phase

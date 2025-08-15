@@ -20,8 +20,8 @@ var is_hit: bool = false
 var attack_direction: int = 1  # 1 = right, -1 = left
 
 # Available emojis for randomization
-var head_options = ["💻", "🪖", "📸", "🚨", "👑", "⚪", "🟢", "🔵", "🔴"]
-var arm_options = ["🪒", "🎥", "🗡️", "📌", "🛡️", "🔪", "📢", "🦯", "🧹", "🪄", "🪓"]
+var head_options = ["🤖","💻", "🪖", "📸", "🚨", "👑", "⚪", "🟢", "🔵", "🔴"]
+var arm_options = ["🎥", "🗡️", "📌", "🛡️", "🔪", "📢", "🦯", "🧹", "🪄", "🪓"]
 var body_options = ["🚧", "🔒", "💎", "⚠️", "📅", "⬜", "🟥", "🟪", "🟦", "🟩", "🟨", "🟧"]
 
 func _ready():
@@ -57,11 +57,12 @@ func _process(delta):
 func set_font_sizes():
     # Set font sizes for each part
     var font_size = 32
+    var arm_font_size = 28
     
     head_label.add_theme_font_size_override("font_size", font_size)
     body_label.add_theme_font_size_override("font_size", font_size)
-    left_arm_label.add_theme_font_size_override("font_size", font_size)
-    right_arm_label.add_theme_font_size_override("font_size", font_size)
+    left_arm_label.add_theme_font_size_override("font_size", arm_font_size)
+    right_arm_label.add_theme_font_size_override("font_size", arm_font_size)
     
     # Center align text
     head_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

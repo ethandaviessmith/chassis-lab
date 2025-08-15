@@ -116,10 +116,11 @@ func calculate_heat() -> Dictionary:
         if scrapper_content is Array:
             # Handle multiple cards in scrapper
             for card_item in scrapper_content:
-                if card_item is Card and "heat" in card_item.data:
-                    scrapper_heat += int(card_item.data.heat)
-                elif card_item is Dictionary and "heat" in card_item:
-                    scrapper_heat += int(card_item.heat)
+                if is_instance_valid(card_item):
+                    if card_item is Card and "heat" in card_item.data:
+                        scrapper_heat += int(card_item.data.heat)
+                    elif card_item is Dictionary and "heat" in card_item:
+                        scrapper_heat += int(card_item.heat)
         elif scrapper_content is Card:
             # Handle single card in scrapper (fallback)
             if "heat" in scrapper_content.data:
@@ -566,6 +567,7 @@ func handle_card_drop(card, drop_pos, target = null):
             
             # Clear the slot if needed
             if card_current_slot != "":
+                Sound.play_detach_part()
                 print("Removing card from chassis slot: ", card_current_slot)
                 var old_slot = chassis_slots_map[card_current_slot] if chassis_slots_map.has(card_current_slot) else null
                 if old_slot and old_slot is ChassisSlot:

@@ -1220,7 +1220,7 @@ _data = {
 script = ExtResource("1_nxtc6")
 game_manager = NodePath("Managers/GameManager")
 
-[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("game_manager", "deck_manager", "turn_manager", "chassis_manager", "hand_manager", "energy_label", "heat_label", "end_phase_button", "clear_chassis_button", "energy_bar", "heat_bar", "stat_display", "enemy_display", "stat_manager", "enemy_manager", "hand_container")]
+[node name="BuildView" type="Control" parent="." node_paths=PackedStringArray("game_manager", "deck_manager", "turn_manager", "chassis_manager", "hand_manager", "energy_label", "heat_label", "end_phase_button", "clear_chassis_button", "energy_bar", "heat_bar", "stat_display", "enemy_display", "stat_manager", "enemy_manager", "hand_container", "deck_control")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -1244,6 +1244,7 @@ enemy_display = NodePath("NextEnemyDisplay")
 stat_manager = NodePath("../Managers/StatManager")
 enemy_manager = NodePath("../Managers/EnemyManager")
 hand_container = NodePath("HandContainer")
+deck_control = NodePath("../DeckControl")
 
 [node name="Background" type="ColorRect" parent="BuildView"]
 layout_mode = 1
@@ -2000,6 +2001,15 @@ theme_override_font_sizes/font_size = 27
 text = "Round 01"
 horizontal_alignment = 1
 
+[node name="Volume" type="HSlider" parent="BuildView"]
+layout_mode = 0
+offset_left = 61.0
+offset_top = 17.0
+offset_right = 129.0
+offset_bottom = 33.0
+max_value = 1.0
+step = 0.2
+
 [node name="CombatView" type="Node2D" parent="." node_paths=PackedStringArray("player_spawn_point", "enemy_spawn_point", "combat_ui", "start_combat_button")]
 script = ExtResource("13_mwfav")
 player_spawn_point = NodePath("Spawn")
@@ -2037,7 +2047,7 @@ visible = false
 
 [node name="Managers" type="Node" parent="."]
 
-[node name="GameManager" type="Node" parent="Managers" node_paths=PackedStringArray("deck_manager", "turn_manager", "hand_manager", "build_view", "combat_view", "reward_screen", "data_loader", "deck_control", "level")]
+[node name="GameManager" type="Node" parent="Managers" node_paths=PackedStringArray("deck_manager", "turn_manager", "hand_manager", "build_view", "combat_view", "reward_screen", "data_loader", "deck_control", "level", "volume")]
 script = ExtResource("1_ebyi6")
 deck_manager = NodePath("../DeckManager")
 turn_manager = NodePath("../TurnManager")
@@ -2048,6 +2058,7 @@ reward_screen = NodePath("../../RewardScreen")
 data_loader = NodePath("../../Utils/DataLoader")
 deck_control = NodePath("../../DeckControl")
 level = NodePath("../../BuildView/LevelLabel")
+volume = NodePath("../../BuildView/Volume")
 metadata/_custom_type_script = "uid://db0n6tl4t48du"
 
 [node name="DeckManager" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "turn_manager")]
@@ -2056,7 +2067,7 @@ data_loader = NodePath("../../Utils/DataLoader")
 turn_manager = NodePath("../TurnManager")
 metadata/_custom_type_script = "uid://c4ap0o0bfb38"
 
-[node name="TurnManager" type="Node" parent="Managers" node_paths=PackedStringArray("robot_frame", "robot_fighter", "enemy_manager", "stat_manager", "build_view", "chassis_manager", "deck_manager")]
+[node name="TurnManager" type="Node" parent="Managers" node_paths=PackedStringArray("robot_frame", "robot_fighter", "enemy_manager", "stat_manager", "build_view", "chassis_manager", "deck_manager", "hand_manager")]
 script = ExtResource("4_nxtc6")
 robot_frame = NodePath("../../BuildView/ChassisContainer/RobotFrame")
 robot_fighter = NodePath("../../CombatView/RobotFighter")
@@ -2065,6 +2076,7 @@ stat_manager = NodePath("../StatManager")
 build_view = NodePath("../../BuildView")
 chassis_manager = NodePath("../ChassisManager")
 deck_manager = NodePath("../DeckManager")
+hand_manager = NodePath("../HandManager")
 metadata/_custom_type_script = "uid://td5q8x8qdwtt"
 
 [node name="CombatResolver" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "enemy_manager", "combat_view", "robot_fighter")]
