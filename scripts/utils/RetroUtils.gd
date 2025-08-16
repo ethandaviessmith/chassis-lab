@@ -75,11 +75,9 @@ static func apply_retro_theme(node: Control) -> void:
 	
 	# Set font if it's a label or button
 	if node is Label or node is Button or node is RichTextLabel:
-		var font_res = load("res://assets/BoldPixels1.4.ttf")
-		if font_res != null:
-			var font = FontVariation.new()
-			font.base_font = font_res
-			
+		# Get the configured font with emoji support from FontManager
+		var font = FontManager.get_configured_font()
+		if font != null:
 			var font_size = FontSettings.DEFAULT_SIZE
 			if node.has_meta("font_size"):
 				font_size = node.get_meta("font_size")

@@ -13,12 +13,17 @@ config_version=5
 config/name="Chassis Lab"
 run/main_scene="uid://brqbdkycilxbm"
 config/features=PackedStringArray("4.4", "GL Compatibility")
-config/icon="res://icon.svg"
+config/icon="uid://v7epc8a187sv"
+
+[audio]
+
+general/default_playback_type.web=0
 
 [autoload]
 
 RetroThemeManager="*res://scripts/RetroThemeManager.gd"
 Sound="*res://scripts/utils/Sound.gd"
+FontManager="*res://scripts/utils/FontManager.gd"
 
 [display]
 
@@ -31,6 +36,7 @@ enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg")
 [gui]
 
 theme/custom="uid://dfvfulbps0yqm"
+theme/custom_font="uid://c5yukyx3efojh"
 
 [rendering]
 

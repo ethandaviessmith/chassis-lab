@@ -103,7 +103,8 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="DarkOverlay" type="ColorRect" parent="."]
+[node name="DarkOverlay" type="ColorRect" parent="HelpPanel"]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -112,7 +113,8 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.207843)
 
-[node name="HighlightRect" type="Panel" parent="."]
+[node name="HighlightRect" type="Panel" parent="HelpPanel"]
+layout_mode = 0
 offset_left = 251.0
 offset_top = 177.0
 offset_right = 451.0
@@ -120,7 +122,8 @@ offset_bottom = 377.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_0xdtp")
 
-[node name="ExplanationPanel" type="Panel" parent="."]
+[node name="ExplanationPanel" type="Panel" parent="HelpPanel"]
+layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
@@ -134,7 +137,7 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_j6e8s")
 
-[node name="TitleLabel" type="Label" parent="ExplanationPanel"]
+[node name="TitleLabel" type="Label" parent="HelpPanel/ExplanationPanel"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -147,7 +150,7 @@ theme_override_font_sizes/font_size = 16
 text = "Tutorial Step Title"
 horizontal_alignment = 1
 
-[node name="ExplanationText" type="Label" parent="ExplanationPanel"]
+[node name="ExplanationText" type="Label" parent="HelpPanel/ExplanationPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -162,7 +165,7 @@ theme_override_font_sizes/font_size = 20
 text = "Tutorial text goes here. This explains the current highlighted feature."
 autowrap_mode = 3
 
-[node name="ProgressLabel" type="Label" parent="ExplanationPanel"]
+[node name="ProgressLabel" type="Label" parent="HelpPanel/ExplanationPanel"]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
@@ -179,7 +182,7 @@ theme_override_font_sizes/font_size = 12
 text = "1/6"
 horizontal_alignment = 1
 
-[node name="NextButton" type="Button" parent="ExplanationPanel"]
+[node name="NextButton" type="Button" parent="HelpPanel/ExplanationPanel"]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
