@@ -170,6 +170,51 @@ func get_target_position(card, index: int) -> Vector2:
     
     return base_pos
 
+# Calculate the appropriate z-index for a card based on its position in the hand
+# This creates a consistent layering where leftmost cards appear above rightmost ones
+# Additional states like hover or dragging can add offsets to this base value
+func get_card_z_index(card, offset: int = 0) -> int:
+    # Base z-index value for cards in the hand
+    var base_z_index = 10
+    
+    # If card isn't in our list, return a default value
+    var index = cards.find(card)
+    if index == -1:
+        return base_z_index + offset
+    
+    # Get the card position (we only need it for collection, not direct use here)
+    # We'll calculate x positions for all cards for proper sorting
+    
+    # Sort all valid cards by x position
+    var valid_cards = []
+    var card_positions = []
+    
+    # Collect all valid cards and their positions
+    for i in range(cards.size()):
+        var c = cards[i]
+        if is_instance_valid(c) and not c.has_meta("attached_to_chassis"):
+            valid_cards.append(c)
+            card_positions.append(get_card_position(i, cards.size()).x)
+    
+    # Sort cards by x position (leftmost first)
+    var indices = range(valid_cards.size())
+    indices.sort_custom(func(a, b): return card_positions[a] < card_positions[b])
+    
+    # Find the sorted index of our card
+    var sorted_index = -1
+    for i in range(valid_cards.size()):
+        if valid_cards[indices[i]] == card:
+            sorted_index = i
+            break
+    
+    # If card was found, calculate its z-index (leftmost has highest z-index)
+    if sorted_index != -1:
+        # Position-based z-index: leftmost cards on top (highest z-index)
+        return base_z_index + (valid_cards.size() - sorted_index) + offset
+    
+    # Fallback
+    return base_z_index + offset
+
 # Position all cards in the hand
 func _reposition_cards():
     if cards.is_empty():
@@ -197,17 +242,20 @@ func _reposition_cards():
         print("Warning: HandContainer has very small size: ", size)
         # Use reasonable defaults if size is too small
         size = Vector2(600, 220)  # Increased height to accommodate cards
-        
-    # Reposition all cards
+    
+    # Calculate card positions first to set z-index based on position
+    var card_positions = []
     for i in range(cards.size()):
         var card = cards[i]
         
         # Skip invalid cards
         if not is_instance_valid(card):
+            card_positions.append(null)
             continue
         
         # Skip cards that are attached to chassis slots
         if card.has_meta("attached_to_chassis"):
+            card_positions.append(null)
             continue
             
         # Get local position in container
@@ -218,12 +266,31 @@ func _reposition_cards():
         var container_rect = get_global_rect()
         var global_pos = container_rect.position + local_pos
         
-        # Debug position info
-        print("Container global_position: ", global_position, " rect: ", container_rect)
+        # Store position for later use
+        card_positions.append(global_pos)
+    
+    # Sort cards by x-position for z-ordering (leftmost cards on top)
+    var cards_with_positions = []
+    for i in range(cards.size()):
+        if card_positions[i] != null:
+            cards_with_positions.append({"card": cards[i], "position": card_positions[i], "index": i})
+    
+    # Sort by x-position (leftmost first)
+    cards_with_positions.sort_custom(func(a, b): return a.position.x < b.position.x)
+    
+    # Process each card
+    for i in range(cards_with_positions.size()):
+        var card_data = cards_with_positions[i]
+        var card = card_data.card
+        var global_pos = card_data.position
+        var original_index = card_data.index
         
-        # Debug output (but less verbose)
-        if i == 0 or i == cards.size() - 1:  # Just log first and last card for clarity
-            print("Card " + str(i) + " global position: " + str(global_pos))
+        # Calculate z-index using our utility function (leftmost cards have highest z-index)
+        var z_value = get_card_z_index(card)
+        
+        # Debug position info
+        if i == 0 or i == cards_with_positions.size() - 1:  # Just log first and last card for clarity
+            print("Card " + str(original_index) + " global position: " + str(global_pos) + " z-index: " + str(z_value))
         
         # If using our Card scene with custom properties
         if card is Card:
@@ -234,7 +301,7 @@ func _reposition_cards():
             
             # If card is being dragged, don't reposition
             if is_dragging:
-                print("Card " + str(i) + " is being dragged, skipping")
+                print("Card " + str(original_index) + " is being dragged, skipping")
                 continue
                 
             # Set the target position for smooth animation (using global position)
@@ -243,6 +310,9 @@ func _reposition_cards():
             # For immediate positioning (helps with initialization)
             if card.global_position == Vector2.ZERO:
                 card.global_position = global_pos
+            
+            # Set z-index for proper layering (leftmost cards on top)
+            card.z_index = z_value
             
             # Store original position in DragDrop component if available
             if card.drag_drop != null:
@@ -258,6 +328,7 @@ func _reposition_cards():
                 continue
                 
             card.global_position = global_pos
+            card.z_index = z_value
             
             # Store original position
             card.set_meta("original_position", global_pos)

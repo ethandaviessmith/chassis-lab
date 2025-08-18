@@ -15,15 +15,17 @@ var state: State = State.HAND
 # References to UI elements
 @onready var name_label = $NameLabel
 @onready var type_label = $TypeLabel
-@onready var cost_label = $CostLabel
-@onready var heat_label = $StatsContainer/HeatLabel
-@onready var durability_label = $StatsContainer/DurabilityLabel
+@onready var cost_label = %CostLabel
+@onready var heat_label = %HeatLabel
+@onready var durability_label = %DurabilityLabel
 @onready var effects_label = $EffectsLabel
 @onready var image = $Image
+@onready var imageBackground = $ImageBackground
 @onready var background = $Background
 @onready var background2 = $Background2
 @onready var highlight = $Highlight
 @onready var drag_drop = $DragDrop
+@onready var part_sprite = %PartSprite
 
 func _ready():
     if highlight:
@@ -85,7 +87,14 @@ func _on_mouse_entered():
     # Apply hover effect (slight scale up or highlight)
     if not drag_drop or not drag_drop.is_currently_dragging():
         set_card_scale(1.05, "hover")
-        z_index = 1  # Bring card to front
+        
+        # Use HandContainer's z-index function with hover offset if card is in hand
+        var hand = get_hand_container()
+        if hand:
+            z_index = hand.get_card_z_index(self, 50)  # Higher offset for hover
+        else:
+            z_index = 50  # Default hover z-index if not in hand
+            
         Sound.play_hover()
 
 # Handle mouse exit
@@ -93,7 +102,13 @@ func _on_mouse_exited():
     # Remove hover effect if not being dragged
     if not drag_drop or not drag_drop.is_currently_dragging():
         set_card_scale(1.0, "unhover")
-        z_index = 0  # Reset z-index
+        
+        # Reset z-index based on position in hand
+        var hand = get_hand_container()
+        if hand:
+            z_index = hand.get_card_z_index(self)  # Reset to base z-index
+        else:
+            z_index = 0  # Default z-index if not in hand
 
 func initialize(card_data: Dictionary):
     data = card_data
@@ -119,7 +134,34 @@ func initialize(card_data: Dictionary):
         var texture = load(data.image)
         if texture:
             image.texture = texture
-            
+
+    if card_data.frame:
+        part_sprite.frame = card_data.frame
+    match data.type.to_lower():
+        "head":
+            part_sprite.scale = Vector2(1.0, 1.0)
+            part_sprite.position = Vector2(50, -22.0)
+        "core":
+            part_sprite.scale = Vector2(0.5, 0.5)
+            part_sprite.position = Vector2(52, 28)
+        "arm":
+            part_sprite.scale = Vector2(0.4, 0.4)
+            part_sprite.position = Vector2(68, 20)
+        "legs":
+            part_sprite.scale = Vector2(0.3, 0.3)
+            part_sprite.position = Vector2(50, 25.0)
+        "utility":
+            part_sprite.scale = Vector2(0.5, 0.5)
+            part_sprite.position = Vector2(50, 25.0)
+        "scrapper":
+            part_sprite.scale = Vector2(0.4, 0.4)
+            part_sprite.position = Vector2(50, 0.0)
+        _:
+            part_sprite.scale = Vector2(0.3, 0.3)
+            part_sprite.position = Vector2(50, 0.0)
+
+    imageBackground.color = Util.get_slot_color(data.type)
+
     # Set background based on rarity
     var bg_color = Color(0.3, 0.3, 0.3)
     match data.rarity.to_lower():
@@ -226,7 +268,10 @@ func _on_drag_started(_draggable):
     # Card is being dragged, emit signal to notify listeners
     emit_signal("drag_started", self)
     set_card_state(State.DRAGGING)
+    
+    # Set highest z-index for dragged card (100 offset ensures it's above all other cards)
     z_index = 100
+    
     set_card_scale(1.05, "drag_start")
     
     # Play card pickup sound
@@ -234,7 +279,14 @@ func _on_drag_started(_draggable):
 
 func _on_drag_ended(_draggable):
     # Card drag has ended - state will be set by BuildView when dropped
-    z_index = 0
+    
+    # Reset z-index based on position in hand
+    var hand = get_hand_container()
+    if hand and is_instance_valid(hand):
+        z_index = hand.get_card_z_index(self)
+    else:
+        z_index = 0  # Default z-index if not in hand
+    
     set_card_scale(1.0, "drag_end")
     
     # Play card place sound
@@ -431,9 +483,15 @@ func reset_position():
             if _hand_container.has_method("_reposition_cards"):
                 _hand_container._reposition_cards()
     
-    # Reset scale and z-index
+    # Reset scale
     scale = Vector2(1.0, 1.0)
-    z_index = 0
+    
+    # Reset z-index based on position in hand
+    var hand_container = get_hand_container()
+    if hand_container and is_instance_valid(hand_container):
+        z_index = hand_container.get_card_z_index(self)
+    else:
+        z_index = 0  # Default z-index if not in hand
     
     # Clear any highlights
     set_highlight(false)

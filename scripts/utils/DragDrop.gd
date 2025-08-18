@@ -293,9 +293,9 @@ func end_drag():
     emit_signal("drag_ended", parent_control)
     is_dragging = false
     
-    # Reset z-index if we changed it
-    if "z_index" in parent_control:
-        parent_control.z_index = 0
+    # # Reset z-index if we changed it
+    # if "z_index" in parent_control:
+    #     parent_control.z_index = 0
         
     # Stop processing unhandled input
     set_process_unhandled_input(false)

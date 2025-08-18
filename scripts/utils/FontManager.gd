@@ -12,13 +12,7 @@ var emoji_font: FontFile
 var default_font: FontFile
 var font_configuration: FontVariation
 
-# Platform detection
-var is_web_platform: bool = false
-
 func _ready():
-    # Detect platform
-    detect_platform()
-    
     # Load fonts
     load_fonts()
     
@@ -27,48 +21,23 @@ func _ready():
     
     print("FontManager: Fonts initialized successfully")
     
-func detect_platform():
-    # Check if running on web platform
-    is_web_platform = OS.get_name() == "Web"
-    print("FontManager: Detected platform: " + OS.get_name() + " (is_web=" + str(is_web_platform) + ")")
-    
-    # Print text server info
-    var text_server = TextServerManager.get_primary_interface()
-    print("FontManager: Using text server: " + text_server.get_name())
-    
 func load_fonts():
-    # Load the default font first (needed in both cases)
+    # Load the emoji font
+    if ResourceLoader.exists(EMOJI_FONT_PATH):
+        emoji_font = load(EMOJI_FONT_PATH)
+        print("FontManager: Emoji font loaded successfully")
+    else:
+        push_error("FontManager: Failed to load emoji font from " + EMOJI_FONT_PATH)
+    
+    # Load the default font
     if ResourceLoader.exists(DEFAULT_FONT_PATH):
         default_font = load(DEFAULT_FONT_PATH)
         print("FontManager: Default font loaded successfully")
     else:
         push_error("FontManager: Failed to load default font from " + DEFAULT_FONT_PATH)
     
-    # Special handling for web platform
-    if is_web_platform:
-        load_web_platform_fonts()
-    else:
-        # Load the emoji font for desktop platforms
-        if ResourceLoader.exists(EMOJI_FONT_PATH):
-            emoji_font = load(EMOJI_FONT_PATH)
-            print("FontManager: Emoji font loaded successfully")
-        else:
-            push_error("FontManager: Failed to load emoji font from " + EMOJI_FONT_PATH)
-    
     # Create font variation for fallback configuration
     setup_font_variation()
-
-func load_web_platform_fonts():
-    # For web platform, we'll attempt a different approach
-    # We'll try to use system fonts as fallbacks
-    
-    # Create a SystemFont resource
-    var sys_font = SystemFont.new()
-    sys_font.font_names = ["Arial", "Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji"]
-    sys_font.oversampling = 2.0  # Increase quality
-    
-    print("FontManager: Using system fonts for web platform")
-    emoji_font = sys_font
 
 func setup_font_variation():
     font_configuration = FontVariation.new()
@@ -76,19 +45,11 @@ func setup_font_variation():
     
     # Add emoji font as fallback
     if emoji_font:
-        # Different approach based on platform
-        if is_web_platform:
-            # For web, try to use the fallbacks array with the system font
-            font_configuration.fallbacks.append(emoji_font)
-            print("FontManager: Web platform emoji fallback configured")
-        else:
-            # Desktop platforms
-            font_configuration.fallbacks.append(emoji_font)
-            print("FontManager: Desktop emoji fallback configured")
+        font_configuration.fallbacks.append(emoji_font)
+        print("FontManager: Emoji fallback font configured")
     
 func configure_text_server():
-    # Get the text server interface
-    var text_server = TextServerManager.get_primary_interface()
+    # Configure any TextServer-specific settings for emoji support
     
     # Apply the emoji-enabled font to the default theme
     var theme = ThemeDB.get_default_theme()
@@ -103,25 +64,6 @@ func configure_text_server():
     theme.set_font_size("font_size", "Button", 16)
     theme.set_font_size("normal_font_size", "RichTextLabel", 16)
     
-    # Platform-specific configuration
-    if is_web_platform:
-        # For web platform, we need to configure additional settings
-        
-        # Try to enable font hinting which can help with emoji rendering
-        if font_configuration:
-            font_configuration.hinting = TextServer.HINTING_LIGHT
-            print("FontManager: Web platform - configured font hinting")
-            
-        # Try to access some text server features - these might help with text layout
-        if text_server.has_feature(TextServer.FEATURE_SIMPLE_LAYOUT):
-            # The BiDi function requires specific parameters, but we'll skip that
-            # Just note that we have this feature available
-            print("FontManager: Web platform - text server supports simple layout")
-            
-        print("FontManager: Web platform theme configured")
-    else:
-        print("FontManager: Desktop theme configured")
-        
     print("FontManager: Default theme configured with emoji support")
 
 func get_configured_font() -> FontVariation:
