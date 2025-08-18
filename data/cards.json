@@ -6,7 +6,7 @@
     "cost": 1,
     "heat": 1,
     "durability": 2,
-    "frame": 12,
+    "frame": 31,
     "manufacturer": "Construction",
     "effects": [
       {
@@ -31,7 +31,7 @@
     "cost": 1,
     "heat": 0,
     "durability": 3,
-    "frame": 13,
+    "frame": 32,
     "manufacturer": "Clean Energy",
     "effects": [
       {
@@ -56,7 +56,7 @@
     "cost": 1,
     "heat": 2,
     "durability": 3,
-    "frame": 16,
+    "frame": 41,
     "manufacturer": "Military",
     "effects": [
       {
@@ -81,7 +81,7 @@
     "cost": 1,
     "heat": -2,
     "durability": 2,
-    "frame": 17,
+    "frame": 42,
     "manufacturer": "Clean Energy",
     "effects": [
       {
@@ -101,7 +101,7 @@
     "cost": 2,
     "heat": 1,
     "durability": 2,
-    "frame": 4,
+    "frame": 11,
     "attack_type": ["melee", "range"],
     "attack_range": [1.0, 4.0],
     "manufacturer": "Military",
@@ -128,7 +128,7 @@
     "cost": 1,
     "heat": 2,
     "durability": 3,
-    "frame": 5,
+    "frame": 12,
     "attack_type": ["melee"],
     "attack_range": [2.0],
     "manufacturer": "Construction",
@@ -155,7 +155,7 @@
     "cost": 1,
     "heat": 0,
     "durability": 3,
-    "frame": 6,
+    "frame": 13,
     "attack_type": ["range"],
     "attack_range": [5.0],
     "manufacturer": "Clean Energy",
@@ -182,7 +182,7 @@
     "cost": 1,
     "heat": 2,
     "durability": 2,
-    "frame": 7,
+    "frame": 14,
     "attack_type": ["melee", "range"],
     "attack_range": [2.0, 4.0],
     "manufacturer": "Futuristic",
@@ -209,7 +209,7 @@
     "cost": 1,
     "heat": 2,
     "durability": 4,
-    "frame": 18,
+    "frame": 43,
     "manufacturer": "Construction",
     "effects": [
       {
@@ -234,7 +234,7 @@
     "cost": 1,
     "heat": 1,
     "durability": 3,
-    "frame": 0,
+    "frame": 1,
     "manufacturer": "Construction",
     "effects": [
       {
@@ -259,7 +259,7 @@
     "cost": 2,
     "heat": 2,
     "durability": 2,
-    "frame": 1,
+    "frame": 2,
     "manufacturer": "Military",
     "effects": [
       {
@@ -284,7 +284,7 @@
     "cost": 0,
     "heat": 3,
     "durability": 1,
-    "frame": 20,
+    "frame": 51,
     "manufacturer": "Futuristic",
     "effects": [
       {
@@ -309,7 +309,7 @@
     "cost": 0,
     "heat": 0,
     "durability": 1,
-    "frame": 21,
+    "frame": 52,
     "manufacturer": "Futuristic",
     "effects": [
       {
@@ -334,7 +334,7 @@
     "cost": 2,
     "heat": 1,
     "durability": 2,
-    "frame": 14,
+    "frame": 33,
     "manufacturer": "Military",
     "effects": [
       {
@@ -354,7 +354,7 @@
     "cost": 0,
     "heat": 0,
     "durability": 1,
-    "frame": 19,
+    "frame": 44,
     "manufacturer": "Futuristic",
     "effects": [
       {
@@ -379,7 +379,7 @@
     "cost": 1,
     "heat": 0,
     "durability": 3,
-    "frame": 2,
+    "frame": 3,
     "manufacturer": "Clean Energy",
     "effects": [
       {

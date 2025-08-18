@@ -445,7 +445,7 @@ func handle_card_drag(card):
     # Highlight valid drop targets for the dragged card
     var card_data = card.data if card is Card else card.get_meta("card_data")
     if card_data:
-        print("Card data found: type = ", card_data.get("type", "unknown"))
+        
         for slot_name in chassis_slots_map:
             var slot = chassis_slots_map[slot_name]
             if slot and slot is ChassisSlot:
@@ -473,6 +473,7 @@ func handle_card_drag(card):
                 # Highlight the slot if compatible
                 if is_compatible:
                     slot.highlight(true)  # Pass true for valid highlight
+                    print("Card data found: type = ", card_data.get("type", "unknown"))
                 else:
                     slot.highlight(false)  # Pass false for invalid highlight
 

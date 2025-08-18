@@ -97,6 +97,7 @@ func is_compatible_with_card(card_data) -> bool:
 func highlight(is_valid: bool = true):
     if is_valid:
         background.color = highlight_color
+        print("ChassisSlot.highlight called for: ", slot_type, " - valid: ", is_valid)
         # Make highlight more visible for valid slots
         modulate = Color(1.2, 1.2, 0.8, 1.0)  # Slightly brighter yellow
         
@@ -127,8 +128,8 @@ func set_highlight(enabled: bool, is_compatible: bool = true):
     print("ChassisSlot.set_highlight called for: ", slot_type, " - enabled: ", enabled, ", compatible: ", is_compatible)
     if enabled:
         highlight(is_compatible)
-    else:
-        unhighlight()
+    # else:
+    #     unhighlight()
 
 # Remove highlight
 func unhighlight():

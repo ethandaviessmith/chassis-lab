@@ -14,9 +14,14 @@ signal part_removed(slot_name)
 @onready var utility_sprite = $UtilitySprite
 
 # Frame index mapping for AsepriteWizard sprites
-# Maps left arm frames to right arm frames (left + 4 = right)
-var left_to_right_offset = 4
-
+# Base indices for each part type
+var FRAME_INDEX_LEGS = 0
+var FRAME_INDEX_RIGHT_ARM = 10
+var FRAME_INDEX_LEFT_ARM = 20
+var FRAME_INDEX_HEAD = 30
+var FRAME_INDEX_CORE = 40
+var FRAME_INDEX_UTILITY = 50
+var left_to_right_offset = 10
 # Parts data for visual representation
 var scrapper_data = null
 var head_data = null
@@ -27,6 +32,20 @@ var legs_data = null
 var utility_data = null
 
 func _ready():
+    # Initialize all sprites to show empty frames
+    if head_sprite:
+        head_sprite.frame = FRAME_INDEX_HEAD
+    if core_sprite:
+        core_sprite.frame = FRAME_INDEX_CORE
+    if left_arm_sprite:
+        left_arm_sprite.frame = FRAME_INDEX_LEFT_ARM
+    if right_arm_sprite:
+        right_arm_sprite.frame = FRAME_INDEX_RIGHT_ARM
+    if legs_sprite:
+        legs_sprite.frame = FRAME_INDEX_LEGS
+    if utility_sprite:
+        utility_sprite.frame = FRAME_INDEX_UTILITY
+    
     update_visuals()
 
 # Create a part object from card data
@@ -45,8 +64,6 @@ func create_part_from_card(card_data: Dictionary, is_right: bool = false):
     # Get frame index from card data
     if card_data.has("frame"):
         part.frame_index = card_data.frame
-        
-        # For arms, add offset for right side
         if card_data.get("type", "").to_lower() == "arm" and !is_right:
             part.frame_index += left_to_right_offset
     return part
@@ -62,32 +79,26 @@ func attach_part_visual(part_data, slot: String):
             head_data = part_data
             if head_sprite and part_data.has("frame_index"):
                 head_sprite.frame = part_data.frame_index
-                head_sprite.visible = true
         "core":
             core_data = part_data
             if core_sprite and part_data.has("frame_index"):
                 core_sprite.frame = part_data.frame_index
-                core_sprite.visible = true
         "left_arm":
             left_arm_data = part_data
             if left_arm_sprite and part_data.has("frame_index"):
                 left_arm_sprite.frame = part_data.frame_index
-                left_arm_sprite.visible = true
         "right_arm":
             right_arm_data = part_data
             if right_arm_sprite and part_data.has("frame_index"):
                 right_arm_sprite.frame = part_data.frame_index
-                right_arm_sprite.visible = true
         "legs":
             legs_data = part_data
             if legs_sprite and part_data.has("frame_index"):
                 legs_sprite.frame = part_data.frame_index
-                legs_sprite.visible = true
         "utility":
             utility_data = part_data
             if utility_sprite and part_data.has("frame_index"):
                 utility_sprite.frame = part_data.frame_index
-                utility_sprite.visible = true
     
     print("RobotFrame: Attached ", part_data.name, " to ", slot)
     emit_signal("part_attached", part_data, slot)
@@ -106,32 +117,32 @@ func remove_part_visual(slot: String):
             removed_data = head_data
             head_data = null
             if head_sprite:
-                head_sprite.visible = false
+                head_sprite.frame = FRAME_INDEX_HEAD  # Show empty head frame
         "core":
             removed_data = core_data
             core_data = null
             if core_sprite:
-                core_sprite.visible = false
+                core_sprite.frame = FRAME_INDEX_CORE  # Show empty core frame
         "left_arm":
             removed_data = left_arm_data
             left_arm_data = null
             if left_arm_sprite:
-                left_arm_sprite.visible = false
+                left_arm_sprite.frame = FRAME_INDEX_LEFT_ARM  # Show empty left arm frame
         "right_arm":
             removed_data = right_arm_data
             right_arm_data = null
             if right_arm_sprite:
-                right_arm_sprite.visible = false
+                right_arm_sprite.frame = FRAME_INDEX_RIGHT_ARM  # Show empty right arm frame
         "legs":
             removed_data = legs_data
             legs_data = null
             if legs_sprite:
-                legs_sprite.visible = false
+                legs_sprite.frame = FRAME_INDEX_LEGS  # Show empty legs frame
         "utility":
             removed_data = utility_data
             utility_data = null
             if utility_sprite:
-                utility_sprite.visible = false
+                utility_sprite.frame = FRAME_INDEX_UTILITY  # Show empty utility frame
     
     if removed_data:
         print("RobotFrame: Removed ", removed_data.name, " from ", slot)
@@ -150,19 +161,19 @@ func clear_all_parts():
     legs_data = null
     utility_data = null
     
-    # Clear visual sprites
+    # Set sprites to their empty frames
     if head_sprite:
-        head_sprite.visible = false
+        head_sprite.frame = FRAME_INDEX_HEAD
     if core_sprite:
-        core_sprite.visible = false
+        core_sprite.frame = FRAME_INDEX_CORE
     if left_arm_sprite:
-        left_arm_sprite.visible = false
+        left_arm_sprite.frame = FRAME_INDEX_LEFT_ARM
     if right_arm_sprite:
-        right_arm_sprite.visible = false
+        right_arm_sprite.frame = FRAME_INDEX_RIGHT_ARM
     if legs_sprite:
-        legs_sprite.visible = false
+        legs_sprite.frame = FRAME_INDEX_LEGS
     if utility_sprite:
-        utility_sprite.visible = false
+        utility_sprite.frame = FRAME_INDEX_UTILITY
     
     emit_signal("robot_frame_updated")
     update_visuals()
