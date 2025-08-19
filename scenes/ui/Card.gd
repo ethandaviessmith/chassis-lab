@@ -27,6 +27,9 @@ var state: State = State.HAND
 @onready var drag_drop = $DragDrop
 @onready var part_sprite = %PartSprite
 
+var hand_container: HandContainer = null
+var deck_manager: DeckManager = null
+
 func _ready():
     if highlight:
         highlight.visible = false
@@ -89,9 +92,8 @@ func _on_mouse_entered():
         set_card_scale(1.05, "hover")
         
         # Use HandContainer's z-index function with hover offset if card is in hand
-        var hand = get_hand_container()
-        if hand:
-            z_index = hand.get_card_z_index(self, 50)  # Higher offset for hover
+        if hand_container:
+            z_index = hand_container.get_card_z_index(self, 50)  # Higher offset for hover
         else:
             z_index = 50  # Default hover z-index if not in hand
             
@@ -104,15 +106,20 @@ func _on_mouse_exited():
         set_card_scale(1.0, "unhover")
         
         # Reset z-index based on position in hand
-        var hand = get_hand_container()
-        if hand:
-            z_index = hand.get_card_z_index(self)  # Reset to base z-index
+        if hand_container:
+            z_index = hand_container.get_card_z_index(self)  # Reset to base z-index
         else:
             z_index = 0  # Default z-index if not in hand
 
-func initialize(card_data: Dictionary):
+
+func initialize(card_data: Dictionary, _hand_container: HandContainer, _deck_manager: DeckManager):
     data = card_data
     
+    if _deck_manager:
+        deck_manager = _deck_manager
+    if _hand_container:
+        set_hand_container(_hand_container)
+
     # Set up UI elements
     name_label.text = data.name
     type_label.text = data.type
@@ -134,6 +141,11 @@ func initialize(card_data: Dictionary):
         var texture = load(data.image)
         if texture:
             image.texture = texture
+            
+    # Register this card instance with the deck_manager for durability tracking
+    if deck_manager and "instance_id" in data:
+        deck_manager.register_card(data["instance_id"], data.duplicate(), self)
+        print("Card registered with deck_manager: ", data["instance_id"])
 
     if card_data.frame:
         part_sprite.frame = card_data.frame
@@ -177,42 +189,18 @@ func initialize(card_data: Dictionary):
     background.modulate = bg_color
     background2.modulate = bg_color
 
-var _hand_container: HandContainer = null
 
-func get_hand_container() -> HandContainer:
-    # If we already have a stored reference, return it
-    if _hand_container and is_instance_valid(_hand_container):
-        return _hand_container
-        
-    # Otherwise, try to find the HandContainer, but only check parent
-    # to avoid deep recursion when scanning the scene
-    var parent = get_parent()
-    if parent and parent is HandContainer:
-        # If we're directly parented to a HandContainer, use that
-        _hand_container = parent
-        print("Card found HandContainer as direct parent: ", parent.name)
-    
-    # Note: We removed the full scene scan to prevent recursion
-    
-    # Register it as a drop target if found
-    if _hand_container and drag_drop:
-        drag_drop.register_drop_target(_hand_container)
-        
-    return _hand_container
+
 
 func set_hand_container(container: HandContainer):
     if not container or not is_instance_valid(container):
         return
-        
-    # Store reference to hand container
-    _hand_container = container
-    print("Card ", data.get("name", "Unknown"), " - Stored HandContainer reference: ", container.name)
-        
+
+    hand_container = container
+
     if not drag_drop:
         return
-        
-    print("Card ", data.get("name", "Unknown"), " - Setting HandContainer target: ", container.name)
-    
+
     # Register the container as a drop target directly
     drag_drop.register_drop_target(container)
     
@@ -281,9 +269,8 @@ func _on_drag_ended(_draggable):
     # Card drag has ended - state will be set by BuildView when dropped
     
     # Reset z-index based on position in hand
-    var hand = get_hand_container()
-    if hand and is_instance_valid(hand):
-        z_index = hand.get_card_z_index(self)
+    if hand_container and is_instance_valid(hand_container):
+        z_index = hand_container.get_card_z_index(self)
     else:
         z_index = 0  # Default z-index if not in hand
     
@@ -326,20 +313,32 @@ func is_being_dragged() -> bool:
 # Support part durability functionality
 func reduce_durability(amount: int = 1):
     if data.has("durability"):
-        data["durability"] = int(data["durability"]) - amount
+        var new_durability = int(data["durability"]) - amount
+        data["durability"] = new_durability
         
         # Update the durability display
         if durability_label:
-            durability_label.text = str(int(data["durability"]))
+            durability_label.text = str(new_durability)
         
-        # Visual feedback for damaged part
-        if int(data["durability"]) <= 0:
-            modulate = Color(0.7, 0.7, 0.7, 0.8)  # Grayed out
-        elif int(data["durability"]) <= 2:
+        # Apply visual feedback based on durability state
+        if new_durability <= 0:
+            modulate = Color(0.7, 0.4, 0.4, 0.8)  # Darker red for destroyed
+        elif new_durability <= 2:
             modulate = Color(1.0, 0.7, 0.7, 1.0)  # Reddish for low durability
         
-        print("Card durability reduced to: ", data["durability"])
-
+        print("Card durability reduced to: ", new_durability)
+        
+        # If this card is registered with the deck manager, update its durability there too
+        if deck_manager and data.has("instance_id"):
+            deck_manager.update_card_durability(data["instance_id"], new_durability)
+            print("Card updated durability in deck_manager registry: ", data["instance_id"])
+        else:
+            print("Card not registered with deck_manager or missing instance_id")
+        
+        return true
+    
+    return false
+    
 func _get_drop_target():
     # Raycast to find potential drop targets
     # This is a placeholder - actual implementation depends on physics setup
@@ -464,30 +463,29 @@ func reset_position():
         
         # If we were dragged from a slot and not dropped on another slot,
         # we need to be returned to the hand - use our stored reference
-        if _hand_container and _hand_container is HandContainer:
+        if hand_container and hand_container is HandContainer:
             # Remove from current parent
             parent.remove_child(self)
             
             # Add to hand container
-            _hand_container.add_child(self)
+            hand_container.add_child(self)
             
             # Let hand container reposition
-            if _hand_container.has_method("_reposition_cards"):
-                _hand_container._reposition_cards()
+            if hand_container.has_method("_reposition_cards"):
+                hand_container._reposition_cards()
     else:
         # No parent at all
         
         # Use our stored reference to hand container
-        if _hand_container and _hand_container is HandContainer:
-            _hand_container.add_child(self)
-            if _hand_container.has_method("_reposition_cards"):
-                _hand_container._reposition_cards()
-    
+        if hand_container and hand_container is HandContainer:
+            hand_container.add_child(self)
+            if hand_container.has_method("_reposition_cards"):
+                hand_container._reposition_cards()
+
     # Reset scale
     scale = Vector2(1.0, 1.0)
     
     # Reset z-index based on position in hand
-    var hand_container = get_hand_container()
     if hand_container and is_instance_valid(hand_container):
         z_index = hand_container.get_card_z_index(self)
     else:
@@ -515,14 +513,7 @@ func discard_card(discard_pile_position: Vector2):
     # Store original position and scale for animation
     set_meta("discard_start_pos", global_position)
     set_meta("discard_start_scale", scale)
-    
-    # Get deck manager to handle actual discard after animation
-    var deck_manager = get_node_or_null("/root/Main/Managers/DeckManager")
-    if not deck_manager:
-        deck_manager = get_node_or_null("../../Managers/DeckManager")
-    
-    set_meta("deck_manager", deck_manager)
-    
+
     # Make sure we're on top
     z_index = 10
     
@@ -558,10 +549,10 @@ func _process_discard_animation(delta):
 # Complete the discard animation
 func _complete_discard_animation():
     # Get DeckManager from metadata
-    var deck_manager = get_meta("deck_manager")
-    if deck_manager and deck_manager.has_method("discard_card"):
+    var found_deck_manager = get_meta("deck_manager")
+    if found_deck_manager and found_deck_manager.has_method("discard_card"):
         # Add card data to discard pile
-        deck_manager.discard_card(self)
+        found_deck_manager.discard_card(self)
     
     # Clean up
     remove_meta("animating_discard")

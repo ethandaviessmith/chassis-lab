@@ -1336,9 +1336,9 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -20.0
+offset_left = -31.5
 offset_top = -13.0
-offset_right = 20.0
+offset_right = 29.5
 offset_bottom = 13.0
 grow_horizontal = 2
 grow_vertical = 2
@@ -1501,10 +1501,10 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -160.0
-offset_top = 2.0
-offset_right = -15.0
-offset_bottom = 58.0
+offset_left = -214.0
+offset_top = 15.0
+offset_right = -73.0
+offset_bottom = 46.0
 grow_horizontal = 0
 text = "START COMBAT"
 
@@ -1539,7 +1539,6 @@ offset_bottom = 76.0
 text = "Heat: 0/10"
 
 [node name="HelpSystem" parent="BuildView" instance=ExtResource("2_ma7h6")]
-visible = false
 
 [node name="LevelLabel" type="Label" parent="BuildView"]
 layout_mode = 1
@@ -1548,9 +1547,9 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = 271.0
+offset_left = 237.0
 offset_top = -630.0
-offset_right = 362.0
+offset_right = 338.0
 offset_bottom = -604.0
 grow_horizontal = 2
 grow_vertical = 0
@@ -1619,10 +1618,11 @@ level = NodePath("../../BuildView/LevelLabel")
 volume = NodePath("../../BuildView/Volume")
 metadata/_custom_type_script = "uid://db0n6tl4t48du"
 
-[node name="DeckManager" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "turn_manager")]
+[node name="DeckManager" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "turn_manager", "combat_resolver")]
 script = ExtResource("3_c01mt")
 data_loader = NodePath("../../Utils/DataLoader")
 turn_manager = NodePath("../TurnManager")
+combat_resolver = NodePath("../CombatResolver")
 metadata/_custom_type_script = "uid://c4ap0o0bfb38"
 
 [node name="TurnManager" type="Node" parent="Managers" node_paths=PackedStringArray("robot_frame", "robot_fighter", "enemy_manager", "stat_manager", "build_view", "chassis_manager", "deck_manager", "hand_manager")]

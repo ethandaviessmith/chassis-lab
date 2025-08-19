@@ -1,9 +1,55 @@
-[gd_resource type="Theme" load_steps=4 format=3 uid="uid://dfvfulbps0yqm"]
+[gd_resource type="Theme" load_steps=8 format=3 uid="uid://dfvfulbps0yqm"]
 
 [ext_resource type="FontFile" uid="uid://15cp2ypsqwdc" path="res://assets/BoldPixels1.4.ttf" id="1_icxe7"]
 
 [sub_resource type="FontVariation" id="FontVariation_g4ikq"]
 base_font = ExtResource("1_icxe7")
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_m3yx7"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yo4ig"]
+bg_color = Color(0.25, 0.25, 0.25, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9, 0.9, 0.9, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 4
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nkspv"]
+bg_color = Color(0.2, 0.2, 0.2, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 4
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_82mcp"]
+bg_color = Color(0.15, 0.15, 0.15, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.6, 0.6, 0.6, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 2
+shadow_offset = Vector2(1, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8ysnc"]
 bg_color = Color(0.109804, 0.109804, 0.109804, 1)
@@ -23,8 +69,12 @@ Button/colors/font_color = Color(0.8, 0.8, 1, 1)
 Button/colors/font_focus_color = Color(1, 0.8, 0.2, 1)
 Button/colors/font_hover_color = Color(1, 1, 0.8, 1)
 Button/colors/font_pressed_color = Color(0.8, 1, 0.8, 1)
-Button/font_sizes/font_size = 16
+Button/font_sizes/font_size = 18
 Button/fonts/font = SubResource("FontVariation_g4ikq")
+Button/styles/focus = SubResource("StyleBoxEmpty_m3yx7")
+Button/styles/hover = SubResource("StyleBoxFlat_yo4ig")
+Button/styles/normal = SubResource("StyleBoxFlat_nkspv")
+Button/styles/pressed = SubResource("StyleBoxFlat_82mcp")
 Label/colors/font_color = Color(0.8, 0.8, 1, 1)
 Label/font_sizes/font_size = 12
 Label/fonts/font = SubResource("FontVariation_g4ikq")

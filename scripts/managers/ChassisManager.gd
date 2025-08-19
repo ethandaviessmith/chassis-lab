@@ -220,10 +220,14 @@ func attach_part_to_slot(card, slot_name) -> bool:
     if card_current_slot != "" and card_current_slot != slot_name:
         # Handle differently based on the source slot type
         if card_current_slot == "scrapper" and attached_parts[card_current_slot] is Array:
-            # For scrapper, just remove from the array
-            var scrapper_cards = attached_parts[card_current_slot] as Array
-            if scrapper_cards.has(card):
-                scrapper_cards.erase(card)
+            # For scrapper, just remove from the attached_parts array (not the scrapper slot's cards)
+            var attached_scrapper_cards = attached_parts[card_current_slot] as Array
+            if attached_scrapper_cards.has(card):
+                attached_scrapper_cards.erase(card)
+                
+            # Also update the ScrapperSlot
+            if card_current_slot == "scrapper" and chassis_slots_map[card_current_slot] is ScrapperSlot:
+                chassis_slots_map[card_current_slot].remove_card(card)
         else:
             # For regular slots, remove the slot entirely
             attached_parts.erase(card_current_slot)
@@ -302,12 +306,27 @@ func attach_part_to_slot(card, slot_name) -> bool:
 func discard_scrapper_card(card):
     if !chassis_slots_map["scrapper"]:
         return null
+        
+    # Remove from the scrapper slot
     chassis_slots_map["scrapper"].remove_card(card)
+    
+    # Also update attached_parts if needed
+    if "scrapper" in attached_parts and attached_parts["scrapper"] is Array:
+        if attached_parts["scrapper"].has(card):
+            attached_parts["scrapper"].erase(card)
+    
+    # Emit signal to update visuals
+    emit_signal("chassis_updated", attached_parts)
+    
+    return true
 
 func get_scrapper_cards():
     if !chassis_slots_map["scrapper"]:
-        return null
-    return chassis_slots_map["scrapper"].scrapper_cards
+        return []
+        
+    # Return a duplicate of the array to prevent issues when items are removed
+    # This prevents the caller from iterating through an array while we modify it
+    return chassis_slots_map["scrapper"].get_all_cards()
 
 # Attach card to the scrapper slot
 func _attach_card_to_scrapper(card) -> bool:

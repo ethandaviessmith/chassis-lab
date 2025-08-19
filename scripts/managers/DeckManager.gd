@@ -5,11 +5,16 @@ signal card_drawn(card)
 signal card_played(card, slot)
 signal card_scrapped(card)
 signal deck_updated
+signal card_durability_changed(instance_id, new_durability)
 
 var deck = []
 var hand = []
 var discard_pile = []
 var exhausted_pile = []
+
+# Card registry for tracking durability and other persistent properties
+var card_registry = {}
+var card_instances = {}
 
 var max_hand_size = 5
 var default_draw_count = 5
@@ -32,8 +37,12 @@ var max_heat: int = 10
 # Export references - set these in the editor
 @export var data_loader: DataLoader
 @export var turn_manager: TurnManager
+@export var combat_resolver: CombatResolver
 
 func _ready():
+
+    combat_resolver.part_durability_changed.connect(_on_part_durability_changed)
+    turn_manager.part_durability_changed.connect(_on_part_durability_changed)
     print("DeckManager ready")
     print("  DataLoader: ", "Set" if data_loader else "Not set")
     print("  TurnManager: ", "Set" if turn_manager else "Not set")
@@ -53,7 +62,21 @@ func _ready():
 func reload_deck():
     print("Force reloading deck...")
     load_starting_deck()
+
+func _on_part_durability_changed(part, new_durability):
+    print("Part durability changed: ", part, " - New durability: ", new_durability)
     
+    # Check if this part has an instance_id
+    if part is Dictionary and part.has("instance_id"):
+        # Update the card's durability in our registry
+        update_card_durability(part["instance_id"], new_durability)
+    elif part is Card and part.data.has("instance_id"):
+        # Update the card's durability in our registry
+        update_card_durability(part.data["instance_id"], new_durability)
+    else:
+        print("Cannot track durability - no instance_id found for part:", part)
+
+
 # Set custom card distribution and reload deck
 func set_card_distribution(arm_count: int = 5, head_count: int = 3, legs_count: int = 2, 
                           core_count: int = 2, utility_count: int = 1) -> void:
@@ -381,3 +404,77 @@ func discard_card(card):
     
     # Notify listeners that deck state has changed
     emit_signal("deck_updated")
+
+# Register a card in the registry for durability tracking
+func register_card(instance_id, card_data, card_instance = null):
+    if instance_id == null or instance_id == "":
+        print("ERROR: Cannot register card with null or empty instance_id")
+        return false
+        
+    # Store the card data in the registry
+    card_registry[instance_id] = card_data.duplicate()
+    
+    # If a card instance is provided, store it too
+    if card_instance:
+        card_instances[instance_id] = card_instance
+        
+    print("DeckManager: Registered card with instance_id: ", instance_id)
+    return true
+    
+# Update a card's durability in the registry and all locations
+func update_card_durability(instance_id, new_durability):
+    if instance_id == null or instance_id == "":
+        print("ERROR: Cannot update card with null or empty instance_id")
+        return false
+        
+    if not card_registry.has(instance_id):
+        print("ERROR: Cannot update durability - card not found in registry: ", instance_id)
+        return false
+    
+    # Update the durability in the registry
+    var old_dir = card_registry[instance_id]["durability"]
+    card_registry[instance_id]["durability"] = new_durability
+    print("DeckManager: Updated card durability in registry: ", instance_id, old_dir, " -> ", new_durability)
+    
+    # Update the card instance if it exists
+    if card_instances.has(instance_id) and is_instance_valid(card_instances[instance_id]):
+        card_instances[instance_id].data["durability"] = new_durability
+        
+        # Update the UI if this card has a durability label
+        var card_instance = card_instances[instance_id]
+        if card_instance and card_instance.has_node("%DurabilityLabel"):
+            card_instance.get_node("%DurabilityLabel").text = str(int(new_durability))
+            print("DeckManager: Updated card instance UI durability")
+    
+    # Update the durability in all collections (deck, hand, discard)
+    _update_card_in_collection(deck, instance_id, new_durability)
+    _update_card_in_collection(hand, instance_id, new_durability)
+    _update_card_in_collection(discard_pile, instance_id, new_durability)
+    _update_card_in_collection(exhausted_pile, instance_id, new_durability)
+    
+    # Emit signal for other systems to react to durability change
+    emit_signal("card_durability_changed", instance_id, new_durability)
+    
+    return true
+    
+# Helper function to update a card's durability in a specific collection
+func _update_card_in_collection(collection, instance_id, new_durability):
+    for i in range(collection.size()):
+        var card = collection[i]
+        if card is Dictionary and card.has("instance_id") and card["instance_id"] == instance_id:
+            collection[i]["durability"] = new_durability
+            print("DeckManager: Updated card durability in collection: ", instance_id, " -> ", new_durability)
+            return true
+    return false
+    
+# Get a card from the registry by instance_id
+func get_card_by_instance_id(instance_id):
+    if card_registry.has(instance_id):
+        return card_registry[instance_id]
+    return null
+    
+# Get the current durability of a card by instance_id
+func get_card_durability(instance_id):
+    if card_registry.has(instance_id):
+        return card_registry[instance_id].get("durability", 0)
+    return 0

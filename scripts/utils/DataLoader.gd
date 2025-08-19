@@ -64,13 +64,21 @@ func load_starting_deck() -> Array:
 	card_pool.shuffle()
 	print("DataLoader: Shuffled card pool")
 	
-	# Take the first 15 cards
+	# Take the first 15 cards and assign unique instance IDs
+	var rng = RandomNumberGenerator.new()
+	rng.randomize()
+	
 	for i in range(15):
-		starter_deck.append(card_pool[i])
+		var card = card_pool[i].duplicate() # Create a deep copy to avoid modifying original
+		
+		# Add a unique instance ID for each card
+		card["instance_id"] = "card_" + str(rng.randi()) + "_" + str(Time.get_unix_time_from_system())
+		
+		starter_deck.append(card)
 	
 	print("DataLoader: Created starting deck with ", starter_deck.size(), " cards")
 	for i in range(min(3, starter_deck.size())):
-		print("  Sample card ", i+1, ": ", starter_deck[i].get("name", "Unknown"))
+		print("  Sample card ", i+1, ": ", starter_deck[i].get("name", "Unknown"), " (ID: ", starter_deck[i].get("instance_id", "None"), ")")
 	
 	return starter_deck
 

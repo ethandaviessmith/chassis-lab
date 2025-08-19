@@ -189,7 +189,7 @@ func create_reward_card(reward_data: Dictionary, index: int):
         card_data["effects"] = [{"description": "No effect"}]
         
     # Initialize the card with the data
-    card_instance.initialize(card_data)
+    card_instance.initialize(card_data, null, null)
     
     # Disable drag_drop component (we just want clicks, not drag and drop)
     if card_instance.has_node("DragDrop"):

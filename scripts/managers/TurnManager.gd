@@ -4,6 +4,7 @@ class_name TurnManager
 signal energy_changed(new_value, max_value)
 signal turn_started
 signal turn_ended
+signal part_durability_changed(part, new_durability)
 
 var current_energy: int = 0
 var max_energy: int = 4  # Default 4 energy per turn
@@ -188,21 +189,40 @@ func build_robot_and_start_combat(view_instance, game_manager = null):
         
 # Process cards in scrapper slots before combat
 func _process_scrapper_parts():
-
-    for card in chassis_manager.get_scrapper_cards():
+    # Get a safe copy of the scrapper cards array
+    var scrapper_cards = chassis_manager.get_scrapper_cards()
+    print("TurnManager: Processing " + str(scrapper_cards.size()) + " scrapper cards")
+    
+    # Track cards to discard separately to avoid modifying while iterating
+    var cards_to_discard = []
+    
+    # First pass - process all cards and identify which ones to discard
+    for card in scrapper_cards:
+        if !is_instance_valid(card):
+            print("TurnManager: Invalid card detected in scrapper - skipping")
+            continue
+            
         # Decrease durability by 1
         var current_durability = card.data.get("durability", 1)
         current_durability -= 1
         
         if current_durability <= 0:
-            print("TurnManager: Scrapper part destroyed")
-            chassis_manager.discard_scrapper_card(card)
-            # Add to discard pile if DeckManager available
-            deck_manager.discard_card(card)
+            print("TurnManager: Scrapper part destroyed - marking for discard")
+            cards_to_discard.append(card)
         else:
             # Update durability on the card
             card.data["durability"] = current_durability
+            part_durability_changed.emit(card, current_durability)
             print("TurnManager: Scrapper durability reduced to ", current_durability)
+    
+    # Second pass - discard cards that were destroyed
+    for card in cards_to_discard:
+        if is_instance_valid(card):
+            print("TurnManager: Discarding destroyed scrapper part")
+            chassis_manager.discard_scrapper_card(card)
+            # Add to discard pile if DeckManager available
+            if deck_manager:
+                deck_manager.discard_card(card)
     
 
 # Show a "Preparing for combat" message during the transition

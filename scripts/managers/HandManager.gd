@@ -145,8 +145,7 @@ func create_card_sprite(card_data, index):
         
         # Initialize the card data
         if card.has_method("initialize"):
-            card.initialize(prepared_data)
-            card.set_hand_container(hand_container)
+            card.initialize(prepared_data, hand_container, deck_manager)
             
             # Set initial card state to hand
             if card.has_method("set_card_state"):

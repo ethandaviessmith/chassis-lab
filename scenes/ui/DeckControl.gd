@@ -151,7 +151,7 @@ func _show_deck_view(pile_type = "all"):
             prepared_data["image"] = ""
         
         # Initialize the card
-        card.initialize(prepared_data)
+        card.initialize(prepared_data, null, null)
 
         # Disable drag/drop in deck view
         if card.drag_drop:
