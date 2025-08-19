@@ -22,22 +22,31 @@ var _header_font: Font
 var _scanline_material: ShaderMaterial
 
 func _ready() -> void:
+	
 	# Load font
 	_header_font = load("res://assets/BoldPixels1.4.ttf")
 	
-	if show_scanlines:
-		# Create scanline shader
-		var shader = load("res://assets/shaders/crt_effect.gdshader")
-		if shader:
-			_scanline_material = ShaderMaterial.new()
-			_scanline_material.shader = shader
-			_scanline_material.set_shader_parameter("scan_opacity", scanline_opacity)
-			_scanline_material.set_shader_parameter("line_spacing", SCANLINE_SPACING)
-			_scanline_material.set_shader_parameter("line_thickness", SCANLINE_WIDTH)
+	# Create shader material regardless of scanline visibility
+	# This gives us the CRT effect without scanlines
+	var shader = load("res://assets/shaders/crt_effect.gdshader")
+	if shader:
+		_scanline_material = ShaderMaterial.new()
+		_scanline_material.shader = shader
+		_scanline_material.set_shader_parameter("scan_opacity", scanline_opacity)
+		_scanline_material.set_shader_parameter("line_spacing", SCANLINE_SPACING)
+		_scanline_material.set_shader_parameter("line_thickness", SCANLINE_WIDTH)
+		
+		# Set additional shader parameters for better visual effect
+		_scanline_material.set_shader_parameter("crt_bend", 0.02)  # Subtle CRT bend
+		_scanline_material.set_shader_parameter("vignette_strength", 0.2)  # Darker corners
+		_scanline_material.set_shader_parameter("noise_strength", 0.01)  # Subtle noise
+		
+		# Apply the material to get the shader effect
+		material = _scanline_material
 	
 	# Make sure we redraw when resized
 	resized.connect(_on_resized)
-	
+	apply_scanlines()
 	# Force redraw
 	queue_redraw()
 
@@ -118,7 +127,13 @@ func draw_rounded_rectangle_border(rect: Rect2, color: Color, radius: float, thi
 	# Draw the inner rounded rectangle with background color to create a border
 	draw_rounded_rectangle(inner_rect, background_color, max(radius - thickness, 0))
 
-# Apply scanline material to this control
-func apply_scanlines() -> void:
-	if show_scanlines and _scanline_material:
+# Apply or update CRT shader effect with current settings
+func apply_shader_effect() -> void:
+	if _scanline_material:
+		# Update shader parameters
+		_scanline_material.set_shader_parameter("scan_opacity", scanline_opacity if show_scanlines else 0.0)
 		material = _scanline_material
+	
+# Legacy function for compatibility
+func apply_scanlines() -> void:
+	apply_shader_effect()

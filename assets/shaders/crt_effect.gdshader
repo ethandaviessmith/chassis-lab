@@ -8,7 +8,7 @@ uniform vec4 scan_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform float crt_bend : hint_range(0.0, 0.1) = 0.03;
 uniform float noise_strength : hint_range(0.0, 0.1) = 0.02;
 uniform float brightness : hint_range(0.5, 1.5) = 1.1;
-uniform float vignette_strength : hint_range(0.0, 0.5) = 0.15;
+uniform float vignette_strength : hint_range(0.0, 0.5) = 0.25;
 
 float random(vec2 uv) {
     return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453123);
@@ -32,10 +32,12 @@ void fragment() {
     // Sample the screen texture at the distorted position
     vec4 color = texture(TEXTURE, uv);
     
-    // Scanlines effect
-    float scanline = mod(SCREEN_UV.y * SCREEN_PIXEL_SIZE.y * line_spacing, line_thickness);
-    if (scanline < 0.5 * line_thickness) {
-        color = mix(color, scan_color, scan_opacity);
+    // Scanlines effect (only applied if scan_opacity > 0)
+    if (scan_opacity > 0.001) {
+        float scanline = mod(SCREEN_UV.y * SCREEN_PIXEL_SIZE.y * line_spacing, line_thickness);
+        if (scanline < 0.5 * line_thickness) {
+            color = mix(color, scan_color, scan_opacity);
+        }
     }
     
     // Add subtle noise
