@@ -72,7 +72,7 @@ func _ready():
         # Initialize heat bar with starting values (2 default heat)
         if chassis_manager:
             var heat_data = chassis_manager.calculate_heat()
-            heat_bar.set_heat(heat_data.needed_heat, heat_data.scrapper_heat, heat_data.max_heat)
+            heat_bar.set_heat(heat_data.needed_heat, heat_data.available_heat, heat_data.max_heat)
         else:
             # Fallback if chassis manager isn't available yet
             heat_bar.set_heat(0, 2, 10)
@@ -216,17 +216,17 @@ func start_build_phase():
     setup_deck_container()
     
     # Clear hand
-    hand_manager.clear_hand()
+    # hand_manager.clear_hand()
     
     # Update UI
     update_ui()
     
     # Start drawing cards sequentially with delay
-    hand_manager.start_sequential_card_draw()
+    # hand_manager.start_sequential_card_draw()
     
     # Connect signals for all cards after a short delay to ensure they're created
-    await get_tree().create_timer(0.5).timeout
-    connect_card_signals()
+    # await get_tree().create_timer(0.5).timeout
+    # connect_card_signals()
 
 # Setup the visual deck container
 func setup_deck_container():
@@ -285,7 +285,7 @@ func _update_heat_display():
     var heat_data = chassis_manager.calculate_heat()
     
     # Update the heat bar - include default heat value
-    heat_bar.set_heat(heat_data.needed_heat, heat_data.scrapper_heat, heat_data.max_heat)
+    heat_bar.set_heat(heat_data.needed_heat, heat_data.available_heat, heat_data.max_heat)
 
 # Handle button press to end the build phase
 func _on_end_phase_button_pressed():

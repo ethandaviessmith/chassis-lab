@@ -14,7 +14,7 @@ var energy_label: Label = null
 
 # References - set these in the editor
 @export var robot_frame: RobotFrame = null
-@export var robot_fighter: RobotFighter = null
+@export var robot_fighter: PlayerRobot = null
 @export var enemy_manager: EnemyManager = null
 @export var stat_manager: StatManager = null
 @export var build_view: BuildView = null
@@ -189,38 +189,57 @@ func build_robot_and_start_combat(view_instance, game_manager = null):
         
 # Process cards in scrapper slots before combat
 func _process_scrapper_parts():
+    if not chassis_manager:
+        print("TurnManager: No chassis_manager, cannot process scrapper parts")
+        return
+        
     # Get a safe copy of the scrapper cards array
     var scrapper_cards = chassis_manager.get_scrapper_cards()
     print("TurnManager: Processing " + str(scrapper_cards.size()) + " scrapper cards")
-    
-    # Track cards to discard separately to avoid modifying while iterating
+
     var cards_to_discard = []
     
-    # First pass - process all cards and identify which ones to discard
+    # First pass - update durability for all cards
     for card in scrapper_cards:
         if !is_instance_valid(card):
             print("TurnManager: Invalid card detected in scrapper - skipping")
             continue
             
-        # Decrease durability by 1
+        # Ensure card has a unique instance ID for tracking
+        var instance_id = card.data.get("instance_id", "")
+        if instance_id == "" and deck_manager:
+            # Generate a new unique ID
+            instance_id = "card_" + str(randi()) + "_" + str(Time.get_unix_time_from_system())
+            card.data["instance_id"] = instance_id
+            # Register card if not already
+            deck_manager.register_card(instance_id, card.data, card)
+            
+        # Decrease durability
         var current_durability = card.data.get("durability", 1)
         current_durability -= 1
         
+        # Update durability in the registry and card
+        if deck_manager:
+            deck_manager.update_card_durability(instance_id, current_durability)
+            
+        # Check if card is destroyed
         if current_durability <= 0:
             print("TurnManager: Scrapper part destroyed - marking for discard")
             cards_to_discard.append(card)
         else:
-            # Update durability on the card
+            # Ensure card data reflects current durability
             card.data["durability"] = current_durability
             part_durability_changed.emit(card, current_durability)
             print("TurnManager: Scrapper durability reduced to ", current_durability)
-    
-    # Second pass - discard cards that were destroyed
+
+    # Second pass - discard destroyed cards
+    # Process separately to avoid modifying array during iteration
     for card in cards_to_discard:
         if is_instance_valid(card):
             print("TurnManager: Discarding destroyed scrapper part")
+            # First remove from chassis to update the UI
             chassis_manager.discard_scrapper_card(card)
-            # Add to discard pile if DeckManager available
+            # Then add to discard pile
             if deck_manager:
                 deck_manager.discard_card(card)
     

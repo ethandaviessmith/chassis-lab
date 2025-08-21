@@ -1,34 +1,29 @@
-extends CharacterBody2D
+extends BaseFighter
 class_name Enemy
 
-signal enemy_defeated
+signal enemy_defeated  # Also emits BaseFighter's fighter_defeated signal
 
 var id: String
 var enemy_name: String
-var hp: int
-var max_hp: int
-var armor: int
-var damage: int
-var attack_speed: float
-var move_speed: float
-var behavior: String
+var damage: int = 1
+var behavior: String = "default"
 var special_abilities = []
-var attack_types = ["melee"]    # Default to melee only
-var attack_ranges = [1.0]       # Default range
-var current_attack_index = 0    # Which attack type to use next
-
-# Combat state
 var attack_timer: float = 0.0
-var target = null
-var is_active: bool = false
-var combat_view = null          # Reference to combat view for effects
+
+# Enemy-specific properties
+# We'll use energy and max_energy from BaseFighter instead of hp/max_hp
+# These functions provide compatibility with existing code
+func get_hp() -> int:
+    return energy
+    
+func get_max_hp() -> int:
+    return max_energy
 
 # References
 @onready var sprite = $Sprite
-@onready var health_bar = $HealthBar
-@onready var animation_player = $AnimationPlayer
 @onready var attack_indicator = $AttackIndicator
 var enemy_visuals: EnemyVisuals
+@onready var robot_visuals = $RobotVisuals  # Reference to RobotVisuals node
 
 # Combat indicators with emojis
 var INDICATORS = {
@@ -41,9 +36,13 @@ var INDICATORS = {
 }
 
 func _ready():
-    # Set up the enemy visuals
+    # Call BaseFighter's _ready first
+    super._ready()
+    
+    # Set up the enemy visuals - fallback for compatibility
     enemy_visuals = EnemyVisuals.new()
     add_child(enemy_visuals)
+    enemy_visuals.visible = false  # Hide by default since we'll use RobotVisuals
     
     # Hide old sprite if present
     if sprite:
@@ -53,12 +52,78 @@ func _ready():
     if attack_indicator and attack_indicator is Label:
         attack_indicator.add_theme_font_size_override("font_size", 32)
     
-    update_health_bar()
+    # Initialize robot visuals with random parts
+    if robot_visuals:
+        setup_robot_visuals()
+    
+    update_bars()
+
+# Set up random robot parts for the enemy
+func setup_robot_visuals():
+    # Generate random robot parts
+    var robot_parts = generate_random_robot_parts()
+    
+    # Pass to robot visuals
+    if robot_visuals:
+        robot_visuals.initialize_from_robot_parts(robot_parts)
+
+# Generate random robot parts based on enemy type/level
+func generate_random_robot_parts() -> Dictionary:
+    var enemy_robot_parts = {}
+    var rng = RandomNumberGenerator.new()
+    rng.randomize()
+    
+    # Basic random head
+    enemy_robot_parts["head"] = {
+        "name": "Enemy Head",
+        "type": "Head",
+        "frame_index": rng.randi_range(30, 33), # Random head frame
+        "frames": 1,
+        "effects": []
+    }
+    
+    # Basic random core
+    enemy_robot_parts["core"] = {
+        "name": "Enemy Core",
+        "type": "Core",
+        "frame_index": rng.randi_range(40, 43), # Random core frame
+        "frames": 1,
+        "effects": []
+    }
+    
+    # Basic random left arm
+    enemy_robot_parts["left_arm"] = {
+        "name": "Enemy Left Arm",
+        "type": "Arm",
+        "frame_index": rng.randi_range(20, 23), # Random left arm frame
+        "frames": 1,
+        "effects": []
+    }
+    
+    # Basic random right arm
+    enemy_robot_parts["right_arm"] = {
+        "name": "Enemy Right Arm",
+        "type": "Arm",
+        "frame_index": rng.randi_range(10, 13), # Random right arm frame
+        "frames": 1,
+        "effects": []
+    }
+    
+    # Basic random legs
+    enemy_robot_parts["legs"] = {
+        "name": "Enemy Legs",
+        "type": "Legs",
+        "frame_index": rng.randi_range(0, 3), # Random legs frame
+        "frames": 1,
+        "effects": []
+    }
+    
+    return enemy_robot_parts
 
 func initialize_from_data(data: Dictionary, view: CombatView):
     enemy_name = data.name
-    hp = data.hp
-    max_hp = data.hp
+    energy = data.hp
+    max_energy = data.hp
     armor = data.get("armor", 0)
     damage = data.damage
     attack_speed = data.attack_speed
@@ -89,6 +154,16 @@ func initialize_from_data(data: Dictionary, view: CombatView):
     
     # Find combat view
     combat_view = view
+    
+    # Check for robot parts data
+    if "robot_parts" in data and data.robot_parts is Dictionary:
+        # Use provided robot parts data
+        if robot_visuals:
+            robot_visuals.initialize_from_robot_parts(data.robot_parts)
+    else:
+        # Use randomly generated parts
+        if robot_visuals:
+            setup_robot_visuals()
 
     # Add to enemies group
     add_to_group("enemies")
@@ -105,17 +180,7 @@ func _physics_process(delta):
     if target:
         process_behavior(delta)
 
-func find_target():
-    # Look for player robot in combat group
-    var player_robots = get_tree().get_nodes_in_group("player_robot")
-    if player_robots.size() > 0:
-        return player_robots[0]
-    
-    # Fallback - look for any player
-    var players = get_tree().get_nodes_in_group("player")
-    if players.size() > 0:
-        return players[0]
-    return null
+# Using BaseFighter's find_target implementation
 
 func process_behavior(delta):
     match behavior:
@@ -195,7 +260,9 @@ func move_to_target(target_node):
     move_and_slide()
     
     # Update visuals for walking animation
-    if enemy_visuals:
+    if robot_visuals:
+        robot_visuals.start_walking()
+    elif enemy_visuals:
         enemy_visuals.start_walking()
 
 func keep_distance(target_node, ideal_distance):
@@ -227,8 +294,8 @@ func circle_target(target_node):
     move_and_slide()
 
 func try_attack(delta, speed_modifier: float = 1.0):
-    # Check if robot is defeated (hp <= 0)
-    if hp <= 0:
+    # Check if enemy is defeated (energy <= 0)
+    if energy <= 0:
         return  # Don't attack if defeated
 
     attack_timer += delta
@@ -319,31 +386,37 @@ func take_damage(amount: int):
     
     # Calculate actual damage
     var actual_damage = max(0, varied_amount - armor)
-    hp -= actual_damage
-    hp = max(0, hp)
-    update_health_bar()
-    play_hurt_animation()
+    energy -= actual_damage
+    energy = max(0, energy)
+    update_bars()
     
-    print(enemy_name, " took ", actual_damage, " damage (", hp, "/", max_hp, " HP)")
+    print(enemy_name, " took ", actual_damage, " damage (", energy, "/", max_energy, " HP)")
     
     # Show shield indicator if armor reduced damage significantly
     if armor > 0 and amount > actual_damage and combat_view:
         combat_view.show_combat_effect("shield", self)
     
     # Use visuals system for hit animation
-    if enemy_visuals:
+    if robot_visuals:
+        robot_visuals.play_hit()
+    elif enemy_visuals:
         enemy_visuals.play_hit()
     
     # Check for defeat
-    if hp <= 0:
+    if energy <= 0:
         # Play death animation before signaling defeat
-        if enemy_visuals:
+        if robot_visuals:
+            var tween = robot_visuals.play_death_animation()
+            # Wait for animation to finish
+            await tween.finished
+        elif enemy_visuals:
             var tween = enemy_visuals.play_death_animation()
             # Wait for animation to finish
             await tween.finished
         
         # Signal defeat
         emit_signal("enemy_defeated")
+        emit_signal("fighter_defeated")
     
     # Check for special ability triggers
     for ability in special_abilities:
@@ -353,9 +426,9 @@ func take_damage(amount: int):
 func activate_special_ability(ability: Dictionary):
     match ability.effect:
         "self_heal":
-            hp += int(max_hp * 0.1)  # Heal 10% of max HP
-            hp = min(hp, max_hp)
-            update_health_bar()
+            energy += int(max_energy * 0.1)  # Heal 10% of max energy
+            energy = min(energy, max_energy)
+            update_bars()
             if combat_view:
                 combat_view.show_combat_effect("heal", self)
         "speed_boost":
@@ -372,38 +445,38 @@ func activate_special_ability(ability: Dictionary):
             armor -= 2
         # Add more special abilities as needed
 
-func update_health_bar():
-    if health_bar:
-        health_bar.value = 100.0 * hp / max_hp
+# Override the update_bars method from BaseFighter
+func update_bars():
+    # Use BaseFighter's method
+    super.update_bars()
 
 func play_attack_animation():
     # Use our visuals system for attack animation
-    if enemy_visuals:
+    if robot_visuals:
+        robot_visuals.play_attack()
+    elif enemy_visuals:
         enemy_visuals.play_attack()
-    elif animation_player and animation_player.has_animation("attack"):
-        animation_player.play("attack")
     else:
-        # Simple feedback without animation (legacy support)
-        if sprite:
-            sprite.scale = Vector2(1.2, 1.2)
-            await get_tree().create_timer(0.1).timeout
-            sprite.scale = Vector2(1.0, 1.0)
+        # Call BaseFighter's animation method
+        super.play_attack_animation()
 
 func play_hurt_animation():
-    # Already handled by enemy_visuals, but keep this for legacy support
-    if animation_player and animation_player.has_animation("hurt"):
-        animation_player.play("hurt")
-    elif sprite:
-        # Simple feedback without animation
-        sprite.modulate = Color(1, 0.5, 0.5)  # Red tint
-        await get_tree().create_timer(0.1).timeout
-        sprite.modulate = Color(1, 1, 1)
+    # Use visuals system for hit animation
+    if robot_visuals:
+        robot_visuals.play_hit()
+    elif enemy_visuals:
+        enemy_visuals.play_hit()
+    else:
+        # Call BaseFighter's animation method
+        super.play_hurt_animation()
 
-func get_armor() -> int:
-    return armor
+# Already inherited from BaseFighter
+#func get_armor() -> int:
+#    return armor
 
-func is_defeated() -> bool:
-    return hp <= 0
+# Already inherited from BaseFighter
+#func is_defeated() -> bool:
+#    return energy <= 0
 
 # Methods for CombatView integration
 func set_target(new_target):

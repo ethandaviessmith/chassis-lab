@@ -76,7 +76,7 @@ func set_card_scale(scale_factor: float, scale_type: String = "normal"):
     var final_scale = base_scale * scale_factor
     scale = final_scale
     
-    print("Card ", data.get("name", "Unknown"), " scale set to ", final_scale, " (state: ", State.keys()[state], ", factor: ", scale_factor, ", type: ", scale_type, ")")
+    # print("Card ", data.get("name", "Unknown"), " scale set to ", final_scale, " (state: ", State.keys()[state], ", factor: ", scale_factor, ", type: ", scale_type, ")")
 
 # Set the card's state and update scale accordingly
 func set_card_state(new_state: State):
@@ -97,7 +97,7 @@ func _on_mouse_entered():
         else:
             z_index = 50  # Default hover z-index if not in hand
             
-        Sound.play_hover()
+        # Sound.play_hover()
 
 # Handle mouse exit
 func _on_mouse_exited():
@@ -235,7 +235,7 @@ func _process(delta):
             # Only animate if we're not already at the target
             if global_position.distance_to(target_position) > 1.0:
                 # Debug for position tracking
-                print("Card moving to target_position: current=", global_position, " target=", target_position)
+                # print("Card moving to target_position: current=", global_position, " target=", target_position)
                     
                 # Use delta for frame-rate independent movement with increased speed
                 # Use higher speed for cards just returned from slots

@@ -10,14 +10,12 @@
     "manufacturer": "Construction",
     "effects": [
       {
-        "type": "crit_chance",
+        "type": "stat",
+        "timing": "attach",
+        "stat": "crit_chance",
         "value": 10,
+        "target": "self",
         "description": "+10% crit chance"
-      },
-      {
-        "type": "target_priority",
-        "value": "lowest_hp",
-        "description": "Target lowest-HP enemy"
       }
     ],
     "rarity": "Common",
@@ -35,19 +33,28 @@
     "manufacturer": "Clean Energy",
     "effects": [
       {
-        "type": "target_priority",
-        "value": "nearest",
-        "description": "Prioritize nearest target"
+        "type": "stat",
+        "timing": "attach",
+        "stat": "attack_speed",
+        "value": 5,
+        "target": "self",
+        "description": "+5% attack speed"
       },
       {
-        "type": "attack_speed_percent",
-        "value": 5,
-        "description": "+5% attack speed"
+        "type": "special",
+        "timing": "attach",
+        "stat": "max_energy",
+        "value": 1,
+        "target": "self",
+        "parameters": {
+          "special_type": "max_energy"
+        },
+        "description": "+1 max energy"
       }
     ],
     "rarity": "Uncommon",
     "image": "res://assets/images/parts/overseer_ai.png",
-    "description": "Advanced tactical processor that prioritizes closest threats."
+    "description": "Advanced tactical processor that increases attack speed."
   },
   {
     "id": "fusion_core",
@@ -60,19 +67,28 @@
     "manufacturer": "Military",
     "effects": [
       {
-        "type": "energy_next_turn",
-        "value": 1,
-        "description": "+1 Energy next turn"
+        "type": "special",
+        "timing": "attach",
+        "stat": "max_heat",
+        "value": 2,
+        "target": "self",
+        "parameters": {
+          "special_type": "max_heat"
+        },
+        "description": "+2 Heat capacity"
       },
       {
-        "type": "max_heat",
-        "value": 2,
-        "description": "+2 Heat capacity"
+        "type": "stat",
+        "timing": "attach",
+        "stat": "damage",
+        "value": 5,
+        "target": "self",
+        "description": "+5 damage"
       }
     ],
     "rarity": "Uncommon",
     "image": "res://assets/images/parts/fusion_core.png",
-    "description": "Experimental power source that provides extra energy."
+    "description": "Experimental power source that provides extra heat capacity and damage."
   },
   {
     "id": "coolant_tank",
@@ -85,14 +101,24 @@
     "manufacturer": "Clean Energy",
     "effects": [
       {
-        "type": "heat_dissipation",
+        "type": "cool",
+        "timing": "turn_end",
         "value": 1,
-        "description": "-1 Heat per tick while >0 Heat"
+        "target": "self",
+        "description": "Cooldown by 1 heat each turn"
+      },
+      {
+        "type": "stat",
+        "timing": "attach",
+        "stat": "armor",
+        "value": 4,
+        "target": "self",
+        "description": "+4 armor"
       }
     ],
     "rarity": "Rare",
     "image": "res://assets/images/parts/coolant_tank.png",
-    "description": "Advanced cooling system that rapidly dissipates heat."
+    "description": "Advanced cooling system with armor reinforcement."
   },
   {
     "id": "rail_arm",
@@ -108,13 +134,26 @@
     "effects": [
       {
         "type": "damage",
+        "timing": "attack",
         "value": 12,
+        "target": "enemy",
         "description": "12 damage per shot"
       },
       {
-        "type": "pierce",
+        "type": "stat",
+        "timing": "attack",
+        "stat": "pierce",
         "value": 1,
+        "target": "self",
         "description": "Pierce through 1 target"
+      },
+      {
+        "type": "stat",
+        "timing": "attack",
+        "stat": "heat",
+        "value": 1,
+        "target": "self",
+        "description": "+1 heat per attack"
       }
     ],
     "rarity": "Uncommon",
@@ -135,13 +174,27 @@
     "effects": [
       {
         "type": "damage",
+        "timing": "attack",
         "value": 4,
+        "target": "enemy",
         "description": "4 damage per hit"
       },
       {
-        "type": "bleed",
+        "type": "stat",
+        "timing": "attack",
+        "stat": "bleed",
         "value": 2,
+        "target": "enemy",
+        "duration": 3,
         "description": "2 bleed damage over 3s"
+      },
+      {
+        "type": "stat",
+        "timing": "attach",
+        "stat": "armor",
+        "value": 2,
+        "target": "self",
+        "description": "+2 armor"
       }
     ],
     "rarity": "Common",
@@ -162,18 +215,31 @@
     "effects": [
       {
         "type": "damage",
+        "timing": "attack",
         "value": 6,
+        "target": "enemy",
         "description": "6 damage per hit"
       },
       {
-        "type": "stagger_chance",
+        "type": "stat",
+        "timing": "attach",
+        "stat": "stagger_chance",
         "value": 10,
+        "target": "self",
         "description": "+10% stagger chance"
+      },
+      {
+        "type": "stat",
+        "timing": "attach",
+        "stat": "crit_chance",
+        "value": 10,
+        "target": "self",
+        "description": "+10% critical hit chance"
       }
     ],
     "rarity": "Common",
     "image": "res://assets/images/parts/pulse_blaster.png",
-    "description": "Standard energy weapon with consistent output."
+    "description": "Energy weapon with enhanced targeting and stagger capabilities."
   },
   {
     "id": "flak_arm",
@@ -189,18 +255,23 @@
     "effects": [
       {
         "type": "damage",
+        "timing": "attack",
         "value": 8,
+        "target": "enemy",
         "description": "8 damage per hit"
       },
       {
-        "type": "shield_damage_bonus",
-        "value": 25,
-        "description": "+25% damage vs shielded"
+        "type": "stat",
+        "timing": "attach",
+        "stat": "attack_speed",
+        "value": 15,
+        "target": "self",
+        "description": "+15% attack speed"
       }
     ],
     "rarity": "Uncommon",
     "image": "res://assets/images/parts/flak_arm.png",
-    "description": "Explosive flak cannon that's especially effective against shielded targets."
+    "description": "Rapid-firing flak cannon with enhanced attack speed."
   },
   {
     "id": "heavy_plating",
@@ -213,19 +284,28 @@
     "manufacturer": "Construction",
     "effects": [
       {
-        "type": "armor",
+        "type": "stat",
+        "timing": "attach",
+        "stat": "armor",
         "value": 10,
+        "target": "self",
         "description": "+10 Armor"
       },
       {
-        "type": "move_speed_percent",
-        "value": -5,
-        "description": "-5% Move Speed"
+        "type": "special",
+        "timing": "turn_end",
+        "value": 2,
+        "target": "self",
+        "parameters": {
+          "special_type": "regeneration",
+          "interval": 5
+        },
+        "description": "Regenerate 2 HP every 5 seconds"
       }
     ],
     "rarity": "Common",
     "image": "res://assets/images/parts/heavy_plating.png",
-    "description": "Thick armor plating that slows movement slightly."
+    "description": "Thick armor plating with self-repair capabilities."
   },
   {
     "id": "tracked_legs",
@@ -238,19 +318,25 @@
     "manufacturer": "Construction",
     "effects": [
       {
-        "type": "stability",
-        "value": 20,
-        "description": "+20% stability"
+        "type": "stat",
+        "timing": "attach",
+        "stat": "armor",
+        "value": 5,
+        "target": "self",
+        "description": "+5 armor"
       },
       {
-        "type": "knockback_resistance",
-        "value": 10,
-        "description": "-10% knockback"
+        "type": "stat",
+        "timing": "attach",
+        "stat": "attack_speed",
+        "value": 5,
+        "target": "self",
+        "description": "+5% attack speed"
       }
     ],
     "rarity": "Common",
     "image": "res://assets/images/parts/tracked_legs.png",
-    "description": "Basic treads for stable movement."
+    "description": "Stable treads with armor reinforcement."
   },
   {
     "id": "jump_jets",
@@ -263,19 +349,25 @@
     "manufacturer": "Military",
     "effects": [
       {
-        "type": "dodge_chance",
+        "type": "stat",
+        "timing": "attach",
+        "stat": "dodge_chance",
         "value": 20,
+        "target": "self",
         "description": "+20% dodge chance"
       },
       {
-        "type": "dodge_cooldown",
-        "value": 5,
-        "description": "5 second cooldown between dodges"
+        "type": "stat",
+        "timing": "attach", 
+        "stat": "damage",
+        "value": 10,
+        "target": "self",
+        "description": "+10 damage"
       }
     ],
     "rarity": "Rare",
     "image": "res://assets/images/parts/jump_jets.png",
-    "description": "Propulsion system that enables quick evasive maneuvers."
+    "description": "Propulsion system that enables evasion and enhances attack power."
   },
   {
     "id": "overclock",
@@ -288,19 +380,28 @@
     "manufacturer": "Futuristic",
     "effects": [
       {
-        "type": "damage_percent",
+        "type": "stat",
+        "timing": "attach",
+        "stat": "damage_percent",
         "value": 25,
-        "description": "+25% damage this turn"
+        "target": "self",
+        "description": "+25% damage"
       },
       {
-        "type": "heat_instant",
-        "value": 3,
-        "description": "+3 Heat instantly"
+        "type": "special",
+        "timing": "attach",
+        "stat": "max_energy",
+        "value": 1,
+        "target": "self",
+        "parameters": {
+          "special_type": "max_energy"
+        },
+        "description": "+1 max energy"
       }
     ],
     "rarity": "Uncommon",
     "image": "res://assets/images/parts/overclock.png",
-    "description": "Emergency power surge that boosts damage at the cost of heat generation."
+    "description": "Emergency power system that boosts damage output and energy capacity."
   },
   {
     "id": "patch_kit",
@@ -314,18 +415,23 @@
     "effects": [
       {
         "type": "heal",
+        "timing": "turn_end",
         "value": 15,
+        "target": "self",
         "description": "Heal 15 HP"
       },
       {
-        "type": "heat_reduce",
-        "value": 2,
-        "description": "Purge 2 Heat"
+        "type": "stat",
+        "timing": "attach",
+        "stat": "armor",
+        "value": 3,
+        "target": "self",
+        "description": "+3 Armor"
       }
     ],
     "rarity": "Common",
     "image": "res://assets/images/parts/patch_kit.png",
-    "description": "Emergency repairs and cooling for critical situations."
+    "description": "Emergency repairs and armor reinforcement."
   },
   {
     "id": "auto_loader",
@@ -338,14 +444,25 @@
     "manufacturer": "Military",
     "effects": [
       {
-        "type": "attack_speed_percent",
+        "type": "stat",
+        "timing": "attach",
+        "stat": "attack_speed",
         "value": 15,
+        "target": "self",
         "description": "+15% attack speed"
+      },
+      {
+        "type": "stat",
+        "timing": "attach",
+        "stat": "damage",
+        "value": 10,
+        "target": "self",
+        "description": "+10 damage"
       }
     ],
     "rarity": "Rare",
     "image": "res://assets/images/parts/auto_loader.png",
-    "description": "Advanced targeting computer that increases weapon cycling rate."
+    "description": "Advanced targeting computer that increases weapon damage and cycling rate."
   },
   {
     "id": "capacitor",
@@ -358,19 +475,31 @@
     "manufacturer": "Futuristic",
     "effects": [
       {
-        "type": "energy_storage",
+        "type": "special",
+        "timing": "attach",
+        "stat": "max_energy",
         "value": 1,
-        "description": "Store 1 unused Energy"
+        "target": "self",
+        "parameters": {
+          "special_type": "max_energy"
+        },
+        "description": "+1 Energy"
       },
       {
-        "type": "energy_release",
-        "value": "next_turn",
-        "description": "Release stored energy next turn"
+        "type": "special",
+        "timing": "attach",
+        "stat": "max_heat",
+        "value": 2,
+        "target": "self",
+        "parameters": {
+          "special_type": "max_heat"
+        },
+        "description": "+2 Heat capacity"
       }
     ],
     "rarity": "Common",
     "image": "res://assets/images/parts/capacitor.png",
-    "description": "Power storage system that can save energy for later use."
+    "description": "Power storage system that increases energy and heat capacity."
   },
   {
     "id": "reinforced_armature",
@@ -383,18 +512,24 @@
     "manufacturer": "Clean Energy",
     "effects": [
       {
-        "type": "move_speed_percent",
-        "value": 10,
-        "description": "+10% move speed"
+        "type": "stat",
+        "timing": "attach",
+        "stat": "armor",
+        "value": 5,
+        "target": "self",
+        "description": "+5 armor"
       },
       {
-        "type": "armor",
-        "value": 5,
-        "description": "+5% armor"
+        "type": "stat",
+        "timing": "attach",
+        "stat": "stagger_chance",
+        "value": 10,
+        "target": "self",
+        "description": "+10% stagger chance"
       }
     ],
     "rarity": "Uncommon",
     "image": "res://assets/images/parts/reinforced_armature.png",
-    "description": "Lightweight reinforced leg structure providing mobility and protection."
+    "description": "Lightweight reinforced leg structure providing protection and stability."
   }
 ]

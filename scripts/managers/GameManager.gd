@@ -29,6 +29,8 @@ var victory: bool = false
 @export var level: Label
 @export var volume: HSlider
 
+@export var play_music: bool = false
+
 func _ready():
 
 
@@ -38,6 +40,7 @@ func _ready():
     
     if combat_view:
         combat_view.combat_finished.connect(_on_combat_ended)
+        combat_view.show_reward_screen.disconnect(_on_show_reward_screen)
         combat_view.show_reward_screen.connect(_on_show_reward_screen)
     
     if reward_screen:
@@ -49,7 +52,9 @@ func _ready():
 
     # Start new game
     start_new_game()
-    Sound.start_background_music()
+
+    # if play_music:
+        # Sound.start_background_music()
 
 func _on_volume_changed(value: float):
     Sound.set_music_volume(value)
@@ -83,6 +88,7 @@ func start_build_phase():
         print("GameManager: Starting card draw for new build phase...")
         hand_manager.clear_hand()  # Clear existing hand first
         hand_manager.start_sequential_card_draw()  # Draw a new hand
+        build_view.connect_card_signals()
     else:
         print("GameManager: No HandManager found or missing card draw methods")
         # Fallback - use turn_manager's start_turn which includes drawing cards

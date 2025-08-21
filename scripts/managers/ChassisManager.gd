@@ -8,6 +8,7 @@ signal chassis_updated(attached_parts)
 @export var hand_manager: HandManager
 @export var build_view: BuildView
 @export var stat_manager: Node
+@export var heat_manager: HeatManager
 
 @export var head_slot: Control
 @export var core_slot: Control
@@ -95,59 +96,15 @@ func _get_valid_types_for_slot(slot_name: String) -> Array:
 
 # Calculate heat from attached parts
 func calculate_heat() -> Dictionary:
-    var needed_heat = 0
-    var scrapper_heat = 0
-    
-    # Calculate needed heat from non-scrapper slots
-    for slot_name in ["head", "core", "arm_left", "arm_right", "legs", "utility"]:
-        if slot_name in attached_parts:
-            var slot_content = attached_parts[slot_name]
-            if slot_content is Card:
-                # Handle single card
-                if "heat" in slot_content.data:
-                    needed_heat += int(slot_content.data.heat)
-            elif slot_content is Dictionary and "heat" in slot_content:
-                # Handle legacy dictionary data
-                needed_heat += int(slot_content.heat)
-    
-    # Calculate scrapper heat from scrapper slot
-    if "scrapper" in attached_parts:
-        var scrapper_content = attached_parts["scrapper"]
-        if scrapper_content is Array:
-            # Handle multiple cards in scrapper
-            for card_item in scrapper_content:
-                if is_instance_valid(card_item):
-                    if card_item is Card and "heat" in card_item.data:
-                        scrapper_heat += int(card_item.data.heat)
-                    elif card_item is Dictionary and "heat" in card_item:
-                        scrapper_heat += int(card_item.heat)
-        elif scrapper_content is Card:
-            # Handle single card in scrapper (fallback)
-            if "heat" in scrapper_content.data:
-                scrapper_heat += int(scrapper_content.data.heat)
-        elif scrapper_content is Dictionary:
-            # Handle legacy single card data
-            if "heat" in scrapper_content:
-                scrapper_heat += int(scrapper_content.heat)
-    
-    # Start with 2 base heat in the scrapper
-    var base_scrapper_heat = 2
-    var total_scrapper_heat = scrapper_heat + base_scrapper_heat
-    var max_heat = max(10, needed_heat + total_scrapper_heat)  # Dynamic max based on content
-    
-    return {
-        "needed_heat": needed_heat,
-        "scrapper_heat": total_scrapper_heat, # Include base 2 heat
-        "max_heat": max_heat,
-        "total_needed": needed_heat,
-        "total_available": total_scrapper_heat,
-        "has_enough_heat": total_scrapper_heat >= needed_heat
-    }
+    if heat_manager:
+        return heat_manager.calculate_heat(attached_parts)
+    # fallback: return empty dict if not set
+    return {}
 
 # Check if there's enough heat to build the robot
 func has_enough_heat() -> bool:
     var heat_data = calculate_heat()
-    return heat_data.scrapper_heat >= heat_data.needed_heat
+    return heat_data.available_heat >= heat_data.needed_heat
 
 # Attach a part to a specific slot
 func attach_part_to_slot(card, slot_name) -> bool:

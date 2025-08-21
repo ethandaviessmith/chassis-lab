@@ -6,6 +6,7 @@ signal card_played(card, slot)
 signal card_scrapped(card)
 signal deck_updated
 signal card_durability_changed(instance_id, new_durability)
+signal card_destroyed(instance_id)
 
 var deck = []
 var hand = []
@@ -15,6 +16,7 @@ var exhausted_pile = []
 # Card registry for tracking durability and other persistent properties
 var card_registry = {}
 var card_instances = {}
+# Register a card in the registry for durability tracking
 
 var max_hand_size = 5
 var default_draw_count = 5
@@ -40,14 +42,18 @@ var max_heat: int = 10
 @export var combat_resolver: CombatResolver
 
 func _ready():
-
-    combat_resolver.part_durability_changed.connect(_on_part_durability_changed)
-    turn_manager.part_durability_changed.connect(_on_part_durability_changed)
+    # Setup signals first
+    if combat_resolver:
+        combat_resolver.part_durability_changed.connect(_on_part_durability_changed)
+    if turn_manager:
+        turn_manager.part_durability_changed.connect(_on_part_durability_changed)
+        
     print("DeckManager ready")
     print("  DataLoader: ", "Set" if data_loader else "Not set")
     print("  TurnManager: ", "Set" if turn_manager else "Not set")
     
-    # Load initial deck
+    # We'll only load the deck here but NOT draw cards automatically
+    # The initial hand drawing will be done by HandManager when requested
     print("DeckManager: About to load starting deck...")
     load_starting_deck()
     
@@ -61,6 +67,18 @@ func _ready():
 # Force reload the starting deck (useful for debugging)
 func reload_deck():
     print("Force reloading deck...")
+    
+    # We need to clear all collections before reloading to avoid duplicates
+    deck.clear()
+    hand.clear()
+    discard_pile.clear()
+    exhausted_pile.clear()
+    
+    # Also clear card tracking systems
+    card_registry.clear()
+    card_instances.clear()
+    
+    # Now load fresh deck
     load_starting_deck()
 
 func _on_part_durability_changed(part, new_durability):
@@ -266,6 +284,8 @@ func shuffle_deck():
     emit_signal("deck_updated")
 
 func draw_card() -> Dictionary:
+    print("DeckManager: Drawing card - deck size:", deck.size(), ", hand size:", hand.size())
+    
     if deck.size() == 0:
         if discard_pile.size() > 0:
             # Shuffle discard pile into deck
@@ -277,20 +297,31 @@ func draw_card() -> Dictionary:
             emit_signal("deck_updated")
         else:
             # No cards to draw!
-            print("No cards left to draw!")
+            print("DeckManager: No cards left to draw!")
             return {}
     
     # Draw top card
     var card = deck.pop_front()
+    
+    # Make sure this card has a unique instance_id
+    if not card.has("instance_id") or card["instance_id"] == null or card["instance_id"] == "":
+        card["instance_id"] = "card_" + str(randi()) + "_" + str(Time.get_unix_time_from_system())
+        print("DeckManager: Added instance_id to card:", card["instance_id"])
+    
+    # Add to hand array
     hand.append(card)
+    
+    print("DeckManager: Drew card:", card.get("name", "Unknown"), "- new deck size:", deck.size(), ", new hand size:", hand.size())
     
     emit_signal("card_drawn", card)
     emit_signal("deck_updated")
+
+    Sound.play_card_pickup()
     return card
 
 func draw_hand():
     # Draw up to max hand size
-    print("Drawing hand - Current state:")
+    print("DeckManager: Drawing hand - Current state:")
     print("  Hand size: ", hand.size(), "/", max_hand_size)
     print("  Deck size: ", deck.size())
     print("  Discard pile size: ", discard_pile.size())
@@ -298,20 +329,27 @@ func draw_hand():
     # Make sure we have a valid deck to draw from
     if deck.is_empty() and not discard_pile.is_empty() and hand.is_empty():
         # If deck is empty but we have cards in discard and no hand, shuffle discard into deck
-        print("Initial draw - shuffling discard pile into deck")
+        print("DeckManager: Initial draw - shuffling discard pile into deck")
         for card in discard_pile:
             deck.append(card)
         discard_pile.clear()
         shuffle_deck()
     
     # Draw cards up to max hand size
+    var cards_drawn = 0
     while hand.size() < max_hand_size and (deck.size() > 0 or discard_pile.size() > 0):
         var drawn_card = draw_card()
         if drawn_card.is_empty():
-            print("Failed to draw card, breaking loop")
+            print("DeckManager: Failed to draw card, breaking loop")
             break
+        cards_drawn += 1
     
-    print("Final hand size after drawing: ", hand.size())
+    print("DeckManager: Drew " + str(cards_drawn) + " cards. Final hand size: " + str(hand.size()))
+    
+    # Validate that our counts make sense
+    var total_cards = deck.size() + hand.size() + discard_pile.size() + exhausted_pile.size()
+    print("DeckManager: Total cards in all collections: " + str(total_cards))
+    
     return hand
 
 func play_card(card: Dictionary, slot: String) -> bool:
@@ -390,17 +428,41 @@ func add_card_to_deck(card: Dictionary):
     emit_signal("deck_updated")
 
 func discard_card(card):
+    # First, get the card data regardless of what type it is
+    var card_data = null
+    
     # Handle discarding both Dictionary data and Card objects
     if card is Dictionary:
-        # Add to discard pile directly
-        discard_pile.append(card)
-        print("DeckManager: Card data added to discard pile")
+        card_data = card
+        # Remove from hand if present
+        if hand.has(card):
+            hand.erase(card)
+            print("DeckManager: Removed card data from hand")
+        
     elif card is Card and card.data:
-        # Extract card data from Card object and add to discard pile
-        discard_pile.append(card.data)
-        print("DeckManager: Card object's data added to discard pile")
+        card_data = card.data
+        # Remove from hand if present
+        for i in range(hand.size() - 1, -1, -1):
+            # Compare instance_id if available
+            if hand[i].has("instance_id") and card.data.has("instance_id") and hand[i].instance_id == card.data.instance_id:
+                hand.remove_at(i)
+                print("DeckManager: Removed card object's data from hand by instance_id")
+                break
+            # Fall back to name/id comparison if no instance_id
+            elif (hand[i].has("id") and card.data.has("id") and hand[i].id == card.data.id) or \
+                 (hand[i].has("name") and card.data.has("name") and hand[i].name == card.data.name):
+                hand.remove_at(i)
+                print("DeckManager: Removed card object's data from hand by name/id")
+                break
     else:
         print("DeckManager: Unable to discard - invalid card type:", typeof(card))
+        return
+    
+    # SIMPLIFIED: Always add to discard pile if we have valid card data
+    # No filtering based on instance_id since that was inadvertently removing cards
+    if card_data:
+        discard_pile.append(card_data)
+        print("DeckManager: Card added to discard pile")
     
     # Notify listeners that deck state has changed
     emit_signal("deck_updated")

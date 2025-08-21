@@ -2,7 +2,7 @@ extends Node
 class_name DataLoader
 
 # File paths
-const CARDS_PATH = "res://data/cards.json"
+const CARDS_PATH = "res://data/cards.json"  # Single source of truth for card data
 const ENEMIES_PATH = "res://data/enemies.json"
 
 func _ready():
@@ -11,9 +11,9 @@ func _ready():
 func load_all_cards() -> Array:
 	var cards = []
 	
-	print("DataLoader: Attempting to load cards from: ", CARDS_PATH)
+	print("DataLoader: Loading cards from: ", CARDS_PATH)
 	
-	# Load cards from JSON file
+	# Load cards from the JSON file
 	var file = FileAccess.open(CARDS_PATH, FileAccess.READ)
 	if file:
 		print("DataLoader: Successfully opened cards file")
@@ -30,11 +30,11 @@ func load_all_cards() -> Array:
 			print("DataLoader: Successfully parsed JSON, found ", cards.size(), " cards")
 		else:
 			print("DataLoader: ERROR - Failed to parse JSON: ", json.error_string)
+			push_error("DataLoader: Failed to parse cards.json: " + json.error_string)
 			cards = _get_fallback_cards()
 	else:
 		push_error("DataLoader: ERROR - Failed to open cards file: " + CARDS_PATH)
 		print("DataLoader: Using fallback cards instead")
-		# Fallback to minimal data
 		cards = _get_fallback_cards()
 	
 	return cards

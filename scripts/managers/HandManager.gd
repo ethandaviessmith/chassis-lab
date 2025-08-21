@@ -14,79 +14,120 @@ signal card_drawn(card)
 # Card tracking
 var cards_in_hand = []
 
-# Draw the initial hand of cards
-func draw_starting_hand():
-    # Reset existing cards
-    clear_hand()
+# # Draw the initial hand of cards
+# func draw_starting_hand():
+#     # Before drawing, check if we already have cards in hand
+#     if cards_in_hand.size() > 0:
+#         print("HandManager: Cards already in hand, not drawing starting hand")
+#         return
     
-    # Draw new cards
-    var hand = deck_manager.draw_hand()
+#     # Reset existing cards to be safe
+#     clear_hand()
     
-    # If hand is empty, try to reload the deck
-    if hand.size() == 0:
-        if deck_manager.has_method("reload_deck"):
-            deck_manager.reload_deck()
-            hand = deck_manager.draw_hand()
+#     # Draw new cards
+#     var hand = deck_manager.draw_hand()
     
-    # If still empty, fall back to test cards
-    if hand.size() == 0:
-        create_test_cards()
-        return
+#     # If hand is empty, try to reload the deck, but only if we don't have ANY cards anywhere
+#     var status = deck_manager.get_deck_status()
+#     if hand.size() == 0 and status.deck_size == 0 and status.discard_size == 0:
+#         print("HandManager: Empty deck and no cards anywhere, attempting to reload deck")
+#         if deck_manager.has_method("reload_deck"):
+#             deck_manager.reload_deck()
+#             hand = deck_manager.draw_hand()
     
-    # Create card sprites for each card in hand
-    for i in range(hand.size()):
-        create_card_sprite(hand[i], i)
+#     # If still empty, fall back to test cards
+#     if hand.size() == 0:
+#         print("HandManager: Still no cards, using test cards")
+#         create_test_cards()
+#         return
+    
+#     # Create card sprites for each card in hand
+#     print("HandManager: Creating card sprites for " + str(hand.size()) + " cards")
+#     for i in range(hand.size()):
+#         create_card_sprite(hand[i], i)
 
 # Draw a single card from deck to hand
 func draw_single_card():
     if not deck_manager:
-        return
+        print("HandManager: No deck_manager available, cannot draw card")
+        return false
     
     # Check if hand is at max capacity
     if cards_in_hand.size() >= deck_manager.max_hand_size:
-        return
+        print("HandManager: Hand is already at max capacity (" + str(cards_in_hand.size()) + "/" + str(deck_manager.max_hand_size) + ")")
+        return false
     
-    # Draw the card first (this handles deck/discard reshuffling internally)
-    var drawn_card = deck_manager.draw_card()
-    if not drawn_card.is_empty():
-        # Create visual for the new card (use current hand size as index since we're about to add it)
-        create_card_sprite(drawn_card, cards_in_hand.size())
-        
-        # Update deck visual
-        return true
-        
-    return false
+    # Draw the card from DeckManager (this handles deck/discard reshuffling internally)
+    print("HandManager: Attempting to draw a card. Current visual cards: " + str(cards_in_hand.size()))
+    var card_data = deck_manager.draw_card()
+    
+    # Check if we got a valid card
+    if card_data.is_empty():
+        print("HandManager: Failed to draw card - empty result from deck_manager")
+        return false
+    
+    # Create visual for the new card
+    print("HandManager: Successfully drew card: " + card_data.get("name", "Unknown"))
+    create_card_sprite(card_data, cards_in_hand.size() - 1)  # Use current size as index
+    
+    # Log the card counts after drawing
+    print("HandManager: Visual cards in hand: " + str(cards_in_hand.size()) + 
+          ", DeckManager hand array size: " + str(deck_manager.hand.size()))
+    
+    return true
 
 # Start drawing cards sequentially with delay
 func start_sequential_card_draw():
     if not deck_manager:
+        print("HandManager: No deck manager, cannot draw cards")
         return
     
-    # Draw cards up to hand limit with delay
-    var max_cards = deck_manager.max_hand_size
+    # Calculate exactly how many cards we need
+    var cards_needed = deck_manager.max_hand_size - cards_in_hand.size()
+    print("HandManager: Need to draw " + str(cards_needed) + " cards to fill hand")
     
-    # If deck is empty, try to force reload
+    # Don't do anything if we don't need cards
+    if cards_needed <= 0:
+        print("HandManager: Hand already full, not drawing more cards")
+        return
+    
+    # Only reload deck if truly necessary
     var initial_status = deck_manager.get_deck_status()
-    if initial_status.deck_size == 0 and initial_status.discard_size == 0:
+    if initial_status.deck_size == 0 and initial_status.discard_size > 0:
+        # Note: DeckManager.draw_card() will handle reshuffling as needed
+        print("HandManager: Draw deck empty, will trigger reshuffle when drawing")
+    elif initial_status.deck_size == 0 and initial_status.discard_size == 0 and initial_status.exhausted_size == 0 and initial_status.hand_size == 0:
+        print("HandManager: No cards anywhere in system, reloading deck")
         deck_manager.reload_deck()
-        await get_tree().process_frame  # Wait for reload to complete
+        await get_tree().process_frame
     
-    for i in range(max_cards):
-        # Check if we can still draw cards
+    # Draw exactly the number of cards needed
+    print("HandManager: Drawing " + str(cards_needed) + " cards sequentially")
+    
+    # Draw cards one by one with delay between each
+    var cards_drawn = 0
+    for i in range(cards_needed):
+        # CRITICAL CHECK: Stop drawing if we've reached max hand size
         if cards_in_hand.size() >= deck_manager.max_hand_size:
+            print("HandManager: Max hand size reached during sequential draw, stopping")
+            break
+            
+        # Draw a single card
+        var success = draw_single_card()
+        
+        # Check if draw was successful
+        if not success:
+            print("HandManager: Failed to draw card " + str(i+1) + ", stopping")
             break
         
-        # If no cards available, break
-        var deck_status = deck_manager.get_deck_status()
-        if deck_status.deck_size == 0 and deck_status.discard_size == 0:
-            break
+        # Count successful draws
+        cards_drawn += 1
         
-        # Draw the card
-        draw_single_card()
-        
-        # Wait 0.2 seconds before drawing next card
-        if i < max_cards - 1:  # Don't wait after the last card
+        # Wait before drawing next card (except for the last one)
+        if i < cards_needed - 1:
             await get_tree().create_timer(0.2).timeout
+    
+    print("HandManager: Finished sequential draw, drew " + str(cards_drawn) + " cards")
 
 # Clear all cards from hand
 func clear_hand():
@@ -142,6 +183,8 @@ func create_card_sprite(card_data, index):
         
         # Add to tracking array - do this before initialize to ensure it's tracked properly
         cards_in_hand.append(card)
+        print("HandManager: Added card to cards_in_hand array, new size: " + str(cards_in_hand.size()) + 
+              ", index was: " + str(index))
         
         # Initialize the card data
         if card.has_method("initialize"):
@@ -268,26 +311,61 @@ func discard_hand():
         print("HandManager: No deck_manager found, cannot discard hand")
         return
     
-    print("HandManager: Discarding all cards in hand...")
+    print("HandManager: Discarding all cards in hand... Current visual cards: " + str(cards_in_hand.size()))
     
     # Keep track of how many cards we discard
     var discard_count = 0
     
+    # First collect all card data to discard before removing visual cards
+    var cards_to_discard = []
+    
     # Process each card in hand
-    for card in cards_in_hand.duplicate():
+    var card_indices_to_remove = []
+    for i in range(cards_in_hand.size()):
+        var card = cards_in_hand[i]
         # Check if card is instance valid
         if is_instance_valid(card):
             # Only discard cards that aren't attached to the chassis
             if not card.has_meta("attached_to_chassis"):
-                # Add to discard pile if it's a Card object with data
+                # Add to our discard list if it's a Card object with data
                 if card is Card and card.data:
-                    deck_manager.discard_card(card.data)
+                    # Make a duplicate to avoid reference issues
+                    cards_to_discard.append(card.data.duplicate())
                     discard_count += 1
                 
                 # Queue free the card object
                 card.queue_free()
+                
+                # Mark for removal
+                card_indices_to_remove.append(i)
     
-    # Clear our tracking array
-    cards_in_hand.clear()
+    # Remove cards from our tracking array starting from the highest index
+    card_indices_to_remove.sort()
+    card_indices_to_remove.reverse()
+    
+    for idx in card_indices_to_remove:
+        cards_in_hand.remove_at(idx)
+    
+    # Check what's in DeckManager's hand before discarding
+    print("HandManager: Before discarding - DeckManager hand size: " + str(deck_manager.hand.size()))
+    
+    # Now discard all the collected card data in one go
+    for card_data in cards_to_discard:
+        # Skip empty or invalid data
+        if card_data.is_empty():
+            continue
+            
+        # Generate an instance_id if needed
+        if not card_data.has("instance_id") or card_data["instance_id"] == null or card_data["instance_id"] == "":
+            card_data["instance_id"] = "card_" + str(randi()) + "_" + str(Time.get_unix_time_from_system())
+            
+        deck_manager.discard_card(card_data)
     
     print("HandManager: Discarded " + str(discard_count) + " cards from hand")
+    print("HandManager: After discarding - Visual cards: " + str(cards_in_hand.size()) + 
+          ", DeckManager hand size: " + str(deck_manager.hand.size()))
+          
+    # Final validation
+    var status = deck_manager.get_deck_status()
+    var total_cards = status.deck_size + status.discard_size + status.exhausted_size
+    print("HandManager: Total tracked cards after discard: " + str(total_cards))

@@ -11,7 +11,7 @@ signal show_reward_screen
 @export var start_combat_button: Button = null
 
 # Internal references
-var player_robot: RobotFighter = null
+var player_robot: PlayerRobot = null
 var current_enemy = null
 var combat_active: bool = false
 var combat_timer: float = 0.0
@@ -54,7 +54,7 @@ func _process(delta):
         process_combat_phase(delta)
 
 # Start combat with robot fighter built from chassis
-func start_combat(robot_fighter: RobotFighter, enemy_data: Dictionary = {}):
+func start_combat(robot_fighter: PlayerRobot, enemy_data: Dictionary = {}):
     print("CombatView: Starting combat")
     
     # Set up player robot
@@ -80,9 +80,9 @@ func start_combat(robot_fighter: RobotFighter, enemy_data: Dictionary = {}):
     visible = true
     
     # Connect robot signals
-    if not player_robot.robot_defeated.is_connected(_on_player_defeated):
-        player_robot.robot_defeated.connect(_on_player_defeated)
-    
+    if not player_robot.fighter_defeated.is_connected(_on_player_defeated):
+        player_robot.fighter_defeated.connect(_on_player_defeated)
+
     print("CombatView: Combat setup complete")
     
     # Start the approach phase
@@ -224,7 +224,7 @@ func _on_player_defeated():
 
 func _on_enemy_defeated():
     print("CombatView: Enemy defeated")
-    end_combat(true)
+    # end_combat(true)
 
 func _on_start_combat_pressed():
     print("CombatView: Start combat button pressed")

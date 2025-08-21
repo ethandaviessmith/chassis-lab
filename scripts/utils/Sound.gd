@@ -286,7 +286,9 @@ func switch_game_mode_music(mode: String, sync_position: bool = true):
         current_music_player = next_player
         current_music_mode = mode
         next_player.volume_db = linear_to_db(music_volume)
-        next_player.play()
+
+        ## TODO stopped music manually
+        # next_player.play()
         return
     
     # Sync playback position if requested

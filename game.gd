@@ -10,5 +10,5 @@ func _ready() -> void:
             print("Game: Starting background music")
             sound.start_background_music("build")
     
-    if game_manager:
-        game_manager.start_new_game()
+    # if game_manager:
+    #     game_manager.start_new_game()

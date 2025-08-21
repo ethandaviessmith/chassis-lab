@@ -12,9 +12,11 @@ class_name DeckControl
 @onready var deck_view_container = $DeckViewContainer
 @onready var deck_grid = $DeckViewContainer/ScrollContainer/GridContainer
 @onready var back_button = $DeckViewContainer/BackButton
+@onready var redraw_button = $RedrawButton
 
 # External references
 @export var deck_manager: DeckManager
+@export var hand_manager: HandManager
 @export var card_scene: PackedScene
 
 # State tracking
@@ -47,6 +49,8 @@ func _ready():
         deck_button.pressed.connect(_on_deck_button_pressed)
     if back_button:
         back_button.pressed.connect(_on_back_button_pressed)
+    if redraw_button:
+        redraw_button.pressed.connect(_on_redraw_button_pressed)
     
     # Connect to deck manager signals
     if deck_manager:
@@ -69,7 +73,17 @@ func _update_counters():
         
     # Update total deck count
     if deck_count:
+        # Calculate the total number of unique cards
+        # IMPORTANT: Make sure to include hand_size in total count to keep it consistent
         var total_cards = status.deck_size + status.discard_size + status.exhausted_size + status.hand_size
+        
+        # Debug log to track card counts
+        print("DeckControl: Updating counters - Draw: ", status.deck_size, 
+              ", Discard: ", status.discard_size, 
+              ", Exhausted: ", status.exhausted_size, 
+              ", Hand size: ", status.hand_size,
+              ", Total: ", total_cards)
+              
         deck_count.text = str(total_cards)
 
 func _on_draw_pile_button_pressed():
@@ -83,6 +97,24 @@ func _on_deck_button_pressed():
 
 func _on_back_button_pressed():
     _hide_deck_view()
+    
+func _on_redraw_button_pressed():
+    # Don't allow redraw if we don't have both managers
+    if not deck_manager or not hand_manager:
+        print("DeckControl: Cannot redraw - missing required managers")
+        return
+        
+    # Play a sound effect for the redraw action
+    if Sound and Sound.has_method("play_card_shuffle"):
+        Sound.play_card_shuffle()
+    elif Sound and Sound.has_method("play_click"):
+        Sound.play_click()
+    
+    # Discard all cards currently in hand
+    hand_manager.discard_hand()
+    
+    # Draw a new hand of cards sequentially with delay
+    hand_manager.start_sequential_card_draw()
 
 func _show_deck_view(pile_type = "all"):
     if not deck_view_container or not deck_manager:
@@ -115,8 +147,11 @@ func _show_deck_view(pile_type = "all"):
         "discard":
             cards_to_show = deck_manager.discard_pile
         "all":
-            # Show all cards including draw pile, discard pile, and exhausted cards
+            # Show all cards including draw pile, discard pile, hand, and exhausted cards
             cards_to_show = deck_manager.deck + deck_manager.discard_pile
+            
+            # IMPORTANT: Include cards in hand when showing all cards
+            cards_to_show += deck_manager.hand
             
             # Optionally include exhausted cards as well
             if deck_manager.exhausted_pile:
@@ -156,26 +191,7 @@ func _show_deck_view(pile_type = "all"):
         # Disable drag/drop in deck view
         if card.drag_drop:
             card.drag_drop.set_enabled(false)
-            
-        # When showing all cards, add visual indicator for which pile each card belongs to
-        if pile_type == "all":
-            # Add a small indicator for which pile the card is in
-            var indicator_color = Color.WHITE
-            
-            if deck_manager.deck.has(card_data):
-                indicator_color = Color(0.2, 0.6, 0.8, 0.7)  # Blue for draw pile
-            elif deck_manager.discard_pile.has(card_data):
-                indicator_color = Color(0.8, 0.4, 0.2, 0.7)  # Orange for discard pile
-            elif deck_manager.exhausted_pile.has(card_data):
-                indicator_color = Color(0.5, 0.5, 0.5, 0.7)  # Gray for exhausted
-                
-            # Add a colored indicator
-            var indicator = ColorRect.new()
-            indicator.size = Vector2(12, 12)
-            indicator.position = Vector2(8, 8)
-            indicator.color = indicator_color
-            card.add_child(indicator)
-            
+                        
         # Animate each card with a slight delay
         card.modulate.a = 0.0
         var card_tween:Tween = create_tween()

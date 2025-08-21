@@ -1,28 +1,8 @@
-[gd_scene load_steps=7 format=3 uid="uid://c1e03o7n6go55"]
+[gd_scene load_steps=5 format=3 uid="uid://c1e03o7n6go55"]
 
 [ext_resource type="Script" uid="uid://bigosvdxms0q4" path="res://scenes/ui/DeckControl.gd" id="1_c5bde"]
 [ext_resource type="PackedScene" uid="uid://7265h3h34unm" path="res://scenes/ui/Card.tscn" id="2_rhgop"]
 [ext_resource type="FontFile" uid="uid://15cp2ypsqwdc" path="res://assets/BoldPixels1.4.ttf" id="3_qmicv"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tdige"]
-bg_color = Color(0.164706, 0.164706, 0.164706, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-shadow_color = Color(0, 0, 0, 0.392157)
-shadow_size = 3
-shadow_offset = Vector2(2, 2)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_e8khc"]
-bg_color = Color(0.137255, 0.137255, 0.137255, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-shadow_color = Color(0, 0, 0, 0.392157)
-shadow_size = 3
-shadow_offset = Vector2(2, 2)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_60g6t"]
 bg_color = Color(0.1, 0.1, 0.1, 0.784314)
@@ -42,15 +22,24 @@ mouse_filter = 2
 script = ExtResource("1_c5bde")
 card_scene = ExtResource("2_rhgop")
 
+[node name="RedrawButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -1054.0
+offset_top = 462.0
+offset_right = -990.0
+offset_bottom = 493.0
+grow_horizontal = 0
+text = "Redraw"
+
 [node name="DrawPileButton" type="Button" parent="."]
 layout_mode = 0
 offset_left = 20.0
 offset_top = 504.0
 offset_right = 120.0
 offset_bottom = 624.0
-theme_override_styles/hover = SubResource("StyleBoxFlat_tdige")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_tdige")
-theme_override_styles/normal = SubResource("StyleBoxFlat_e8khc")
 text = "Draw
 Pile"
 
@@ -78,9 +67,6 @@ offset_left = 18.0
 offset_top = 420.0
 offset_right = 78.0
 offset_bottom = 492.0
-theme_override_styles/hover = SubResource("StyleBoxFlat_tdige")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_tdige")
-theme_override_styles/normal = SubResource("StyleBoxFlat_e8khc")
 text = "Deck
 
 
@@ -111,9 +97,6 @@ offset_left = 1036.0
 offset_top = 504.0
 offset_right = 1136.0
 offset_bottom = 624.0
-theme_override_styles/hover = SubResource("StyleBoxFlat_tdige")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_tdige")
-theme_override_styles/normal = SubResource("StyleBoxFlat_e8khc")
 text = "Discard
 Pile"
 
@@ -136,7 +119,6 @@ text = "5"
 horizontal_alignment = 1
 
 [node name="DeckViewContainer" type="Panel" parent="."]
-visible = false
 z_index = 100
 layout_mode = 1
 anchors_preset = 15
@@ -168,11 +150,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 72.0
 offset_top = 62.0
-offset_right = -358.0
-offset_bottom = -202.0
+offset_right = -73.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
-scale = Vector2(1.4, 1.4)
 
 [node name="GridContainer" type="GridContainer" parent="DeckViewContainer/ScrollContainer"]
 layout_mode = 2
@@ -180,7 +161,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 20
-columns = 4
+columns = 6
 
 [node name="BackButton" type="Button" parent="DeckViewContainer"]
 layout_mode = 0

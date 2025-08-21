@@ -3,9 +3,9 @@ class_name EnemyManager
 
 signal next_enemy_determined(enemy_data)
 
-# References to other managers - set via exports
 @export var game_manager: GameManager
 @export var data_loader: DataLoader
+@export var enemy_scaling: EnemyScalingSystem
 
 # Enemy data
 var all_enemies = []
@@ -22,39 +22,44 @@ func _ready():
     # Start by determining the first enemy
     determine_next_enemy()
 
-# Determine the next enemy to face
 func determine_next_enemy():
     if all_enemies.size() == 0:
         push_error("EnemyManager: No enemies loaded!")
         return
-    
+
     # Check if this is a boss encounter
     var is_boss_encounter = (current_encounter_index % boss_encounter_index == 0) and current_encounter_index > 0
-    
+
     var candidate_enemies = []
-    
+
     if is_boss_encounter:
-        # Filter for boss enemies
         for enemy in all_enemies:
             if enemy.is_boss:
                 candidate_enemies.append(enemy)
-        
-        # Fallback if no bosses defined
         if candidate_enemies.size() == 0:
             push_warning("No boss enemies found - using regular enemies")
             is_boss_encounter = false
-    
-    # If not a boss encounter or no bosses available
+
     if !is_boss_encounter:
-        # Filter for non-boss enemies
         for enemy in all_enemies:
             if !enemy.is_boss:
                 candidate_enemies.append(enemy)
-    
-    # Select a random enemy from candidates
+
     if candidate_enemies.size() > 0:
         var random_index = randi() % candidate_enemies.size()
-        next_enemy = candidate_enemies[random_index]
+        var base_enemy = candidate_enemies[random_index]
+        # Apply scaling system
+        if enemy_scaling:
+            var scaled_stats = enemy_scaling.get_scaled_enemy_stats()
+            # Clone base enemy and apply scaled stats
+            var enemy_instance = base_enemy.duplicate()
+            enemy_instance.health = scaled_stats.health
+            enemy_instance.max_health = scaled_stats.health
+            enemy_instance.damage = scaled_stats.damage
+            enemy_instance.armor = scaled_stats.armor
+            next_enemy = enemy_instance
+        else:
+            next_enemy = base_enemy
         emit_signal("next_enemy_determined", next_enemy)
     else:
         push_error("EnemyManager: No suitable enemies found!")
