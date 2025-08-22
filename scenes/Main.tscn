@@ -769,12 +769,12 @@ _data = {
 &"utility": SubResource("Animation_ma7h6")
 }
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_cmqll"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cobve"]
 shader = ExtResource("6_gsxep")
 
 [sub_resource type="Curve" id="Curve_kxyth"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_8cp6k"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_cmqll"]
 shader = ExtResource("6_gsxep")
 
 [node name="Main" type="Node" node_paths=PackedStringArray("game_manager")]
@@ -1641,7 +1641,7 @@ combat_ui = NodePath("CombatUI")
 start_combat_button = NodePath("../BuildView/StartCombatButton")
 
 [node name="TerminalBackground" type="Control" parent="CombatView"]
-material = SubResource("ShaderMaterial_cmqll")
+material = SubResource("ShaderMaterial_cobve")
 layout_mode = 3
 anchors_preset = 0
 offset_left = 267.0
@@ -1805,7 +1805,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="TerminalBackground" type="Control" parent="RewardScreen"]
-material = SubResource("ShaderMaterial_8cp6k")
+material = SubResource("ShaderMaterial_cmqll")
 anchors_preset = 0
 offset_right = 603.0
 offset_bottom = 516.0
@@ -1841,3 +1841,5 @@ text = "Continue"
 [node name="ScreenShake" type="Node" parent="."]
 script = ExtResource("21_1iba3")
 metadata/_custom_type_script = "uid://c278bgdvcdqsf"
+
+[node name="HelpSystem" parent="." instance=ExtResource("2_ma7h6")]

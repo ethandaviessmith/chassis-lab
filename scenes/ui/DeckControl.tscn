@@ -119,6 +119,7 @@ text = "5"
 horizontal_alignment = 1
 
 [node name="DeckViewContainer" type="Panel" parent="."]
+visible = false
 z_index = 100
 layout_mode = 1
 anchors_preset = 15
