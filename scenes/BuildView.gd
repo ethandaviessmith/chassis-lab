@@ -123,7 +123,12 @@ func _initialize_managers():
             attached_parts = parts
             emit_signal("chassis_updated", parts)
         )
-
+    
+    # Connect GameManager combat phase signals
+    if game_manager:
+        if game_manager.has_signal("combat_phase_ended"):
+            game_manager.combat_phase_ended.connect(_on_combat_phase_ended)
+            print("BuildView: Connected to combat_phase_ended signal")
 
 
 
@@ -205,28 +210,29 @@ func check_and_discard_broken_parts():
 
 # Initialize the build phase
 func start_build_phase():
-    # Check for broken parts and discard them
-    check_and_discard_broken_parts()
+    print("BuildView: Starting build phase")
     
-    # Initialize turn manager for energy
-    if turn_manager:
-        turn_manager.initialize()
+    # IMPORTANT: TurnManager should handle all turn initialization
+    # This is managed by GameManager calling TurnManager.start_new_turn()
+    # BuildView should not call these methods directly to avoid duplicate card draws
+
+    # Draw new cards to refill hand
+    if hand_manager and hand_manager.has_method("start_sequential_card_draw"):
+        hand_manager.start_sequential_card_draw()
+
+    # Just show the view - TurnManager handles the rest
+    self.visible = true
     
-    # Initialize deck container visual
-    setup_deck_container()
+    # Log UI state for debugging
+    print("BuildView: View shown, waiting for TurnManager to handle turn initialization")
     
-    # Clear hand
-    # hand_manager.clear_hand()
+# Handle end of combat phase - refresh the UI and draw new cards
+func _on_combat_phase_ended():
+    print("BuildView: Combat phase ended, refreshing UI...")
     
-    # Update UI
-    update_ui()
-    
-    # Start drawing cards sequentially with delay
-    # hand_manager.start_sequential_card_draw()
-    
-    # Connect signals for all cards after a short delay to ensure they're created
-    # await get_tree().create_timer(0.5).timeout
-    # connect_card_signals()
+    # Refresh the chassis after combat (in case durability changed)
+    if chassis_manager and chassis_manager.has_method("reset_after_combat"):
+        chassis_manager.reset_after_combat()
 
 # Setup the visual deck container
 func setup_deck_container():

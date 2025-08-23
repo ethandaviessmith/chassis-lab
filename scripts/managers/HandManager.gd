@@ -11,8 +11,37 @@ signal card_drawn(card)
 
 @export var card_scene: PackedScene
 
-# Card tracking
+# Card tracking - only the visual representation, actual cards are managed by DeckManager
 var cards_in_hand = []
+
+func _ready():
+    # Connect to DeckManager's card lifecycle signals
+    if deck_manager:
+        deck_manager.card_drawn_to_hand.connect(_on_card_drawn_to_deck_hand)
+        deck_manager.hand_emptied.connect(_on_hand_emptied)
+    else:
+        push_error("HandManager: No DeckManager assigned!")
+        
+# Handler for when DeckManager draws a card to hand
+func _on_card_drawn_to_deck_hand(card_data):
+    # Create visual representation of the card
+    create_card_instance(card_data)
+    
+# Handler for when DeckManager empties the hand
+func _on_hand_emptied():
+    # Remove all visual cards
+    clear_hand()
+    
+# Create visual representation of a card and add it to the hand
+func create_card_instance(card_data):
+    # Calculate the index for the new card
+    var new_index = cards_in_hand.size()
+    
+    # Create the card using the existing method - this is a coroutine so we need to await
+    var card = await create_card_sprite(card_data, new_index)
+    
+    # Emit our signal for anyone who needs to know
+    emit_signal("card_drawn", card)
 
 # # Draw the initial hand of cards
 # func draw_starting_hand():
@@ -47,6 +76,8 @@ var cards_in_hand = []
 #         create_card_sprite(hand[i], i)
 
 # Draw a single card from deck to hand
+# This method now delegates to DeckManager to handle the actual card draw
+# and relies on signals to update the visual representation
 func draw_single_card():
     if not deck_manager:
         print("HandManager: No deck_manager available, cannot draw card")
@@ -57,8 +88,9 @@ func draw_single_card():
         print("HandManager: Hand is already at max capacity (" + str(cards_in_hand.size()) + "/" + str(deck_manager.max_hand_size) + ")")
         return false
     
-    # Draw the card from DeckManager (this handles deck/discard reshuffling internally)
-    print("HandManager: Attempting to draw a card. Current visual cards: " + str(cards_in_hand.size()))
+    # Draw the card from DeckManager - this will emit card_drawn_to_hand signal
+    # which we're already connected to via _on_card_drawn_to_deck_hand
+    print("HandManager: Delegating card draw to DeckManager")
     var card_data = deck_manager.draw_card()
     
     # Check if we got a valid card
@@ -66,9 +98,8 @@ func draw_single_card():
         print("HandManager: Failed to draw card - empty result from deck_manager")
         return false
     
-    # Create visual for the new card
-    print("HandManager: Successfully drew card: " + card_data.get("name", "Unknown"))
-    create_card_sprite(card_data, cards_in_hand.size() - 1)  # Use current size as index
+    # Note: We don't need to create the card sprite here anymore
+    # The signal handler _on_card_drawn_to_deck_hand will handle it
     
     # Log the card counts after drawing
     print("HandManager: Visual cards in hand: " + str(cards_in_hand.size()) + 
@@ -134,6 +165,27 @@ func clear_hand():
     for card in cards_in_hand:
         card.queue_free()
     cards_in_hand.clear()
+    
+# Reset the hand state for a new build phase
+func reset_hand():
+    print("HandManager: Resetting hand state")
+    
+    # First clear any existing cards
+    clear_hand()
+    
+    # Make sure our internal state matches DeckManager
+    if deck_manager:
+        # Synchronize hand tracking with DeckManager
+        var status = deck_manager.get_deck_status()
+        print("HandManager: Deck status - Draw: %d, Hand: %d, Discard: %d" % [status.deck_size, status.hand_size, status.discard_size])
+        
+        # If DeckManager thinks cards are in hand but we've cleared them,
+        # we need to make sure they get moved to discard
+        if status.hand_size > 0:
+            print("HandManager: Moving %d lingering cards from DeckManager hand to discard" % status.hand_size)
+            deck_manager.discard_all_from_hand()
+    else:
+        print("HandManager: No deck_manager reference, cannot synchronize state")
 
 # Create a visual representation of a card
 func create_card_sprite(card_data, index):
@@ -313,55 +365,12 @@ func discard_hand():
     
     print("HandManager: Discarding all cards in hand... Current visual cards: " + str(cards_in_hand.size()))
     
-    # Keep track of how many cards we discard
-    var discard_count = 0
+    # Clear the visual hand
+    clear_hand()
     
-    # First collect all card data to discard before removing visual cards
-    var cards_to_discard = []
+    # Tell DeckManager to discard all cards from hand
+    deck_manager.discard_all_from_hand()
     
-    # Process each card in hand
-    var card_indices_to_remove = []
-    for i in range(cards_in_hand.size()):
-        var card = cards_in_hand[i]
-        # Check if card is instance valid
-        if is_instance_valid(card):
-            # Only discard cards that aren't attached to the chassis
-            if not card.has_meta("attached_to_chassis"):
-                # Add to our discard list if it's a Card object with data
-                if card is Card and card.data:
-                    # Make a duplicate to avoid reference issues
-                    cards_to_discard.append(card.data.duplicate())
-                    discard_count += 1
-                
-                # Queue free the card object
-                card.queue_free()
-                
-                # Mark for removal
-                card_indices_to_remove.append(i)
-    
-    # Remove cards from our tracking array starting from the highest index
-    card_indices_to_remove.sort()
-    card_indices_to_remove.reverse()
-    
-    for idx in card_indices_to_remove:
-        cards_in_hand.remove_at(idx)
-    
-    # Check what's in DeckManager's hand before discarding
-    print("HandManager: Before discarding - DeckManager hand size: " + str(deck_manager.hand.size()))
-    
-    # Now discard all the collected card data in one go
-    for card_data in cards_to_discard:
-        # Skip empty or invalid data
-        if card_data.is_empty():
-            continue
-            
-        # Generate an instance_id if needed
-        if not card_data.has("instance_id") or card_data["instance_id"] == null or card_data["instance_id"] == "":
-            card_data["instance_id"] = "card_" + str(randi()) + "_" + str(Time.get_unix_time_from_system())
-            
-        deck_manager.discard_card(card_data)
-    
-    print("HandManager: Discarded " + str(discard_count) + " cards from hand")
     print("HandManager: After discarding - Visual cards: " + str(cards_in_hand.size()) + 
           ", DeckManager hand size: " + str(deck_manager.hand.size()))
           

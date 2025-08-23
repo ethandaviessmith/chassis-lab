@@ -354,14 +354,6 @@ func move_toward_target(target_node):
     # Update visuals based on movement
     if robot_visuals:
         if velocity.length() > 10:
-            # Flip the robot visuals based on movement direction
-            if direction.x < 0:
-                # Moving left
-                robot_visuals.scale.x = -1
-            else:
-                # Moving right
-                robot_visuals.scale.x = 1
-                
             robot_visuals.start_walking()
         else:
             robot_visuals.stop_walking()

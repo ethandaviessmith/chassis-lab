@@ -22,6 +22,7 @@ var FRAME_INDEX_HEAD = 30
 var FRAME_INDEX_CORE = 40
 var FRAME_INDEX_UTILITY = 50
 var left_to_right_offset = 10
+
 # Parts data for visual representation
 var scrapper_data = null
 var head_data = null

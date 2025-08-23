@@ -1,6 +1,7 @@
 extends Node
 class_name GameManager
 
+# Game state enum - make it publicly accessible
 enum GameState {BUILD, COMBAT, REWARD, GAME_OVER}
 
 signal game_started
@@ -59,15 +60,68 @@ func _ready():
 func _on_volume_changed(value: float):
     Sound.set_music_volume(value)
 
+# CENTRAL MANAGER: Centralized game state handling
+func change_game_state(new_state: GameState):
+    var old_state = current_state
+    
+    if old_state == new_state:
+        print("GameManager: Already in state ", _state_to_string(new_state))
+        return
+        
+    print("GameManager: Changing state from ", _state_to_string(old_state), 
+          " to ", _state_to_string(new_state))
+    
+    # Handle exit logic for old state
+    match old_state:
+        GameState.BUILD:
+            emit_signal("build_phase_ended")
+        GameState.COMBAT:
+            emit_signal("combat_phase_ended")
+        GameState.REWARD:
+            # Any cleanup needed when leaving reward phase
+            pass
+    
+    # Update the current state
+    current_state = new_state
+    
+    # Handle enter logic for new state
+    match new_state:
+        GameState.BUILD:
+            _setup_build_phase()
+            emit_signal("build_phase_started")
+        GameState.COMBAT:
+            _setup_combat_phase()
+            emit_signal("combat_phase_started")
+        GameState.REWARD:
+            _setup_reward_phase()
+            emit_signal("reward_phase_started")
+        GameState.GAME_OVER:
+            # Game over handling remains in end_game function
+            pass
+
+# Helper function to convert state enum to string for debugging
+func _state_to_string(state: GameState) -> String:
+    match state:
+        GameState.BUILD: return "BUILD"
+        GameState.COMBAT: return "COMBAT"
+        GameState.REWARD: return "REWARD"
+        GameState.GAME_OVER: return "GAME_OVER"
+        _: return "UNKNOWN"
+            
 func start_new_game():
     current_encounter = 0
     set_level(1)
     victory = false
     emit_signal("game_started")
-    start_build_phase()
+    change_game_state(GameState.BUILD)
 
+# DEPRECATED: Use change_game_state(GameState.BUILD) instead
 func start_build_phase():
-    current_state = GameState.BUILD
+    change_game_state(GameState.BUILD)
+    
+# Internal method for setting up the build phase
+func _setup_build_phase():
+    print("GameManager: Setting up build phase")
     
     # Show build view, hide others
     build_view.visible = true
@@ -77,34 +131,39 @@ func start_build_phase():
     # Switch background music to build mode
     Sound.switch_game_mode_music("build")
     
-    # Reset turn state
-    turn_manager.initialize()  # Initialize the turn manager (reset energy)
-    
     # Show "Ready to Build" message in green
     var ready_label = _show_ready_to_build_message(build_view)
     
-    # Clear and redraw hand for the new build phase
-    if hand_manager and hand_manager.has_method("start_sequential_card_draw"):
-        print("GameManager: Starting card draw for new build phase...")
-        hand_manager.clear_hand()  # Clear existing hand first
-        hand_manager.start_sequential_card_draw()  # Draw a new hand
-        build_view.connect_card_signals()
+    # IMPORTANT: Let TurnManager handle all turn initialization including card draw
+    # This consolidates the logic in one place and avoids duplicate draw calls
+    if turn_manager:
+        print("GameManager: Delegating build phase initialization to TurnManager")
+        turn_manager.initialize()  # This will handle energy reset
+        # Now start a new turn which handles card drawing through the proper chain
+        turn_manager.start_new_turn()
     else:
-        print("GameManager: No HandManager found or missing card draw methods")
-        # Fallback - use turn_manager's start_turn which includes drawing cards
-        turn_manager.start_turn()
+        print("GameManager: ERROR - No TurnManager available!")
+    
+    # Connect card signals in the build view
+    if build_view and build_view.has_method("connect_card_signals"):
+        build_view.connect_card_signals()
     
     # Clean up the message after a short delay
-    await get_tree().create_timer(1.5).timeout
+    var timer = get_tree().create_timer(1.5)
+    await timer.timeout
     if is_instance_valid(ready_label) and ready_label.is_inside_tree():
         ready_label.queue_free()
-    
-    emit_signal("build_phase_started")
 
+# DEPRECATED: Use change_game_state(GameState.COMBAT) instead
 func start_combat_phase():
+    change_game_state(GameState.COMBAT)
+
+# Internal method for setting up the combat phase
+func _setup_combat_phase():
+    print("GameManager: Setting up combat phase")
+    
+    # Switch background music to combat mode
     Sound.switch_game_mode_music("combat")
-    current_state = GameState.COMBAT
-    print("GameManager: Starting combat phase")
     
     # Hide build view, show combat view
     if build_view:
@@ -124,8 +183,6 @@ func start_combat_phase():
             print("GameManager: No robot fighter available!")
     else:
         print("GameManager: Missing required components for combat!")
-    
-    emit_signal("combat_phase_started")
 
 func get_enemy_for_encounter(encounter_num: int) -> Dictionary:
     """Get enemy data based on encounter number"""
@@ -158,9 +215,13 @@ func get_enemy_for_encounter(encounter_num: int) -> Dictionary:
         "move_speed": 100
     }
 
+# DEPRECATED: Use change_game_state(GameState.REWARD) instead
 func start_reward_phase():
-    current_state = GameState.REWARD
-    print("GameManager: Starting reward phase")
+    change_game_state(GameState.REWARD)
+    
+# Internal method for setting up the reward phase
+func _setup_reward_phase():
+    print("GameManager: Setting up reward phase")
     
     # Hide combat view, show reward screen
     if combat_view:
@@ -169,8 +230,6 @@ func start_reward_phase():
         deck_control.visible = true
     if reward_screen:
         reward_screen.show_rewards(true)
-    
-    emit_signal("reward_phase_started")
 
 func set_level(lvl:int):
     level.text = "Round 0" + str(lvl)
@@ -185,12 +244,12 @@ func advance_to_next_encounter():
         end_game(true)
     else:
         # Next encounter
-        start_build_phase()
+        change_game_state(GameState.BUILD)
 
 func end_game(is_victory: bool):
-    current_state = GameState.GAME_OVER
     victory = is_victory
     print("GameManager: Game ended. Victory: ", is_victory)
+    change_game_state(GameState.GAME_OVER)
     emit_signal("game_over", victory)
     
     # Show appropriate message based on victory status
@@ -221,18 +280,19 @@ func _on_combat_requested():
     
     # Build the robot using TurnManager
     if turn_manager and build_view:
-        turn_manager.build_robot_and_start_combat(build_view, self)
-    
-    emit_signal("build_phase_ended")
+        # Prepare robot and chassis for combat
+        var success = await turn_manager.prepare_robot_for_combat(build_view)
+        if success:
+            # Change to combat state if robot preparation succeeded
+            change_game_state(GameState.COMBAT)
+        # The actual state change now happens here in the GameManager
 
 func _on_combat_ended(player_won: bool):
     print("GameManager: Combat ended. Player won: ", player_won)
-    emit_signal("combat_phase_ended")
     
     if player_won:
-        # Victory is handled through the show_reward_screen signal
-        # Do nothing here, the CombatView will emit show_reward_screen
-        pass
+        # Change to reward phase on victory
+        change_game_state(GameState.REWARD)
     else:
         # Defeat ends the game
         end_game(false)
@@ -299,7 +359,7 @@ func _show_game_over_message(view_node) -> Label:
 func _on_show_reward_screen():
     # Called by CombatView when victory is achieved
     print("GameManager: Combat view requesting reward screen")
-    start_reward_phase()
+    change_game_state(GameState.REWARD)
 
 func _on_reward_selected(card_data: Dictionary):
     # Called when the player selects a reward card

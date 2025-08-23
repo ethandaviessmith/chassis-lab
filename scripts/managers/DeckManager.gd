@@ -21,6 +21,13 @@ var card_instances = {}
 var max_hand_size = 5
 var default_draw_count = 5
 
+# Card lifecycle signals - centralized here for better management
+signal card_drawn_to_hand(card_data)  # Card data drawn from deck
+signal card_added_to_hand(card_data)  # Card instance added to visual hand
+signal hand_emptied                   # Hand has been emptied (discarded/played)
+signal deck_emptied                   # Deck has no more cards
+signal deck_shuffled                  # Deck has been shuffled
+
 # Default distribution of card types
 var default_card_distribution = {
     "Arm": 10,
@@ -30,9 +37,7 @@ var default_card_distribution = {
     "Utility": 1
 }
 
-# Energy management (moved from other managers for centralization)
-var current_energy: int = 0
-var max_energy: int = 4  # Default 4 per turn
+# Heat management
 var current_heat: int = 0
 var max_heat: int = 10
 
@@ -282,6 +287,7 @@ func shuffle_deck():
     print("Deck shuffled, contains ", deck.size(), " cards")
     # Notify listeners that deck state has changed
     emit_signal("deck_updated")
+    emit_signal("deck_shuffled")
 
 func draw_card() -> Dictionary:
     print("DeckManager: Drawing card - deck size:", deck.size(), ", hand size:", hand.size())
@@ -314,6 +320,7 @@ func draw_card() -> Dictionary:
     print("DeckManager: Drew card:", card.get("name", "Unknown"), "- new deck size:", deck.size(), ", new hand size:", hand.size())
     
     emit_signal("card_drawn", card)
+    emit_signal("card_drawn_to_hand", card)
     emit_signal("deck_updated")
 
     Sound.play_card_pickup()
@@ -426,6 +433,39 @@ func add_card_to_deck(card: Dictionary):
     discard_pile.append(card)
     # Notify listeners that deck state has changed
     emit_signal("deck_updated")
+    
+# Discard all cards currently in hand to the discard pile
+func discard_all_from_hand():
+    print("DeckManager: Discarding all cards from hand to discard pile")
+    
+    # Safety check
+    if hand.size() == 0:
+        print("DeckManager: Hand is already empty")
+        return
+        
+    # Copy the hand array since we'll be modifying it during iteration
+    var cards_to_discard = hand.duplicate()
+    
+    # Track how many cards we actually discard
+    var discard_count = 0
+    
+    # Discard each card
+    for card_data in cards_to_discard:
+        discard_pile.append(card_data)
+        
+        # Update card registry if we have an instance ID
+        var instance_id = card_data.get("instance_id", "")
+        if instance_id != "" and card_registry.has(instance_id):
+            card_registry[instance_id].location = "discard"
+            
+        discard_count += 1
+            
+    # Clear the hand array
+    hand.clear()
+    
+    print("DeckManager: Discarded %d cards from hand" % discard_count)
+    emit_signal("deck_updated")
+    emit_signal("hand_emptied")
 
 func discard_card(card):
     # First, get the card data regardless of what type it is
@@ -466,6 +506,10 @@ func discard_card(card):
     
     # Notify listeners that deck state has changed
     emit_signal("deck_updated")
+    
+    # Check if hand is now empty
+    if hand.size() == 0:
+        emit_signal("hand_emptied")
 
 # Register a card in the registry for durability tracking
 func register_card(instance_id, card_data, card_instance = null):

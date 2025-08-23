@@ -22,6 +22,9 @@ signal chassis_updated(attached_parts)
 # Dictionary to track attached parts
 var attached_parts = {}
 
+# Combat phase storage - separates build phase and combat phase parts
+var combat_parts_storage = {}
+
 # Dictionary to map slot names to controls
 var chassis_slots_map = {}
 
@@ -45,6 +48,31 @@ func _ready() -> void:
     
     if missing_slots.size() > 0:
         push_warning("ChassisManager: Missing slot assignments: " + str(missing_slots))
+        
+    # Connect to game phase signals
+    var game_manager = get_tree().get_first_node_in_group("game_manager")
+    if game_manager:
+        if game_manager.has_signal("combat_phase_ended"):
+            game_manager.combat_phase_ended.connect(_on_combat_phase_ended)
+            print("ChassisManager: Connected to combat_phase_ended signal")
+        else:
+            print("ChassisManager: game_manager doesn't have combat_phase_ended signal")
+    
+    # Connect to DeckManager's card signals to track card lifecycle
+    var deck_manager = get_tree().get_first_node_in_group("deck_manager")
+    if deck_manager:
+        if deck_manager.has_signal("card_destroyed"):
+            deck_manager.card_destroyed.connect(_on_card_destroyed)
+            print("ChassisManager: Connected to card_destroyed signal")
+        if deck_manager.has_signal("card_played"):
+            deck_manager.card_played.connect(_on_card_played)
+            print("ChassisManager: Connected to card_played signal")
+        if deck_manager.has_signal("card_scrapped"):
+            deck_manager.card_scrapped.connect(_on_card_scrapped)
+            print("ChassisManager: Connected to card_scrapped signal")
+        if deck_manager.has_signal("hand_emptied"):
+            deck_manager.hand_emptied.connect(_on_hand_emptied)
+            print("ChassisManager: Connected to hand_emptied signal")
 
 # Register chassis slots as valid drop targets for cards
 func register_slots_as_drop_targets(card):
@@ -229,6 +257,11 @@ func attach_part_to_slot(card, slot_name) -> bool:
             if card.has_method("set_card_state"):
                 card.set_card_state(Card.State.CHASSIS_SLOT)
             
+            # Mark the card as attached to chassis for tracking
+            card.set_meta("attached_to_chassis", true)
+            if card.data and card.data.has("instance_id"):
+                card.set_meta("chassis_card_id", card.data.instance_id)
+            
             # Now that the card is set to chassis slot state with 0.5 scale,
             # we need to account for that in our positioning
             # The slot center needs to accommodate the VISIBLE size (which is half)
@@ -344,6 +377,11 @@ func _attach_card_to_scrapper(card) -> bool:
             # Set state to CHASSIS_SLOT to trigger scaling
             if card.has_method("set_card_state"):
                 card.set_card_state(Card.State.CHASSIS_SLOT)
+            
+            # Mark the card as attached to chassis for tracking
+            card.set_meta("attached_to_chassis", true)
+            if card.data and card.data.has("instance_id"):
+                card.set_meta("chassis_card_id", card.data.instance_id)
                 
             var base_position = scrapper_slot_control.global_position
             var cards_count = scrapper_cards.size()
@@ -550,17 +588,17 @@ func handle_card_drop(card, drop_pos, target = null):
                 if old_slot and old_slot is ChassisSlot:
                     old_slot.clear_part()
                 
-                # Mark that the card was attached to a slot (for positioning)
-                if card is Card:
-                    card.set_meta("was_attached", true)
-                    # Remove attached_to_chassis metadata if it exists
-                    if card.has_meta("attached_to_chassis"):
-                        card.remove_meta("attached_to_chassis")
+            # Mark that the card was attached to a slot (for positioning)
+            if card is Card:
+                card.set_meta("was_attached", true)
+                # Remove chassis attachment metadata
+                if card.has_meta("attached_to_chassis"):
+                    card.remove_meta("attached_to_chassis")
+                if card.has_meta("chassis_card_id"):
+                    card.remove_meta("chassis_card_id")
                 
                 # Update UI for robot visuals
-                emit_signal("chassis_updated", attached_parts)
-            
-            # Check for recursion guard
+                emit_signal("chassis_updated", attached_parts)            # Check for recursion guard
             if card.has_meta("handling_drop"):
                 print("ChassisManager: Preventing recursive drop handling")
                 return
@@ -714,3 +752,205 @@ func _get_slot_at_position(check_pos):
         return "legs"
         
     return ""
+    
+# This should be called when returning to build phase
+func reset_after_combat():
+    print("ChassisManager: Resetting after combat")
+    
+    # Get DeckManager for discard operations
+    var deck_manager = get_tree().get_first_node_in_group("deck_manager")
+    
+    # First validate all attached parts to remove any invalid references
+    validate_attached_parts()
+    
+    # Process scrapper cards that were used in combat
+    if "scrapper" in attached_parts and attached_parts["scrapper"] is Array:
+        var scrapper_cards = attached_parts["scrapper"].duplicate()
+        
+        for card in scrapper_cards:
+            if is_instance_valid(card) and card is Card:
+                # Check if card still has durability
+                var durability = card.data.get("durability", 0)
+                print("ChassisManager: Checking scrapper card durability: ", durability)
+                if durability <= 0:
+                    # Use our centralized method to remove the card
+                    remove_card_from_attached_parts(card)
+                    
+                    # Send to discard pile
+                    if deck_manager and deck_manager.has_method("discard_card"):
+                        deck_manager.discard_card(card)
+                        print("ChassisManager: Sent destroyed card to discard pile")
+    
+    # Clear combat parts storage
+    if has_method("clear_combat_parts"):
+        clear_combat_parts()
+    else:
+        # In case the function doesn't exist yet
+        combat_parts_storage.clear()
+        print("ChassisManager: Cleared combat parts storage")
+    
+    # Re-emit the updated parts to refresh UI
+    emit_signal("chassis_updated", attached_parts)
+    
+# Handle card destroyed signal from DeckManager
+func _on_card_destroyed(instance_id):
+    print("ChassisManager: Card destroyed with instance_id: ", instance_id)
+    remove_card_from_attached_parts_by_instance_id(instance_id)
+    
+# Handle card played signal from DeckManager
+func _on_card_played(card, _slot):
+    # This is called when a card is played, not when it's discarded
+    # We only need to handle it if it affects a card already in our chassis
+    if card is Card and card.has_meta("attached_to_chassis"):
+        print("ChassisManager: Card played that was attached to chassis: ", card.data.get("name", "Unknown"))
+        remove_card_from_attached_parts(card)
+    
+# Handle card scrapped signal from DeckManager
+func _on_card_scrapped(card):
+    print("ChassisManager: Card scrapped: ", card.get("name", "Unknown") if card is Dictionary else "Unknown")
+    remove_card_from_attached_parts(card)
+    
+# Handle hand emptied signal from DeckManager
+func _on_hand_emptied():
+    # When hand is emptied (like at end of turn), make sure we're not holding references
+    # to any cards that might have been discarded
+    print("ChassisManager: Hand emptied, validating attached_parts...")
+    validate_attached_parts()
+    
+# Remove a card from attached_parts by its instance ID
+func remove_card_from_attached_parts_by_instance_id(instance_id):
+    print("ChassisManager: Removing card with instance_id: ", instance_id)
+    
+    # First check regular slots
+    var slots_to_clear = []
+    for slot_name in attached_parts:
+        if slot_name != "scrapper":
+            var part = attached_parts[slot_name]
+            if part is Card and part.data.has("instance_id") and part.data.instance_id == instance_id:
+                print("ChassisManager: Found card to remove in slot: ", slot_name)
+                slots_to_clear.append(slot_name)
+            elif part is Dictionary and part.has("instance_id") and part.instance_id == instance_id:
+                print("ChassisManager: Found card data to remove in slot: ", slot_name)
+                slots_to_clear.append(slot_name)
+    
+    # Clear any identified slots
+    for slot_name in slots_to_clear:
+        attached_parts.erase(slot_name)
+        if chassis_slots_map.has(slot_name) and chassis_slots_map[slot_name] and chassis_slots_map[slot_name].has_method("clear_part"):
+            chassis_slots_map[slot_name].clear_part()
+    
+    # Then check scrapper slot which holds an array
+    if "scrapper" in attached_parts and attached_parts["scrapper"] is Array:
+        var scrapper_cards = attached_parts["scrapper"]
+        var cards_to_remove = []
+        
+        for card in scrapper_cards:
+            if card is Card and card.data.has("instance_id") and card.data.instance_id == instance_id:
+                cards_to_remove.append(card)
+                print("ChassisManager: Found card to remove from scrapper")
+            elif card is Dictionary and card.has("instance_id") and card.instance_id == instance_id:
+                cards_to_remove.append(card)
+                print("ChassisManager: Found card data to remove from scrapper")
+        
+        # Remove identified cards
+        for card in cards_to_remove:
+            scrapper_cards.erase(card)
+            # Also update the UI
+            if scrapper_slot and scrapper_slot.has_method("remove_card"):
+                scrapper_slot.remove_card(card)
+    
+    # Update UI
+    emit_signal("chassis_updated", attached_parts)
+
+# Remove a card from attached_parts (either Card object or Dictionary)
+func remove_card_from_attached_parts(card):
+    print("ChassisManager: Removing card: ", 
+          card.data.get("name", "Unknown") if card is Card else card.get("name", "Unknown") if card is Dictionary else "Unknown")
+    
+    # First check regular slots
+    var slots_to_clear = []
+    for slot_name in attached_parts:
+        if slot_name != "scrapper" and attached_parts[slot_name] == card:
+            print("ChassisManager: Found card to remove in slot: ", slot_name)
+            slots_to_clear.append(slot_name)
+    
+    # Clear any identified slots
+    for slot_name in slots_to_clear:
+        attached_parts.erase(slot_name)
+        if chassis_slots_map.has(slot_name) and chassis_slots_map[slot_name] and chassis_slots_map[slot_name].has_method("clear_part"):
+            chassis_slots_map[slot_name].clear_part()
+    
+    # Then check scrapper slot which holds an array
+    if "scrapper" in attached_parts and attached_parts["scrapper"] is Array:
+        var scrapper_cards = attached_parts["scrapper"]
+        
+        if scrapper_cards.has(card):
+            scrapper_cards.erase(card)
+            print("ChassisManager: Found card to remove from scrapper")
+            
+            # Also update the UI
+            if scrapper_slot and scrapper_slot.has_method("remove_card"):
+                scrapper_slot.remove_card(card)
+    
+    # If card is a Card object with data, try to match by instance_id
+    if card is Card and card.data and card.data.has("instance_id"):
+        remove_card_from_attached_parts_by_instance_id(card.data.instance_id)
+    
+    # Update UI
+    emit_signal("chassis_updated", attached_parts)
+
+# Validate all attached_parts to ensure we don't have invalid references
+func validate_attached_parts():
+    print("ChassisManager: Validating attached parts...")
+    
+    # Check all regular slots
+    var slots_to_clear = []
+    for slot_name in attached_parts:
+        if slot_name != "scrapper":
+            var part = attached_parts[slot_name]
+            if not is_instance_valid(part):
+                print("ChassisManager: Found invalid card in slot: ", slot_name)
+                slots_to_clear.append(slot_name)
+    
+    # Clear any identified slots
+    for slot_name in slots_to_clear:
+        attached_parts.erase(slot_name)
+        if chassis_slots_map.has(slot_name) and chassis_slots_map[slot_name] and chassis_slots_map[slot_name].has_method("clear_part"):
+            chassis_slots_map[slot_name].clear_part()
+    
+    # Then check scrapper slot which holds an array
+    if "scrapper" in attached_parts and attached_parts["scrapper"] is Array:
+        var scrapper_cards = attached_parts["scrapper"]
+        var cards_to_remove = []
+        
+        for card in scrapper_cards:
+            if not is_instance_valid(card):
+                cards_to_remove.append(card)
+                print("ChassisManager: Found invalid card in scrapper")
+        
+        # Remove identified cards
+        for card in cards_to_remove:
+            scrapper_cards.erase(card)
+    
+    # Update UI if we made changes
+    if slots_to_clear.size() > 0 or (
+        "scrapper" in attached_parts and 
+        attached_parts["scrapper"] is Array and 
+        attached_parts["scrapper"].size() > 0
+    ):
+        emit_signal("chassis_updated", attached_parts)
+
+# Store a copy of parts for combat phase - prevents sharing references
+func store_combat_parts(parts_dict):
+    combat_parts_storage = parts_dict.duplicate(true)
+    print("ChassisManager: Stored combat parts copy")
+
+# Clear all parts after combat ends
+func clear_combat_parts():
+    combat_parts_storage.clear()
+    print("ChassisManager: Cleared combat parts storage")
+
+# Handle the end of combat phase
+func _on_combat_phase_ended():
+    print("ChassisManager: Combat phase ended, cleaning up parts")
+    reset_after_combat()

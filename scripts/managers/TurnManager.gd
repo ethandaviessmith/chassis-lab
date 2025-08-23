@@ -45,8 +45,11 @@ func _ready():
         enemy_manager.determine_next_enemy()
 
 func initialize():
-    # Call this to start the first turn properly
-    start_turn()
+    # Call this once at the beginning of a game or when resetting the manager
+    # It just resets energy but does NOT draw cards or start a new turn
+    print("TurnManager: Initializing (resetting energy only)")
+    current_energy = max_energy
+    _update_energy_display()
 
 # Handle real-time robot frame updates
 func _on_robot_frame_updated():
@@ -72,7 +75,9 @@ func set_energy_label(label: Label):
     _update_energy_display()
 
 func start_turn():
-    # Reset energy to max at start of turn
+    # Reset energy to max at start of turn but DON'T draw cards
+    # This is a low-level function that should only be called internally
+    print("TurnManager: Starting turn (energy reset only)")
     current_energy = max_energy
     emit_signal("energy_changed", current_energy, max_energy)
     _update_energy_display()
@@ -81,7 +86,37 @@ func start_turn():
 
 func end_turn():
     emit_signal("turn_ended")
+    start_new_turn()  # Changed to call start_new_turn instead of start_turn
+    
+# Start a new turn with card draw and setup
+# THIS IS THE MAIN ENTRY POINT for starting/restarting turns
+func start_new_turn():
+    print("TurnManager: Starting new turn with full setup")
+    
+    # Reset energy and emit signals
     start_turn()
+    
+    # Reset hand state to ensure clean start
+    if hand_manager and hand_manager.has_method("reset_hand"):
+        print("TurnManager: Resetting hand state")
+        hand_manager.reset_hand()
+    
+    # Draw new cards after hand is reset
+    if hand_manager and hand_manager.has_method("start_sequential_card_draw"):
+        print("TurnManager: Requesting sequential card draw from hand_manager")
+        hand_manager.start_sequential_card_draw()
+    else:
+        print("TurnManager: No hand_manager available for card draw")
+        
+    # Request next enemy from enemy manager for upcoming combat
+    if enemy_manager and enemy_manager.has_method("determine_next_enemy"):
+        print("TurnManager: Requesting next enemy determination")
+        enemy_manager.determine_next_enemy()
+        
+    # Update stat display if available
+    if stat_manager and chassis_manager:
+        print("TurnManager: Updating stat display")
+        stat_manager.calculate_robot_stats(chassis_manager.attached_parts)
 
 func spend_energy(amount: int) -> bool:
     if amount > current_energy:
@@ -120,8 +155,8 @@ func _update_energy_display():
     if energy_label:
         energy_label.text = "Energy: " + str(current_energy) + "/" + str(max_energy)
 
-# Build robot before combat begins
-func build_robot_and_start_combat(view_instance, game_manager = null):
+# Prepare robot for combat - returns true if successful
+func prepare_robot_for_combat(view_instance) -> bool:
     print("Building robot from chassis...")
     
     # Get attached parts from BuildView
@@ -129,7 +164,7 @@ func build_robot_and_start_combat(view_instance, game_manager = null):
     
     if not robot_frame and not robot_fighter:
         print("Error: No robot components assigned! Please set robot_frame and robot_fighter in the editor.")
-        return
+        return false
     
     # Build visual robot in the frame (for animation)
     if robot_frame:
@@ -145,6 +180,11 @@ func build_robot_and_start_combat(view_instance, game_manager = null):
     
     # Process scrapper parts - decrease durability by 1 for all cards in scrapper slots
     _process_scrapper_parts()
+    
+    # IMPORTANT: Create a deep copy of the attached_parts for the combat phase
+    # This prevents the same instances from being used in both build and combat phases
+    if chassis_manager and chassis_manager.has_method("store_combat_parts"):
+        chassis_manager.store_combat_parts(attached_parts)
     
     # Track discard completion with a boolean flag
     var cards_discarded = false
@@ -176,16 +216,24 @@ func build_robot_and_start_combat(view_instance, game_manager = null):
     if is_instance_valid(preparing_label) and preparing_label.is_inside_tree():
         preparing_label.queue_free()
     
-    # Switch background music to combat mode
+    # Switch background music to combat mode (could be moved to GameManager's _setup_combat_phase)
     
-
-    print("Robot build complete! Starting combat phase...")
+    print("Robot build complete! Ready for combat phase...")
+    return true
     
-    # Tell GameManager to start combat phase
-    if game_manager and game_manager.has_method("start_combat_phase"):
-        game_manager.start_combat_phase()
-    else:
-        print("Warning: No GameManager provided or missing start_combat_phase method")
+# DEPRECATED: Use GameManager.change_game_state(GameState.COMBAT) instead
+# This is kept for backward compatibility
+func build_robot_and_start_combat(view_instance, game_manager = null):
+    var success = await prepare_robot_for_combat(view_instance)
+    
+    if success and game_manager and game_manager.has_method("change_game_state"):
+        print("TurnManager: Telling GameManager to start combat phase")
+        # GameManager.GameState is an enum, we need to use the numeric value
+        game_manager.change_game_state(GameManager.GameState.COMBAT)
+    elif success:
+        print("Warning: No GameManager provided or missing change_game_state method")
+    
+    return success
         
 # Process cards in scrapper slots before combat
 func _process_scrapper_parts():

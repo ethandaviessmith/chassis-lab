@@ -95,7 +95,7 @@ func generate_random_robot_parts() -> Dictionary:
     enemy_robot_parts["left_arm"] = {
         "name": "Enemy Left Arm",
         "type": "Arm",
-        "frame_index": rng.randi_range(20, 23), # Random left arm frame
+        "frame_index": rng.randi_range(10, 13), # Random right arm frame (RobotVisual corrects)
         "frames": 1,
         "effects": []
     }

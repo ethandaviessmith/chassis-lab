@@ -49,10 +49,28 @@ func calculate_stats(attached_parts) -> Dictionary:
             continue  # Skip scrapper slot for stats calculation
         
         var part = attached_parts[slot_name]
-        if part is Card:
+        # Check if part is a valid Card instance
+        if part is Card and is_instance_valid(part):
             _apply_part_stats(stats, part.data)
+        # Alternatively, if we're using data dictionaries directly
+        elif part is Dictionary:
+            _apply_part_stats(stats, part)
     
     current_stats = stats
+    return stats
+    
+# Calculate robot stats and emit update signal - public interface for other managers
+func calculate_robot_stats(attached_parts) -> Dictionary:
+    # Calculate stats using the internal method
+    var stats = calculate_stats(attached_parts)
+    
+    # Emit signal to update displays
+    emit_signal("stats_updated", stats)
+    
+    # Log stats for debugging
+    print("StatManager: Robot stats calculated - Damage: %d, Armor: %d, Speed: %d" % 
+          [stats.damage, stats.armor, stats.speed])
+    
     return stats
 
 # Apply a single part's stats to the stats dictionary
@@ -89,11 +107,20 @@ func get_current_stats() -> Dictionary:
 
 # Calculate preview stats when a card is hovered over a slot
 func calculate_preview_stats(card: Card, target_slot: String) -> Dictionary:
+    # Ensure the card is valid before proceeding
+    if not is_instance_valid(card) or not card.data:
+        return {
+            "current": current_stats,
+            "preview": current_stats.duplicate(),
+            "differences": {}
+        }
+    
     # Get a copy of the current attached parts
     var temp_attached_parts = chassis_manager.attached_parts.duplicate()
     
     # Temporarily add or replace the part in the specific slot
-    temp_attached_parts[target_slot] = card
+    # Store the card data instead of the card object to avoid freed instance errors
+    temp_attached_parts[target_slot] = card.data.duplicate() 
     
     # Calculate the new stats
     var preview_stats = calculate_stats(temp_attached_parts)

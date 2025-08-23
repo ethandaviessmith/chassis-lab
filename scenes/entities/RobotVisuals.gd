@@ -499,6 +499,9 @@ func convert_to_visual_part(part_data, part_type: String):
                 print("  Set utility frame_index to ", FRAME_INDEX_UTILITY)
     else:
         print("  Found existing frame_index: ", visual_part.get("frame_index", 0))
+        if part_type == "left_arm" and visual_part.get("type", "").to_lower() == "arm":
+            var base_frame = visual_part.get("frame_index", 0)
+            visual_part["frame_index"] = base_frame + left_to_right_offset
     
     return visual_part
 
