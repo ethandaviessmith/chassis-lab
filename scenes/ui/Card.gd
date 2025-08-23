@@ -4,8 +4,8 @@ class_name Card
 signal drop_attempted(card, drop_position, target)
 signal drag_started(draggable)
 
-# Card data
-var data: Dictionary = {}
+# Card data - now using Part object instead of Dictionary
+var data: Part = null
 var target_position = Vector2.ZERO
 
 # Card state - affects scaling behavior
@@ -29,6 +29,28 @@ var state: State = State.HAND
 
 var hand_container: HandContainer = null
 var deck_manager: DeckManager = null
+
+# Helper function to get card name regardless of data type
+func get_card_name() -> String:
+    if data == null:
+        return "Unknown"
+    
+    # We should only have Part objects now, but just in case
+    if data is Object and data.get("part_name") != null:
+        return data.part_name
+    
+    # Fallback for legacy code
+    return "Unknown"
+
+# Helper function to get card type regardless of data type
+func get_card_type() -> String:
+    if data == null:
+        return ""
+    
+    # Handle Part objects
+    if data is Part:
+        return data.type        
+    return ""
 
 func _ready():
     if highlight:
@@ -76,12 +98,12 @@ func set_card_scale(scale_factor: float, scale_type: String = "normal"):
     var final_scale = base_scale * scale_factor
     scale = final_scale
     
-    # print("Card ", data.get("name", "Unknown"), " scale set to ", final_scale, " (state: ", State.keys()[state], ", factor: ", scale_factor, ", type: ", scale_type, ")")
+    # print("Card ", data.part_name, " scale set to ", final_scale, " (state: ", State.keys()[state], ", factor: ", scale_factor, ", type: ", scale_type, ")")
 
 # Set the card's state and update scale accordingly
 func set_card_state(new_state: State):
     if state != new_state:
-        print("Card ", data.get("name", "Unknown"), " state changed from ", State.keys()[state], " to ", State.keys()[new_state])
+        print("Card ", data.part_name, " state changed from ", State.keys()[state], " to ", State.keys()[new_state])
         state = new_state
         set_card_scale(1.0, "state_change")
 
@@ -112,8 +134,24 @@ func _on_mouse_exited():
             z_index = 0  # Default z-index if not in hand
 
 
-func initialize(card_data: Dictionary, _hand_container: HandContainer, _deck_manager: DeckManager):
-    data = card_data
+func initialize(card_data, _hand_container: HandContainer, _deck_manager: DeckManager):
+    # Debug the incoming card data
+    print("Card initialize - Received data type: ", typeof(card_data), 
+          ", is Part? ", card_data is Part, 
+          ", is Dictionary? ", card_data is Dictionary)
+    
+    # Convert Dictionary to Part if needed
+    if card_data is Dictionary:
+        data = Part.new()
+        data.initialize_from_data(card_data)
+        print("Card initialize - Converted Dictionary to Part: ", data.part_name)
+    elif card_data is Part:
+        data = card_data
+        print("Card initialize - Using Part directly: ", data.part_name, 
+              ", instance_id: ", data.instance_id)
+    else:
+        push_error("Card initialize - Unexpected data type: ", typeof(card_data))
+        return
     
     if _deck_manager:
         deck_manager = _deck_manager
@@ -121,11 +159,21 @@ func initialize(card_data: Dictionary, _hand_container: HandContainer, _deck_man
         set_hand_container(_hand_container)
 
     # Set up UI elements
-    name_label.text = data.name
-    type_label.text = data.type
-    cost_label.text = str(int(data.cost))
-    heat_label.text = str(int(data.heat))
-    durability_label.text = str(int(data.durability))
+    # Check if the node is ready (all @onready vars are initialized)
+    if not is_inside_tree():
+        await ready
+        
+    # Now we can safely access the UI elements
+    if name_label:
+        name_label.text = data.part_name
+    if type_label:
+        type_label.text = data.type
+    if cost_label:
+        cost_label.text = str(int(data.cost))
+    if heat_label:
+        heat_label.text = str(int(data.heat))
+    if durability_label:
+        durability_label.text = str(int(data.durability))
     
     # Format effects
     var effects_text = ""
@@ -134,45 +182,53 @@ func initialize(card_data: Dictionary, _hand_container: HandContainer, _deck_man
             effects_text += "\n"
         effects_text += effect.description
     
-    effects_label.text = effects_text
+    if effects_label:
+        effects_label.text = effects_text
     
     # Set image if available
-    if "image" in data and data.image != "":
-        var texture = load(data.image)
+    if data.image_path != "" and image:
+        var texture = load(data.image_path)
         if texture:
             image.texture = texture
             
     # Register this card instance with the deck_manager for durability tracking
-    if deck_manager and "instance_id" in data:
-        deck_manager.register_card(data["instance_id"], data.duplicate(), self)
-        print("Card registered with deck_manager: ", data["instance_id"])
+    if deck_manager:
+        # Generate instance_id if not already set
+        if data.instance_id.is_empty():
+            data.instance_id = "card_" + str(randi()) + "_" + str(Time.get_unix_time_from_system())
+        
+        deck_manager.register_card(data.instance_id, data, self)
+        print("Card registered with deck_manager: ", data.instance_id)
 
-    if card_data.frame:
+    if data.frame and part_sprite:
         part_sprite.frame = card_data.frame
-    match data.type.to_lower():
-        "head":
-            part_sprite.scale = Vector2(1.0, 1.0)
-            part_sprite.position = Vector2(50, -22.0)
-        "core":
-            part_sprite.scale = Vector2(0.5, 0.5)
-            part_sprite.position = Vector2(52, 28)
-        "arm":
-            part_sprite.scale = Vector2(0.4, 0.4)
-            part_sprite.position = Vector2(68, 20)
-        "legs":
-            part_sprite.scale = Vector2(0.3, 0.3)
-            part_sprite.position = Vector2(50, 25.0)
-        "utility":
-            part_sprite.scale = Vector2(0.5, 0.5)
-            part_sprite.position = Vector2(50, 25.0)
-        "scrapper":
-            part_sprite.scale = Vector2(0.4, 0.4)
-            part_sprite.position = Vector2(50, 0.0)
-        _:
-            part_sprite.scale = Vector2(0.3, 0.3)
-            part_sprite.position = Vector2(50, 0.0)
+    
+    if part_sprite:
+        match data.type.to_lower():
+            "head":
+                part_sprite.scale = Vector2(1.0, 1.0)
+                part_sprite.position = Vector2(50, -22.0)
+            "core":
+                part_sprite.scale = Vector2(0.5, 0.5)
+                part_sprite.position = Vector2(52, 28)
+            "arm":
+                part_sprite.scale = Vector2(0.4, 0.4)
+                part_sprite.position = Vector2(68, 20)
+            "legs":
+                part_sprite.scale = Vector2(0.3, 0.3)
+                part_sprite.position = Vector2(50, 25.0)
+            "utility":
+                part_sprite.scale = Vector2(0.5, 0.5)
+                part_sprite.position = Vector2(50, 25.0)
+            "scrapper":
+                part_sprite.scale = Vector2(0.4, 0.4)
+                part_sprite.position = Vector2(50, 0.0)
+            _:
+                part_sprite.scale = Vector2(0.3, 0.3)
+                part_sprite.position = Vector2(50, 0.0)
 
-    imageBackground.color = Util.get_slot_color(data.type)
+    if imageBackground:
+        imageBackground.color = Util.get_slot_color(data.type)
 
     # Set background based on rarity
     var bg_color = Color(0.3, 0.3, 0.3)
@@ -186,8 +242,10 @@ func initialize(card_data: Dictionary, _hand_container: HandContainer, _deck_man
         "epic":
             bg_color = Color(0.6, 0.2, 0.6)
     
-    background.modulate = bg_color
-    background2.modulate = bg_color
+    if background:
+        background.modulate = bg_color
+    if background2:
+        background2.modulate = bg_color
 
 
 
@@ -312,32 +370,22 @@ func is_being_dragged() -> bool:
     
 # Support part durability functionality
 func reduce_durability(amount: int = 1):
-    if data.has("durability"):
-        var new_durability = int(data["durability"]) - amount
-        data["durability"] = new_durability
+    if data is Part:
+        var new_durability = max(0, data.durability - amount)
+        data.durability = new_durability
         
-        # Update the durability display
+        # Update durability label
         if durability_label:
-            durability_label.text = str(new_durability)
-        
-        # Apply visual feedback based on durability state
-        if new_durability <= 0:
-            modulate = Color(0.7, 0.4, 0.4, 0.8)  # Darker red for destroyed
-        elif new_durability <= 2:
-            modulate = Color(1.0, 0.7, 0.7, 1.0)  # Reddish for low durability
-        
-        print("Card durability reduced to: ", new_durability)
-        
-        # If this card is registered with the deck manager, update its durability there too
-        if deck_manager and data.has("instance_id"):
-            deck_manager.update_card_durability(data["instance_id"], new_durability)
-            print("Card updated durability in deck_manager registry: ", data["instance_id"])
+            durability_label.text = str(int(new_durability))
+            
+        # Update in DeckManager's registry if registered
+        if deck_manager and not data.instance_id.is_empty():
+            deck_manager.update_card_durability(data.instance_id, new_durability)
+            print("Card updated durability in deck_manager registry: ", data.instance_id)
         else:
             print("Card not registered with deck_manager or missing instance_id")
-        
+            
         return true
-    
-    return false
     
 func _get_drop_target():
     # Raycast to find potential drop targets
@@ -402,18 +450,13 @@ func set_highlight(enabled: bool, is_compatible: bool = true):
         if not drag_drop or not drag_drop.is_currently_dragging():
             scale = Vector2(1.0, 1.0)
 
-# These methods are replaced by the DragDrop component and 
-# our new handlers: _on_drag_started and _on_drag_ended
-
-func get_card_type() -> String:
-    return data.type
 
 # Update visual state based on available energy
 func update_affordability(available_energy: int):
     if not cost_label:
         return
     
-    var card_cost = int(data.get("cost", 0))
+    var card_cost = int(data.cost)
     
     if card_cost > available_energy:
         # Card is too expensive - grey it out
@@ -501,7 +544,7 @@ func reset_position():
         
 # Discard card with animation to the discard pile
 func discard_card(discard_pile_position: Vector2):
-    print("Card: Animating discard of ", data.get("name", "Unknown"))
+    print("Card: Animating discard of ", data.part_name)
     
     # Store discard target position
     set_meta("discard_target", discard_pile_position)

@@ -1,7 +1,7 @@
 extends Control
 class_name RewardScreen
 
-signal reward_selected(card_data: Dictionary)
+signal reward_selected(card_data)
 signal continue_to_next_encounter
 
 # Export references - set these in the editor
@@ -57,6 +57,7 @@ func generate_rewards(victory: bool):
     var all_cards = data_loader.get_all_cards()
     if all_cards.is_empty():
         generate_fallback_rewards(victory)
+        print("RewardScreen: No valid cards found, using fallback rewards.")
         return
     
     # Generate 3 random card rewards
@@ -75,45 +76,64 @@ func generate_rewards(victory: bool):
             attempts += 1
         
         used_indices.append(card_index)
-        var card_data = all_cards[card_index].duplicate()
+        var part_data
         
-        # Add reward type info
-        card_data["reward_type"] = "card"
-        available_rewards.append(card_data)
+        # Handle both Part objects and dictionaries for compatibility
+        if all_cards[card_index] is Part:
+            # Create a new Part instance to avoid modifying the original
+            part_data = Part.new()
+            part_data.duplicate_from(all_cards[card_index])
+            # Add reward type as metadata
+            part_data.set_meta("reward_type", "card")
+        else:
+            # Legacy fallback for dictionary data
+            part_data = all_cards[card_index].duplicate()
+            part_data["reward_type"] = "card"
+            
+        available_rewards.append(part_data)
         
-        print("RewardScreen: Generated reward ", i+1, ": ", card_data.get("name", "Unknown"))
+        var part_name = part_data.part_name if part_data is Part else part_data.get("name", "Unknown")
+        print("RewardScreen: Generated reward ", i+1, ": ", part_name)
 
 func generate_fallback_rewards(_victory: bool):
     """Generate simple fallback rewards if DataLoader is unavailable"""
-    available_rewards = [
-        {
-            "name": "Basic Core",
-            "type": "Core",
-            "cost": 2,
-            "heat": 1,
-            "durability": 3,
-            "effects": [{"description": "+2 Energy"}],
-            "reward_type": "card"
-        },
-        {
-            "name": "Steel Arm",
-            "type": "Arm",
-            "cost": 1,
-            "heat": 0,
-            "durability": 2,
-            "effects": [{"description": "+1 Damage"}],
-            "reward_type": "card"
-        },
-        {
-            "name": "Quick Legs",
-            "type": "Legs",
-            "cost": 1,
-            "heat": 1,
-            "durability": 2,
-            "effects": [{"description": "+20% Move Speed"}],
-            "reward_type": "card"
-        }
-    ]
+    available_rewards.clear()
+    
+    # Create fallback Part objects
+    var core_part = Part.new()
+    core_part.part_name = "Basic Core"
+    core_part.type = "core"
+    core_part.cost = 2
+    core_part.heat = 1
+    core_part.durability = 3
+    core_part.max_durability = 3
+    core_part.description = "+2 Energy"
+    core_part.energy_capacity = 2
+    core_part.set_meta("reward_type", "card")
+    available_rewards.append(core_part)
+    
+    var arm_part = Part.new()
+    arm_part.part_name = "Steel Arm"
+    arm_part.type = "arm"
+    arm_part.cost = 1
+    arm_part.heat = 0
+    arm_part.durability = 2
+    arm_part.max_durability = 2
+    arm_part.description = "+1 Damage"
+    arm_part.damage = 1
+    arm_part.set_meta("reward_type", "card")
+    available_rewards.append(arm_part)
+    
+    var leg_part = Part.new()
+    leg_part.part_name = "Quick Legs"
+    leg_part.type = "legs"
+    leg_part.cost = 1
+    leg_part.heat = 1
+    leg_part.durability = 2
+    leg_part.max_durability = 2
+    leg_part.description = "+20% Move Speed"
+    leg_part.set_meta("reward_type", "card")
+    available_rewards.append(leg_part)
 
 func display_reward_options():
     """Create card elements for each reward option"""
@@ -139,7 +159,7 @@ func display_reward_options():
     # Let the cards position properly in the container
     await get_tree().process_frame
 
-func create_reward_card(reward_data: Dictionary, index: int):
+func create_reward_card(reward_data: Part, index: int):
     """Create a card instance for a reward option"""
     if not card_scene:
         print("RewardScreen: No card scene available!")
@@ -147,6 +167,7 @@ func create_reward_card(reward_data: Dictionary, index: int):
     
     # Create card instance
     var card_instance = card_scene.instantiate()
+    card_instance.initialize(reward_data, null, null)
     if not card_instance:
         print("RewardScreen: Failed to instantiate card!")
         return
@@ -172,24 +193,14 @@ func create_reward_card(reward_data: Dictionary, index: int):
     reward_container.add_child(margin)
     
     # Set card data and initialize UI
-    var card_data = reward_data.duplicate()
+    # Since we're transitioning to Part objects but need compatibility,
+    # just pass reward_data directly and let Card.initialize handle it
+    var card_data = reward_data
     
-    # Make sure the card data has all required fields
-    if not "name" in card_data:
-        card_data["name"] = "Unknown Card"
-    if not "type" in card_data:
-        card_data["type"] = "Unknown"
-    if not "cost" in card_data:
-        card_data["cost"] = 0
-    if not "heat" in card_data:
-        card_data["heat"] = 0
-    if not "durability" in card_data:
-        card_data["durability"] = 1
-    if not "effects" in card_data:
-        card_data["effects"] = [{"description": "No effect"}]
-        
-    # Initialize the card with the data
-    card_instance.initialize(card_data, null, null)
+    # If it's a dictionary, ensure all required fields exist
+    if card_data is Part:
+        # Create a copy to avoid modifying the original
+        card_data = card_data.duplicate()
     
     # Disable drag_drop component (we just want clicks, not drag and drop)
     if card_instance.has_node("DragDrop"):
@@ -215,7 +226,14 @@ func create_reward_card(reward_data: Dictionary, index: int):
 func _on_card_gui_input(event: InputEvent, card: Card, index: int):
     """Handle card click events"""
     if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-        print("RewardScreen: Card clicked: ", card.data.get("name", "Unknown"), " at index ", index)
+        # Get card name in a safe way
+        var card_name = "Unknown"
+        # Using is_instance_valid is safer than checking types directly
+        if is_instance_valid(card) and card.data != null:
+            # Try to get the name regardless of the data type
+            card_name = card.get_card_name()
+        
+        print("RewardScreen: Card clicked: ", card_name, " at index ", index)
         # Play click sound
         Sound.play_click()
         # Use call_deferred to avoid errors during signal processing
@@ -228,7 +246,17 @@ func _on_reward_selected(index: int):
         return
     
     selected_reward = available_rewards[index]
-    print("RewardScreen: Selected reward: ", selected_reward.get("name", "Unknown"))
+    
+    # Print reward name regardless of type
+    var reward_name = ""
+    if selected_reward is Part:
+        reward_name = selected_reward.part_name
+    elif selected_reward is Dictionary and selected_reward.has("name"):
+        reward_name = selected_reward.get("name")
+    else:
+        reward_name = "Unknown"
+        
+    print("RewardScreen: Selected reward: ", reward_name)
     
     # Play success sound
     Sound.play_success()
@@ -262,11 +290,18 @@ func _on_continue():
         print("RewardScreen: No reward selected!")
         return
     
-    print("RewardScreen: Continuing with selected reward:", selected_reward.get("name", "Unknown"))
+    print("RewardScreen: Continuing with selected reward:", selected_reward.name)
     
     # Store the selected reward locally before hiding the screen
-    var reward = selected_reward.duplicate()
+    var reward
     
+    # Handle both Part objects and dictionaries
+    if selected_reward is Dictionary:
+        reward = selected_reward.duplicate()
+    else:
+        # For Part objects, we emit directly as they're already instances
+        reward = selected_reward
+        
     # First emit the reward selected signal so GameManager can add it to deck
     emit_signal("reward_selected", reward)
     

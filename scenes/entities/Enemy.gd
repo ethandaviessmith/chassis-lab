@@ -77,7 +77,7 @@ func generate_random_robot_parts() -> Dictionary:
     enemy_robot_parts["head"] = {
         "name": "Enemy Head",
         "type": "Head",
-        "frame_index": rng.randi_range(30, 33), # Random head frame
+        "frame": rng.randi_range(30, 33), # Random head frame
         "frames": 1,
         "effects": []
     }
@@ -86,7 +86,7 @@ func generate_random_robot_parts() -> Dictionary:
     enemy_robot_parts["core"] = {
         "name": "Enemy Core",
         "type": "Core",
-        "frame_index": rng.randi_range(40, 43), # Random core frame
+        "frame": rng.randi_range(40, 43), # Random core frame
         "frames": 1,
         "effects": []
     }
@@ -95,7 +95,7 @@ func generate_random_robot_parts() -> Dictionary:
     enemy_robot_parts["left_arm"] = {
         "name": "Enemy Left Arm",
         "type": "Arm",
-        "frame_index": rng.randi_range(10, 13), # Random right arm frame (RobotVisual corrects)
+        "frame": rng.randi_range(10, 13), # Random right arm frame (RobotVisual corrects)
         "frames": 1,
         "effects": []
     }
@@ -104,7 +104,7 @@ func generate_random_robot_parts() -> Dictionary:
     enemy_robot_parts["right_arm"] = {
         "name": "Enemy Right Arm",
         "type": "Arm",
-        "frame_index": rng.randi_range(10, 13), # Random right arm frame
+        "frame": rng.randi_range(10, 13), # Random right arm frame
         "frames": 1,
         "effects": []
     }
@@ -113,7 +113,7 @@ func generate_random_robot_parts() -> Dictionary:
     enemy_robot_parts["legs"] = {
         "name": "Enemy Legs",
         "type": "Legs",
-        "frame_index": rng.randi_range(0, 3), # Random legs frame
+        "frame": rng.randi_range(0, 3), # Random legs frame
         "frames": 1,
         "effects": []
     }

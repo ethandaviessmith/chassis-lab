@@ -63,20 +63,38 @@ func _on_resized():
 
 # Check if a card is compatible with this slot
 func is_compatible_with_card(card_data) -> bool:
-    if not card_data or not card_data.has("type"):
+    if not card_data:
+        return false
+    
+    # Handle both Part objects and dictionary data
+    var card_type = ""
+    var card_heat = 0
+    var card_name = "Unknown"
+    
+    if card_data is Part:
+        card_type = card_data.type
+        card_heat = card_data.heat
+        card_name = card_data.part_name
+    else:
+        # Fall back to dictionary access
+        card_type = card_data.get("type", "")
+        card_heat = card_data.get("heat", 0)
+        card_name = card_data.get("name", "Unknown")
+    
+    if not card_type:
         return false
     
     # Special case for scrapper - it accepts any card with heat > 0
     if slot_type == "Scrapper":
-        if card_data.has("heat") and int(card_data.heat) > 0:
-            print("Card is compatible with Scrapper: ", card_data.name, " - Heat: ", card_data.heat)
+        if card_heat > 0:
+            print("Card is compatible with Scrapper: ", card_name, " - Heat: ", card_heat)
             return true
         else:
-            print("Card rejected by Scrapper (no heat): ", card_data.name)
+            print("Card rejected by Scrapper (no heat): ", card_name)
             return false
             
     # Case insensitive comparison for better compatibility
-    var card_type_lower = card_data.type.to_lower()
+    var card_type_lower = card_type.to_lower()
     var slot_type_lower = slot_type.to_lower()
     
     match slot_type_lower:
@@ -87,7 +105,7 @@ func is_compatible_with_card(card_data) -> bool:
         "arm":
             return card_type_lower == "arm"
         "legs":
-            return card_type_lower == "legs" or card_type_lower == "leg"
+            return card_type_lower == "legs"
         "utility":
             return card_type_lower == "utility"
         _:

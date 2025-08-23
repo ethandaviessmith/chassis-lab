@@ -254,16 +254,30 @@ func _process_scrapper_parts():
             continue
             
         # Ensure card has a unique instance ID for tracking
-        var instance_id = card.data.get("instance_id", "")
+        var instance_id = ""
+        if card.data is Part:
+            instance_id = card.data.instance_id
+        else:
+            # Legacy fallback
+            instance_id = card.data.get("instance_id", "")
+            
         if instance_id == "" and deck_manager:
             # Generate a new unique ID
             instance_id = "card_" + str(randi()) + "_" + str(Time.get_unix_time_from_system())
-            card.data["instance_id"] = instance_id
+            if card.data is Part:
+                card.data.instance_id = instance_id
+            else:
+                card.data["instance_id"] = instance_id
             # Register card if not already
             deck_manager.register_card(instance_id, card.data, card)
             
         # Decrease durability
-        var current_durability = card.data.get("durability", 1)
+        var current_durability
+        if card.data is Part:
+            current_durability = card.data.durability
+        else:
+            current_durability = card.data.get("durability", 1)
+        
         current_durability -= 1
         
         # Update durability in the registry and card
@@ -276,7 +290,10 @@ func _process_scrapper_parts():
             cards_to_discard.append(card)
         else:
             # Ensure card data reflects current durability
-            card.data["durability"] = current_durability
+            if card.data is Part:
+                card.data.durability = current_durability
+            else:
+                card.data["durability"] = current_durability
             part_durability_changed.emit(card, current_durability)
             print("TurnManager: Scrapper durability reduced to ", current_durability)
 

@@ -9,7 +9,7 @@ func _ready():
 	pass
 
 func load_all_cards() -> Array:
-	var cards = []
+	var parts = []
 	
 	print("DataLoader: Loading cards from: ", CARDS_PATH)
 	
@@ -26,59 +26,58 @@ func load_all_cards() -> Array:
 		var parse_result = json.parse(json_text)
 		if parse_result == OK:
 			var data = json.get_data()
-			cards = data
-			print("DataLoader: Successfully parsed JSON, found ", cards.size(), " cards")
+			
+			# Convert JSON data to Part objects
+			for card_data in data:
+				var part = Part.new()
+				part.initialize_from_data(card_data)
+				parts.append(part)
+				
+			print("DataLoader: Successfully parsed JSON, created ", parts.size(), " Part objects")
 		else:
 			print("DataLoader: ERROR - Failed to parse JSON: ", json.error_string)
 			push_error("DataLoader: Failed to parse cards.json: " + json.error_string)
-			cards = _get_fallback_cards()
+			parts = _get_fallback_parts()
 	else:
 		push_error("DataLoader: ERROR - Failed to open cards file: " + CARDS_PATH)
 		print("DataLoader: Using fallback cards instead")
-		cards = _get_fallback_cards()
+		parts = _get_fallback_parts()
 	
-	return cards
+	return parts
 
 func load_starting_deck() -> Array:
 	# Load 15 random cards for the starting deck
 	print("DataLoader: Loading starting deck...")
-	var all_cards = load_all_cards()
-	print("DataLoader: Loaded ", all_cards.size(), " total cards from JSON")
+	var all_parts = load_all_cards()
+	print("DataLoader: Loaded ", all_parts.size(), " total parts from JSON")
 	var starter_deck = []
 	
 	# If we don't have enough cards, duplicate the available ones
-	if all_cards.size() == 0:
-		print("DataLoader: ERROR - No cards available to create starting deck!")
+	if all_parts.size() == 0:
+		print("DataLoader: ERROR - No parts available to create starting deck!")
 		return starter_deck
 	
 	# Create a pool of cards to choose from (including duplicates if needed)
-	var card_pool = all_cards.duplicate()
-	print("DataLoader: Initial card pool size: ", card_pool.size())
+	var part_pool = all_parts.duplicate()
+	print("DataLoader: Initial part pool size: ", part_pool.size())
 	
 	# If we need more than available, add duplicates
-	while card_pool.size() < 15:
-		card_pool.append_array(all_cards)
-		print("DataLoader: Expanded card pool to: ", card_pool.size())
+	while part_pool.size() < 15:
+		part_pool.append_array(all_parts)
+		print("DataLoader: Expanded part pool to: ", part_pool.size())
 	
 	# Shuffle the pool
-	card_pool.shuffle()
-	print("DataLoader: Shuffled card pool")
+	part_pool.shuffle()
+	print("DataLoader: Shuffled part pool")
 	
-	# Take the first 15 cards and assign unique instance IDs
-	var rng = RandomNumberGenerator.new()
-	rng.randomize()
-	
+	# Take the first 15 parts and clone them to avoid shared references
 	for i in range(15):
-		var card = card_pool[i].duplicate() # Create a deep copy to avoid modifying original
-		
-		# Add a unique instance ID for each card
-		card["instance_id"] = "card_" + str(rng.randi()) + "_" + str(Time.get_unix_time_from_system())
-		
-		starter_deck.append(card)
+		var part = part_pool[i].clone()
+		starter_deck.append(part)
 	
-	print("DataLoader: Created starting deck with ", starter_deck.size(), " cards")
+	print("DataLoader: Created starting deck with ", starter_deck.size(), " parts")
 	for i in range(min(3, starter_deck.size())):
-		print("  Sample card ", i+1, ": ", starter_deck[i].get("name", "Unknown"), " (ID: ", starter_deck[i].get("instance_id", "None"), ")")
+		print("  Sample part ", i+1, ": ", starter_deck[i].part_name)
 	
 	return starter_deck
 
@@ -158,8 +157,10 @@ func load_reward_options() -> Array:
 	return reward_options
 
 # Fallback functions in case files can't be loaded
-func _get_fallback_cards() -> Array:
-	return [
+func _get_fallback_parts() -> Array:
+	var parts = []
+	
+	var fallback_data = [
 		{
 			"id": "scope_visor",
 			"name": "Scope Visor",
@@ -169,8 +170,11 @@ func _get_fallback_cards() -> Array:
 			"durability": 3,
 			"effects": [
 				{
-					"type": "crit",
+					"type": "stat",
+					"timing": "attach",
+					"stat": "crit_chance",
 					"value": 10,
+					"target": "self",
 					"description": "+10% crit chance"
 				}
 			],
@@ -184,10 +188,15 @@ func _get_fallback_cards() -> Array:
 			"cost": 1,
 			"heat": 0,
 			"durability": 3,
+			"attack_type": ["melee", "range"],
+			"attack_range": [0.1, 4.0],
 			"effects": [
 				{
-					"type": "damage",
+					"type": "stat",
+					"timing": "attach",
+					"stat": "damage",
 					"value": 6,
+					"target": "self",
 					"description": "6 damage per hit"
 				}
 			],
@@ -203,13 +212,19 @@ func _get_fallback_cards() -> Array:
 			"durability": 5,
 			"effects": [
 				{
-					"type": "armor",
+					"type": "stat",
+					"timing": "attach",
+					"stat": "armor",
 					"value": 10,
+					"target": "self",
 					"description": "+10 Armor"
 				},
 				{
-					"type": "move_speed_percent",
+					"type": "stat",
+					"timing": "attach",
+					"stat": "move_speed",
 					"value": -5,
+					"target": "self",
 					"description": "-5% Move Speed"
 				}
 			],
@@ -219,14 +234,17 @@ func _get_fallback_cards() -> Array:
 		{
 			"id": "tracked_legs",
 			"name": "Tracked Legs",
-			"type": "Leg",
+			"type": "Legs",
 			"cost": 1,
 			"heat": 0,
 			"durability": 4,
 			"effects": [
 				{
-					"type": "stability",
+					"type": "stat",
+					"timing": "attach",
+					"stat": "stability",
 					"value": 20,
+					"target": "self",
 					"description": "+20% stability"
 				}
 			],
@@ -234,6 +252,13 @@ func _get_fallback_cards() -> Array:
 			"description": "Basic treads for stable movement."
 		}
 	]
+	
+	for data in fallback_data:
+		var part = Part.new()
+		part.initialize_from_data(data)
+		parts.append(part)
+		
+	return parts
 
 func _get_fallback_enemies() -> Array:
 	return [

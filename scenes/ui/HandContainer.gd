@@ -58,12 +58,18 @@ func _on_child_entered_tree(node):
         if node is Card:
             # Directly set this HandContainer as the card's hand container
             if node.has_method("set_hand_container"):
-                print("HandContainer: Setting self as hand_container for card: ", node.data.get("name", "Unknown"))
+                var card_name = "Unknown"
+                if node.data != null:
+                    card_name = node.data.part_name if node.data is Part else node.data.get("name", "Unknown") if node.data is Dictionary else "Unknown"
+                print("HandContainer: Setting self as hand_container for card: ", card_name)
                 node.set_hand_container(self)
                 
             # Also directly register with DragDrop if available
             if node.drag_drop != null:
-                print("HandContainer: Registering self as drop target for card: ", node.data.get("name", "Unknown"))
+                var card_name = "Unknown"
+                if node.data != null:
+                    card_name = node.data.part_name if node.data is Part else node.data.get("name", "Unknown") if node.data is Dictionary else "Unknown"
+                print("HandContainer: Registering self as drop target for card: ", card_name)
                 node.drag_drop.register_drop_target(self, [])
                 
                 # Also register the Area2D if it exists
@@ -77,7 +83,18 @@ func _on_child_entered_tree(node):
 # Called when a child is removed from the container
 func _on_child_exiting_tree(node):
     if cards.has(node):
-        print("HandContainer: Removing card from tracking: " + (node.data.name if node is Card and node.data else str(node)))
+        var card_name = ""
+        if node is Card and node.data != null:
+            if node.data is Part:
+                card_name = node.data.part_name
+            elif node.data is Dictionary and node.data.has("name"):
+                card_name = node.data.name
+            else:
+                card_name = str(node)
+        else:
+            card_name = str(node)
+            
+        print("HandContainer: Removing card from tracking: " + card_name)
         cards.erase(node)
         # Reposition remaining cards
         _reposition_cards()

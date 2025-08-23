@@ -62,8 +62,18 @@ func update_visuals():
         for part_type in robot_parts.keys():
             var part = robot_parts[part_type]
             if part != null:
-                print("  ", part_type, ": ", part.get("name", "unnamed"), 
-                      " frame_index: ", part.get("frame_index", "None"))
+                var part_name = ""
+                var frame_index = "None"
+                
+                if part is Part:
+                    part_name = part.part_name
+                    frame_index = str(part.frame) if part.frame != null else "None"
+                else:
+                    # Fallback for dictionary data
+                    part_name = part.get("name", "unnamed")
+                    frame_index = str(part.get("frame_index", "None"))
+                
+                print("  ", part_type, ": ", part_name, " frame_index: ", frame_index)
             else:
                 print("  ", part_type, ": None")
         
@@ -78,7 +88,12 @@ func update_visuals():
 
 # Helper method to get animation frame count from part data
 func get_frames_from_part(part):
-    if part and part.has("frames"):
+    if part is Part:
+        # Direct property access for Part objects
+        if part.frames != null:
+            return part.frames
+    elif part and part.has("frames"):
+        # Dictionary-style access as fallback
         return part.frames
     return 1
 
@@ -109,8 +124,14 @@ func build_from_chassis(attached_parts: Dictionary):
     for slot_name in slot_order:
         if attached_parts.has(slot_name) and is_instance_valid(attached_parts[slot_name]):
             var card = attached_parts[slot_name]
-            if card is Card and card.data.size() > 0:
-                print("  - Adding ", slot_name, ": ", card.data.name)
+            if card is Card and card.data:
+                var part_name = ""
+                if card.data is Part:
+                    part_name = card.data.part_name
+                else:
+                    part_name = card.data.get("name", "Unknown")
+                    
+                print("  - Adding ", slot_name, ": ", part_name)
                 
                 # Convert slot names to robot part names
                 var robot_slot = slot_name
@@ -119,9 +140,8 @@ func build_from_chassis(attached_parts: Dictionary):
                 elif slot_name == "arm_right":
                     robot_slot = "right_arm"
                 
-                # Create a part object from card data
-                var part_data = create_part_from_card(card.data)
-                attach_part(part_data, robot_slot)
+                # Attach the part to the robot
+                attach_part(card.data, robot_slot)
     
     print("PlayerRobot: Build complete - Energy: ", energy, "/", max_energy, ", Heat: ", heat, "/", max_heat, ", Armor: ", armor)
     update_bars()
@@ -129,83 +149,83 @@ func build_from_chassis(attached_parts: Dictionary):
     emit_signal("robot_updated")
 
 # Create a part object from card data
-func create_part_from_card(card_data: Dictionary):
-    # Convert card data to a part object that the robot can use for stats
-    var part = {
-        "name": card_data.get("name", "Unknown Part"),
-        "type": card_data.get("type", "Unknown"),
-        "cost": card_data.get("cost", 0),
-        "heat": card_data.get("heat", 0),
-        "durability": card_data.get("durability", 1),
-        "effects": card_data.get("effects", []),
-        "frames": card_data.get("frames", 1)  # Animation frame count, default to 1
-    }
+# func create_part_from_card(card_data: Part):
+#     # Convert card data to a part object that the robot can use for stats
+#     var part = {
+#         "name": card_data.name,
+#         "type": card_data.type,
+#         "cost": card_data.cost,
+#         "heat": card_data.heat,
+#         "durability": card_data.durability
+#         "effects": card_data.get("effects", []),
+#         "frames": card_data.get("frames", 1)  # Animation frame count, default to 1
+#     }
     
-    # Add attack type and range if present (for arms)
-    if card_data.has("attack_type"):
-        part["attack_type"] = card_data.attack_type
+#     # Add attack type and range if present (for arms)
+#     if card_data.has("attack_type"):
+#         part["attack_type"] = card_data.attack_type
     
-    if card_data.has("attack_range"):
-        part["attack_range"] = card_data.attack_range
+#     if card_data.has("attack_range"):
+#         part["attack_range"] = card_data.attack_range
     
-    # Extract frame index if present (from RobotFrame)
-    if card_data.has("frame"):
-        var frame_index = card_data.frame
-        var part_type = card_data.get("type", "").to_lower()
+#     # Extract frame index if present (from RobotFrame)
+#     if card_data.has("frame"):
+#         var frame_index = card_data.frame
+#         var part_type = card_data.get("type", "").to_lower()
         
-        # Handle different part types for frame indices
-        part["frame_index"] = frame_index
-        print("PlayerRobot: Setting frame_index for ", part.name, " to ", frame_index)
+#         # Handle different part types for frame indices
+#         part["frame_index"] = frame_index
+#         print("PlayerRobot: Setting frame_index for ", part.name, " to ", frame_index)
         
-        # Special handling for left arm (add offset)
-        if part_type == "arm" and part["name"].to_lower().begins_with("left"):
-            part["frame_index"] += RobotVisuals.LEFT_TO_RIGHT_OFFSET
-            print("  Adjusted left arm frame_index to ", part["frame_index"])
-    else:
-        # If no frame specified, set default based on part type
-        var part_type = card_data.get("type", "").to_lower()
+#         # Special handling for left arm (add offset)
+#         if part_type == "arm" and part["name"].to_lower().begins_with("left"):
+#             part["frame_index"] += RobotVisuals.LEFT_TO_RIGHT_OFFSET
+#             print("  Adjusted left arm frame_index to ", part["frame_index"])
+#     else:
+#         # If no frame specified, set default based on part type
+#         var part_type = card_data.get("type", "").to_lower()
         
-        print("PlayerRobot: No frame specified for ", part.name, ", setting default based on type: ", part_type)
+#         print("PlayerRobot: No frame specified for ", part.name, ", setting default based on type: ", part_type)
         
-        # Set default frame indices
-        if part_type == "head":
-            part["frame_index"] = RobotVisuals.FRAME_INDEX_HEAD
-        elif part_type == "core":
-            part["frame_index"] = RobotVisuals.FRAME_INDEX_CORE
-        elif part_type == "arm":
-            if part["name"].to_lower().begins_with("left"):
-                part["frame_index"] = RobotVisuals.FRAME_INDEX_LEFT_ARM
-            else:
-                part["frame_index"] = RobotVisuals.FRAME_INDEX_RIGHT_ARM
-        elif part_type == "legs":
-            part["frame_index"] = RobotVisuals.FRAME_INDEX_LEGS
-        elif part_type == "utility":
-            part["frame_index"] = RobotVisuals.FRAME_INDEX_UTILITY
+#         # Set default frame indices
+#         if part_type == "head":
+#             part["frame_index"] = RobotVisuals.FRAME_INDEX_HEAD
+#         elif part_type == "core":
+#             part["frame_index"] = RobotVisuals.FRAME_INDEX_CORE
+#         elif part_type == "arm":
+#             if part["name"].to_lower().begins_with("left"):
+#                 part["frame_index"] = RobotVisuals.FRAME_INDEX_LEFT_ARM
+#             else:
+#                 part["frame_index"] = RobotVisuals.FRAME_INDEX_RIGHT_ARM
+#         elif part_type == "legs":
+#             part["frame_index"] = RobotVisuals.FRAME_INDEX_LEGS
+#         elif part_type == "utility":
+#             part["frame_index"] = RobotVisuals.FRAME_INDEX_UTILITY
         
-        print("  Set frame_index to ", part.get("frame_index", "None"))
+#         print("  Set frame_index to ", part.get("frame_index", "None"))
         
-    # Extract sprite/visual information if present
-    if card_data.has("sprite_path"):
-        part["sprite_path"] = card_data.sprite_path
+#     # Extract sprite/visual information if present
+#     if card_data.has("sprite_path"):
+#         part["sprite_path"] = card_data.sprite_path
     
-    # Parse effects for stat modifications
-    if card_data.has("effects"):
-        var parsed_effects = []
-        for effect in card_data.effects:
-            if effect is Dictionary and effect.has("description"):
-                # Parse effect description for stat bonuses
-                var desc = effect.description.to_lower()
-                if "+2 armor" in desc:
-                    parsed_effects.append({"type": "armor", "value": 2})
-                elif "gain materials" in desc:
-                    parsed_effects.append({"type": "scrapper_bonus", "value": 1})
-                # Add more effect parsing as needed
-        part.effects = parsed_effects
+#     # Parse effects for stat modifications
+#     if card_data.has("effects"):
+#         var parsed_effects = []
+#         for effect in card_data.effects:
+#             if effect is Dictionary and effect.has("description"):
+#                 # Parse effect description for stat bonuses
+#                 var desc = effect.description.to_lower()
+#                 if "+2 armor" in desc:
+#                     parsed_effects.append({"type": "armor", "value": 2})
+#                 elif "gain materials" in desc:
+#                     parsed_effects.append({"type": "scrapper_bonus", "value": 1})
+#                 # Add more effect parsing as needed
+#         part.effects = parsed_effects
     
-    return part
+#     return part
 
 # Attach a part and apply its effects
-func attach_part(part, slot: String):
+func attach_part(part: Part, slot: String):
     match slot:
         "scrapper":
             scrapper = part
@@ -215,14 +235,12 @@ func attach_part(part, slot: String):
             core = part
         "left_arm":
             left_arm = part
-            # Update attack types and ranges from arm
-            if part.has("attack_type") and part.has("attack_range"):
-                update_attack_capabilities()
+            # Always update attack capabilities when an arm is attached
+            update_attack_capabilities()
         "right_arm":
             right_arm = part
-            # Update attack types and ranges from arm
-            if part.has("attack_type") and part.has("attack_range"):
-                update_attack_capabilities()
+            # Always update attack capabilities when an arm is attached
+            update_attack_capabilities()
         "legs":
             legs = part
         "utility":
@@ -237,27 +255,61 @@ func update_attack_capabilities():
     attack_types = ["melee"]  # Default melee
     attack_ranges = [1.0]     # Default range
     
-    # Check left arm
-    if left_arm and left_arm.has("attack_type") and left_arm.has("attack_range"):
-        for i in range(left_arm.attack_type.size()):
-            var attack_type = left_arm.attack_type[i]
-            var attack_range = left_arm.attack_range[i]
-            
-            # Add if not already present
-            if not attack_type in attack_types:
-                attack_types.append(attack_type)
-                attack_ranges.append(attack_range)
+    # Process left arm
+    if left_arm != null:
+        var attack_type_arr = []
+        var attack_range_arr = []
+        
+        # Get attack types and ranges based on arm data type
+        if left_arm is Part:
+            # Direct access for Part objects - always arrays in the new implementation
+            attack_type_arr = left_arm.attack_type if left_arm.attack_type is Array else [left_arm.attack_type] if left_arm.attack_type != null else ["melee"]
+            attack_range_arr = left_arm.attack_range if left_arm.attack_range is Array else [left_arm.attack_range] if left_arm.attack_range != null else [1.0]
+        elif left_arm is Dictionary:
+            # Dictionary-style access for backwards compatibility
+            if left_arm.has("attack_type") and left_arm.has("attack_range"):
+                attack_type_arr = left_arm.attack_type if left_arm.attack_type is Array else [left_arm.attack_type]
+                attack_range_arr = left_arm.attack_range if left_arm.attack_range is Array else [left_arm.attack_range]
+        
+        # Add all attack types and ranges that aren't already in the list
+        for i in range(attack_type_arr.size()):
+            if i < attack_range_arr.size():
+                var attack_type = attack_type_arr[i]
+                var attack_range = attack_range_arr[i]
+                
+                # Add if not already present
+                if not attack_type in attack_types:
+                    attack_types.append(attack_type)
+                    attack_ranges.append(attack_range)
     
-    # Check right arm
-    if right_arm and right_arm.has("attack_type") and right_arm.has("attack_range"):
-        for i in range(right_arm.attack_type.size()):
-            var attack_type = right_arm.attack_type[i]
-            var attack_range = right_arm.attack_range[i]
-            
-            # Add if not already present
-            if not attack_type in attack_types:
-                attack_types.append(attack_type)
-                attack_ranges.append(attack_range)
+    # Process right arm
+    if right_arm != null:
+        var attack_type_arr = []
+        var attack_range_arr = []
+        
+        # Get attack types and ranges based on arm data type
+        if right_arm is Part:
+            # Direct access for Part objects - always arrays in the new implementation
+            attack_type_arr = right_arm.attack_type if right_arm.attack_type is Array else [right_arm.attack_type] if right_arm.attack_type != null else ["melee"]
+            attack_range_arr = right_arm.attack_range if right_arm.attack_range is Array else [right_arm.attack_range] if right_arm.attack_range != null else [1.0]
+        elif right_arm is Dictionary:
+            # Dictionary-style access for backwards compatibility
+            if right_arm.has("attack_type") and right_arm.has("attack_range"):
+                attack_type_arr = right_arm.attack_type if right_arm.attack_type is Array else [right_arm.attack_type]
+                attack_range_arr = right_arm.attack_range if right_arm.attack_range is Array else [right_arm.attack_range]
+        
+        # Add all attack types and ranges that aren't already in the list
+        for i in range(attack_type_arr.size()):
+            if i < attack_range_arr.size():
+                var attack_type = attack_type_arr[i]
+                var attack_range = attack_range_arr[i]
+                
+                # Add if not already present
+                if not attack_type in attack_types:
+                    attack_types.append(attack_type)
+                    attack_ranges.append(attack_range)
+    
+    print("PlayerRobot: Updated attack capabilities. Types: ", attack_types, ", Ranges: ", attack_ranges)
 
 # Remove a part and its effects
 func remove_part(part):

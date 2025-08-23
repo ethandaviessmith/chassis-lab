@@ -1,51 +1,61 @@
-# Project Vision: Chassis Lab (JunkBots)
+# Project Vision: Chassis Lab
 
 ## 1. Elevator Pitch
-Manage a mech's heat, energy, durability systems to outlast your opponents
-A deck-building roguelike where you build a bot by adding parts that have heat and energy costs, with durability. 
-Robots fight in rounds lowering part durability then health, players collect cards, medals that give modifiers to scale to fight a boss
+A deck-building roguelike where you are a mech engineer, strategically assembling a robot from parts to win auto-battles. Juggle your mech's Heat, Energy, and Durability, and even pause combat to reconfigure your build on the fly.
 
+## 2. Core Pillars
+*What makes this game unique?*
+- **The Engineer's Dilemma:** The core tension comes from balancing the powerful parts you want to add (`Build Heat` cost) with the operational limits of your mech in combat (`Battle Heat` generation, `Energy Capacity`).
+- **Reactive Rebuilding:** Combat is not fire-and-forget. The ability to pause the battle and return to Build Mode is a key strategic tool to adapt to enemy behavior or repair damage.
+- **Parts are Everything:** Your "deck" is your inventory of parts. The cards you play directly become the components of your robot, defining its stats, abilities, and weaknesses.
 
-## 2. Core Gameplay Loop
-Views in the game:
-1. Build Mode
-Cards (parts) are added to a robot frame that equipe a fighting robot into battle
-These 3 types heat, energy, durability are shared across the game
-2. Battle Mode
-In battle energy remains how many parts are in operation (when part is used it adds heat to the robot)
-When hit remove 1 durability from an attached slot
-As heat goes up to max robot overheats (slows down until heat returns back to 0)
-Heat when building is 
-3. Reward Screen
-(later)
-4. Map (city battle map), player picks next enemy to fight (or can go to store, repair shop, etc), has cutins and dialogue
-5. Main menu
+## 3. Key Mechanics & Resources
+*The three core resources that govern the entire game.*
 
-How mechanics interact
-Heat is used to build robots (card's cost to summon), and affects battle (overheat is bad)
-Energy is amount of battery capacity robot has, frame can only charge so many parts, in battle keeps stats active on robot (stats tied to pieces) e.g. shields needs a battery to run, and if battery is lowered (from drain or usage) robot loses battery - works like an energy shield has delay then rescharges
-Durability is the part (and the card's life), once it reaches zero the card turns into a Scrap card (can only be used for heat), in battle durability is like the armor before robot health is lost
-Cards can be modded in shop (lower energy/heat, add effect), or repaired for scrap
-Scrap (money) can be used to buy random parts 
+### Heat
+- **Build Heat (Cost):** A budget used in Build Mode. Each part has a `Build Heat` cost. You have a limited amount to spend when initially assembling your robot. Scrapping unwanted parts can recover some `Build Heat`. (Scrapping is to equip a card in the Scrapper chassi slot (like a recycle bin), that costs 1 durability for card heat)
+- **Battle Heat (Gauge):** A gauge that fills during combat as parts are used. If it reaches maximum, the robot overheats, causing negative effects (e.g., slower attacks, temporary shutdown). It dissipates over time when parts are not in use.
 
-*A simple, numbered list describing a single turn from the player's perspective.*
-Build Mode
-1.  Start of Turn: Draw cards up to 5, set energy level, heat based on card energy cost that are on the chassis (slot)
-2.  Player Action: Play cards by spending Heat to add parts to a frame
-2.a Player adds parts to scrapper to ensure enough heat to start (based on card card/part heat)
-3. (click start battle)
+### Energy
+- **Energy Capacity:** The total power your mech's frame and batteries can provide. Each active part consumes a certain amount of energy. You cannot equip parts that exceed your total `Energy Capacity`.
+- **Energy Level:** In battle, this functions like a rechargeable shield or mana bar. Certain actions or enemy attacks can drain it, temporarily deactivating parts until it recharges.
 
-Battle Mode
-0.  Robot and enemy get stats from cards in frame
-1.  Auto battler where robots approach and then continue to hit each other
-2.  After set amount of time (ticks), player can freeze battle to go back to build mode
-3.  Repeat until one side's Durability (HP) reaches zero.
-Map
-1. tbd.
+### Durability & Scrap
+- **Part Durability:** The health of an individual part. When a part is hit in combat, its `Durability` decreases.
+- **Chassis Health:** The core health of your robot. Damage is applied to `Part Durability` first. Once a part's `Durability` is 0, it is destroyed.
+- **Destroyed Parts:** A destroyed part becomes a `Scrap` card. `Scrap` cards are useless in combat but can be recycled for resources in Build Mode.
 
-## 3. Target Player Experience
-Feeling like at the beginning learning how basic parts on robot makes it fight better
-The point of the game is to learn how many and the configuration of parts depending on the stats of the enemy in the next battle
+## 4. Core Gameplay Loop
+*A complete cycle of play.*
 
-"The player should feel like a clever engineer, making calculated risks and finding powerful synergies between managing their mech's volatile systems and the strength weaknesses that work together"
+**1. The Map:**
+- The player navigates a city map, choosing their next encounter.
+- Options include: Enemy battles, Shops (buy/mod parts), Repair Bays (spend Scrap to restore Durability), and narrative events.
+
+**2. Build Mode (Pre-Battle Prep):**
+- The player enters a build screen with their chassis and hand of part cards.
+- **Goal:** Assemble the best possible robot for the upcoming fight using a limited `Build Heat` budget.
+- **Actions:**
+    - Drag parts from hand onto chassis slots. This consumes `Build Heat` and `Energy Capacity`.
+    - Scrap unwanted parts from hand to regain `Build Heat`.
+    - Review the final stats (Total Durability, Battle Heat generation, etc.) of the assembled mech.
+- Once satisfied, the player clicks "Start Battle".
+
+**3. Battle Mode (Auto-Battler with a Twist):**
+- The player's mech and the enemy mech fight automatically based on their equipped parts and stats.
+- **Player Agency:** At any time (After a cooldown), the player can **pause the fight** and return to Build Mode.
+    - In this mid-battle build phase, they can repair parts (for a cost), re-arrange components, or swap in new ones from their hand to adapt their strategy.
+    - Parts are repaired by using Scrapper heat on parts
+- **Outcome:** The battle ends when one mech's `Chassis Health` reaches zero.
+
+**4. Reward Screen:**
+- If victorious, the player earns rewards.
+- Rewards can include: New part cards, Scrap (currency), and Medals (permanent modifiers).
+
+## 5. Target Player Experience
+*This section is well-defined and provides a great emotional target.*
+
+"The player should feel like a clever engineer, making calculated risks and finding powerful synergies between managing their mech's volatile systems and the strength weaknesses that work together."
+
+The point of the game is to learn how many and the configuration of parts depending on the stats of the enemy in the next battle.
 

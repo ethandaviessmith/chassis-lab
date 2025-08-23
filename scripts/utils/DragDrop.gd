@@ -451,8 +451,9 @@ func is_position_over_control(position: Vector2, control: Control) -> bool:
     
     # Print debugging info for ChassisSlots
     if control.get_script() and "ChassisSlot" in control.get_script().resource_path:
-        print("Checking ChassisSlot rect: ", rect, " against local_pos: ", local_pos)
-        print("Global position: ", position, " - Control global position: ", control.global_position)
+        # print("Checking ChassisSlot rect: ", rect, " against local_pos: ", local_pos)
+        # print("Global position: ", position, " - Control global position: ", control.global_position)
+        pass
     
     # Check if point is within control bounds (with margin)
     return rect.has_point(local_pos)
@@ -462,12 +463,29 @@ func is_valid_drop(draggable, drop_target) -> bool:
     if drop_target.valid_types.size() == 0:
         # No type restrictions
         return true
-        
-    # Check if draggable has a method to get its type
-    if draggable.has_method("get_card_type"):
-        var type = draggable.get_card_type()
-        return type in drop_target.valid_types
-        
+    
+    # Get the draggable type    
+    var draggable_type = ""
+    
+    # Check if draggable is a Card with data
+    if draggable is Control and draggable.has_method("get_card_type"):
+        # Use the card's method to get its type
+        draggable_type = draggable.get_card_type()
+    elif draggable is Control and "data" in draggable:
+        # Access data directly
+        if draggable.data is Part:
+            draggable_type = draggable.data.type.to_lower()
+        elif draggable.data is Dictionary:
+            draggable_type = draggable.data.get("type", "").to_lower()
+    
+    # Convert to lower case for case-insensitive comparison
+    draggable_type = draggable_type.to_lower()
+    
+    # Check against each valid type (also convert to lowercase)
+    for valid_type in drop_target.valid_types:
+        if draggable_type == valid_type.to_lower():
+            return true
+            
     return false
 
 func highlight_valid_targets(highlight: bool):

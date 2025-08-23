@@ -149,11 +149,7 @@ func _show_deck_view(pile_type = "all"):
         "all":
             # Show all cards including draw pile, discard pile, hand, and exhausted cards
             cards_to_show = deck_manager.deck + deck_manager.discard_pile
-            
-            # IMPORTANT: Include cards in hand when showing all cards
             cards_to_show += deck_manager.hand
-            
-            # Optionally include exhausted cards as well
             if deck_manager.exhausted_pile:
                 cards_to_show += deck_manager.exhausted_pile
     
@@ -173,20 +169,7 @@ func _show_deck_view(pile_type = "all"):
     for card_data in cards_to_show:
         var card = card_scene.instantiate()
         deck_grid.add_child(card)
-        
-        # Start cards invisible for animation
-        
-        # Prepare the card data
-        var prepared_data = card_data.duplicate()
-        if not "effects" in prepared_data:
-            prepared_data["effects"] = []
-        if not "rarity" in prepared_data:
-            prepared_data["rarity"] = "Common"
-        if not "image" in prepared_data:
-            prepared_data["image"] = ""
-        
-        # Initialize the card
-        card.initialize(prepared_data, null, null)
+        card.initialize(card_data, null, null)
 
         # Disable drag/drop in deck view
         if card.drag_drop:

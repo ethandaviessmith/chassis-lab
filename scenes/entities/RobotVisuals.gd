@@ -222,18 +222,12 @@ func set_animation_frames(head_frame_count = 1, core_frame_count = 1, legs_frame
 func update_animation_frames():
     print("RobotVisuals: Updating animation frames")
     # Set animation frames based on part data
-    var head_frame_count = head_data.get("frames", 1) if head_data else 1
-    var core_frame_count = core_data.get("frames", 1) if core_data else 1
-    var legs_frame_count = legs_data.get("frames", 1) if legs_data else 1
-    
-    # For arms, use the max frame count between left and right
-    var left_arm_frame_count = left_arm_data.get("frames", 1) if left_arm_data else 1
-    var right_arm_frame_count = right_arm_data.get("frames", 1) if right_arm_data else 1
-    var arm_frame_count = max(left_arm_frame_count, right_arm_frame_count)
-    
-    print("  Frame counts - head: ", head_frame_count, ", core: ", core_frame_count, 
-          ", legs: ", legs_frame_count, ", arms: ", arm_frame_count)
-          
+    var head_frame_count = 1
+    var core_frame_count = 1
+    var legs_frame_count = 1
+    var left_arm_frame_count = 1
+    var right_arm_frame_count = 1
+
     # Remember current frame indices before setting animation frames
     var current_head_frame = head_sprite.frame
     var current_core_frame = core_sprite.frame
@@ -242,8 +236,8 @@ func update_animation_frames():
     var current_right_arm_frame = right_arm_sprite.frame
     
     # Apply the frame counts
-    set_animation_frames(head_frame_count, core_frame_count, legs_frame_count, arm_frame_count)
-    
+    set_animation_frames(head_frame_count, core_frame_count, legs_frame_count, left_arm_frame_count)
+
     # Restore frame indices (as set_animation_frames resets them to 0)
     print("  Restoring frame indices")
     head_sprite.frame = current_head_frame
@@ -257,36 +251,22 @@ func update_from_part_data(parts_data: Dictionary):
     print("RobotVisuals: Updating from part data")
     # Parts data should contain head, core, left_arm, right_arm, legs
     if parts_data.has("head") and parts_data.head != null:
+        head_sprite.frame = parts_data.head.frame
         head_data = parts_data.head
-        var frame_index = head_data.get("frame_index", FRAME_INDEX_HEAD)
-        print("  Head frame_index: ", frame_index, " (default: ", FRAME_INDEX_HEAD, ")")
-        head_sprite.frame = frame_index
-        
     if parts_data.has("core") and parts_data.core != null:
+        core_sprite.frame = parts_data.core.frame
         core_data = parts_data.core
-        var frame_index = core_data.get("frame_index", FRAME_INDEX_CORE)
-        print("  Core frame_index: ", frame_index, " (default: ", FRAME_INDEX_CORE, ")")
-        core_sprite.frame = frame_index
-        
     if parts_data.has("left_arm") and parts_data.left_arm != null:
+        left_arm_sprite.frame = parts_data.left_arm.frame
         left_arm_data = parts_data.left_arm
-        var frame_index = left_arm_data.get("frame_index", FRAME_INDEX_LEFT_ARM)
-        print("  Left arm frame_index: ", frame_index, " (default: ", FRAME_INDEX_LEFT_ARM, ")")
-        left_arm_sprite.frame = frame_index
-        
     if parts_data.has("right_arm") and parts_data.right_arm != null:
+        right_arm_sprite.frame = parts_data.right_arm.frame
         right_arm_data = parts_data.right_arm
-        var frame_index = right_arm_data.get("frame_index", FRAME_INDEX_RIGHT_ARM)
-        print("  Right arm frame_index: ", frame_index, " (default: ", FRAME_INDEX_RIGHT_ARM, ")")
-        right_arm_sprite.frame = frame_index
-        
     if parts_data.has("legs") and parts_data.legs != null:
+        legs_sprite.frame = parts_data.legs.frame
         legs_data = parts_data.legs
-        var frame_index = legs_data.get("frame_index", FRAME_INDEX_LEGS)
-        print("  Legs frame_index: ", frame_index, " (default: ", FRAME_INDEX_LEGS, ")")
-        legs_sprite.frame = frame_index
-        
     if parts_data.has("utility") and parts_data.utility != null:
+        # utility_sprite.frame = parts_data.utility.frame (utility not shown in fight)
         utility_data = parts_data.utility
     
     # Update animation frames if part data includes frame counts
@@ -466,43 +446,37 @@ func initialize_from_robot_parts(robot_parts: Dictionary):
 func convert_to_visual_part(part_data, part_type: String):
     if part_data == null:
         return null
-    
-    print("Converting part for ", part_type, ": ", part_data.get("name", "unnamed"))
-        
-    # Create a copy of the part data
+    print("Converting part for ", part_type, ": ", part_data.name)
     var visual_part = part_data.duplicate()
     
-    # Debug part data
-    print("  Part data keys: ", visual_part.keys())
-    
     # Add frame index if not present
-    if not visual_part.has("frame_index"):
+    if not visual_part.frame:
         print("  No frame_index found, adding default based on part type")
         match part_type:
             "head":
-                visual_part["frame_index"] = FRAME_INDEX_HEAD
+                visual_part.frame = FRAME_INDEX_HEAD
                 print("  Set head frame_index to ", FRAME_INDEX_HEAD)
             "core":
-                visual_part["frame_index"] = FRAME_INDEX_CORE
+                visual_part.frame = FRAME_INDEX_CORE
                 print("  Set core frame_index to ", FRAME_INDEX_CORE)
             "left_arm":
-                visual_part["frame_index"] = FRAME_INDEX_LEFT_ARM
+                visual_part.frame = FRAME_INDEX_LEFT_ARM
                 print("  Set left_arm frame_index to ", FRAME_INDEX_LEFT_ARM)
             "right_arm":
-                visual_part["frame_index"] = FRAME_INDEX_RIGHT_ARM
+                visual_part.frame = FRAME_INDEX_RIGHT_ARM
                 print("  Set right_arm frame_index to ", FRAME_INDEX_RIGHT_ARM)
             "legs":
-                visual_part["frame_index"] = FRAME_INDEX_LEGS
+                visual_part.frame = FRAME_INDEX_LEGS
                 print("  Set legs frame_index to ", FRAME_INDEX_LEGS)
             "utility":
-                visual_part["frame_index"] = FRAME_INDEX_UTILITY
+                visual_part.frame = FRAME_INDEX_UTILITY
                 print("  Set utility frame_index to ", FRAME_INDEX_UTILITY)
     else:
-        print("  Found existing frame_index: ", visual_part.get("frame_index", 0))
-        if part_type == "left_arm" and visual_part.get("type", "").to_lower() == "arm":
-            var base_frame = visual_part.get("frame_index", 0)
-            visual_part["frame_index"] = base_frame + left_to_right_offset
-    
+        print("  Found existing frame: ", visual_part.frame)
+        if part_type == "left_arm" and visual_part.type.to_lower() == "arm":
+            var base_frame = visual_part.frame
+            visual_part.frame = base_frame + left_to_right_offset
+
     return visual_part
 
 # Helper function to update a sprite's region or frame

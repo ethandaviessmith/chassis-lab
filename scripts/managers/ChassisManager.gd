@@ -99,7 +99,7 @@ func register_slots_as_drop_targets(card):
                 registered_count += 1
         
         print("Registered ", registered_count, " drop targets for card type: ", 
-              card.data.type if card.data and card.data.has("type") else "unknown")
+              card.data.type if card.data else "unknown")
 
 # Get valid card types for each slot type
 func _get_valid_types_for_slot(slot_name: String) -> Array:
@@ -144,24 +144,35 @@ func attach_part_to_slot(card, slot_name) -> bool:
     
     # Check if card type matches slot type for regular slots
     var valid_slot = false
-    match card_data.type:
-        "Head":
+    
+    # Get the type from either Part object or Dictionary
+    var card_type = ""
+    if card_data is Part:
+        card_type = card_data.type
+    else:
+        card_type = card_data.get("type", "")
+    
+    # Make case-insensitive comparison
+    card_type = card_type.to_lower()
+    
+    match card_type:
+        "head":
             valid_slot = (slot_name == "head")
-        "Core":
+        "core":
             valid_slot = (slot_name == "core")
-        "Arm":
+        "arm":
             valid_slot = (slot_name == "arm_left" or slot_name == "arm_right")
-        "Leg", "Legs":
+        "leg", "legs":
             valid_slot = (slot_name == "legs")
-        "Utility":
+        "utility":
             valid_slot = (slot_name == "utility")
-        "Scrapper":
+        "scrapper":
             valid_slot = true #(slot_name == "scrapper")
     
     if not valid_slot:
         return false
     
-    var card_cost = card_data.get("cost", 0)
+    var card_cost = card_data.cost
     var card_current_slot = ""
     
     # Check if this card is already attached somewhere else
@@ -248,7 +259,8 @@ func attach_part_to_slot(card, slot_name) -> bool:
         if slot_name != "scrapper" and target_slot.get_part() != null and target_slot.get_part() != card:
             var previous_card = target_slot.get_part()
             if previous_card is Card and hand_manager:
-                print("Returning previous card from slot to hand: ", previous_card.data.get("name", "Unknown"))
+                var card_name = previous_card.data.part_name if previous_card.data is Part else previous_card.data.get("name", "Unknown")
+                print("Returning previous card from slot to hand: ", card_name)
                 hand_manager.return_card_to_hand(previous_card)
         
         # Position the card in the center of the slot
@@ -257,10 +269,8 @@ func attach_part_to_slot(card, slot_name) -> bool:
             if card.has_method("set_card_state"):
                 card.set_card_state(Card.State.CHASSIS_SLOT)
             
-            # Mark the card as attached to chassis for tracking
-            card.set_meta("attached_to_chassis", true)
-            if card.data and card.data.has("instance_id"):
-                card.set_meta("chassis_card_id", card.data.instance_id)
+            # Update card part metadata
+            update_card_part_metadata(card, slot_name)
             
             # Now that the card is set to chassis slot state with 0.5 scale,
             # we need to account for that in our positioning
@@ -325,7 +335,7 @@ func _attach_card_to_scrapper(card) -> bool:
         return false
     
     # Check if the card has heat (must have at least 1 heat for scrapper)
-    if card is Card and card.data.has("heat"):
+    if card is Card and card.data:
         var heat_value = int(card.data.heat)
         if heat_value < 1:
             print("Card rejected from scrapper: must have at least 1 heat")
@@ -378,10 +388,8 @@ func _attach_card_to_scrapper(card) -> bool:
             if card.has_method("set_card_state"):
                 card.set_card_state(Card.State.CHASSIS_SLOT)
             
-            # Mark the card as attached to chassis for tracking
-            card.set_meta("attached_to_chassis", true)
-            if card.data and card.data.has("instance_id"):
-                card.set_meta("chassis_card_id", card.data.instance_id)
+            # Update card part metadata
+            update_card_part_metadata(card, "scrapper")
                 
             var base_position = scrapper_slot_control.global_position
             var cards_count = scrapper_cards.size()
@@ -470,24 +478,32 @@ func handle_card_drag(card):
                     is_compatible = slot.is_compatible_with_card(card_data)
                 else:
                     # Fallback compatibility check if slot doesn't have the method
-                    match card_data.type:
-                        "Head":
+                    # Get the type from either Part object or Dictionary
+                    var card_type = ""
+                    if card_data is Part:
+                        card_type = card_data.type.to_lower()
+                    else:
+                        card_type = card_data.get("type", "").to_lower()
+                    
+                    match card_type:
+                        "head":
                             is_compatible = (slot_name == "head")
-                        "Core":
+                        "core":
                             is_compatible = (slot_name == "core")
-                        "Arm":
+                        "arm":
                             is_compatible = (slot_name == "arm_left" or slot_name == "arm_right")
-                        "Legs":
+                        "legs", "leg":
                             is_compatible = (slot_name == "legs")
-                        "Scrapper":
+                        "scrapper":
                             is_compatible = (slot_name == "scrapper")
-                        "Utility":
+                        "utility":
                             is_compatible = (slot_name == "utility")
                 
                 # Highlight the slot if compatible
                 if is_compatible:
                     slot.highlight(true)  # Pass true for valid highlight
-                    print("Card data found: type = ", card_data.get("type", "unknown"))
+                    print("Card data found: type = ", 
+                          card_data.type if card_data is Part else card_data.get("type", "Unknown"))
                 else:
                     slot.highlight(false)  # Pass false for invalid highlight
 
@@ -512,24 +528,33 @@ func handle_card_drag(card):
 
 # Check if slot is valid for a card type
 func is_valid_slot_for_card(card, slot_name: String) -> bool:
-    if not card or not card.data or not card.data.has("type"):
+    if not card or not card.data:
+        return false
+    
+    # Get the type from either Part object or Dictionary
+    var card_type = ""
+    if card.data is Part:
+        card_type = card.data.type.to_lower()
+    elif card.data.has("type"):
+        card_type = card.data.get("type", "").to_lower()
+    else:
         return false
     
     # Special case for scrapper slot (accepts any card)
     if slot_name == "scrapper":
         return true
     
-    # Check card type against slot type
-    match card.data.type:
-        "Head":
+    # Check card type against slot type (using lowercase for case-insensitive comparison)
+    match card_type:
+        "head":
             return slot_name == "head"
-        "Core":
+        "core":
             return slot_name == "core"
-        "Arm":
+        "arm":
             return slot_name == "arm_left" or slot_name == "arm_right"
-        "Leg", "Legs":
+        "leg", "legs":
             return slot_name == "legs"
-        "Utility":
+        "utility":
             return slot_name == "utility"
     
     return false
@@ -596,6 +621,9 @@ func handle_card_drop(card, drop_pos, target = null):
                     card.remove_meta("attached_to_chassis")
                 if card.has_meta("chassis_card_id"):
                     card.remove_meta("chassis_card_id")
+                
+                # Clear Part metadata
+                clear_card_part_metadata(card)
                 
                 # Update UI for robot visuals
                 emit_signal("chassis_updated", attached_parts)            # Check for recursion guard
@@ -770,7 +798,7 @@ func reset_after_combat():
         for card in scrapper_cards:
             if is_instance_valid(card) and card is Card:
                 # Check if card still has durability
-                var durability = card.data.get("durability", 0)
+                var durability = card.data.durability if card.data is Part else card.data.get("durability", 0)
                 print("ChassisManager: Checking scrapper card durability: ", durability)
                 if durability <= 0:
                     # Use our centralized method to remove the card
@@ -802,7 +830,8 @@ func _on_card_played(card, _slot):
     # This is called when a card is played, not when it's discarded
     # We only need to handle it if it affects a card already in our chassis
     if card is Card and card.has_meta("attached_to_chassis"):
-        print("ChassisManager: Card played that was attached to chassis: ", card.data.get("name", "Unknown"))
+        var card_name = card.data.part_name if card.data is Part else card.data.get("name", "Unknown")
+        print("ChassisManager: Card played that was attached to chassis: ", card_name)
         remove_card_from_attached_parts(card)
     
 # Handle card scrapped signal from DeckManager
@@ -826,9 +855,11 @@ func remove_card_from_attached_parts_by_instance_id(instance_id):
     for slot_name in attached_parts:
         if slot_name != "scrapper":
             var part = attached_parts[slot_name]
-            if part is Card and part.data.has("instance_id") and part.data.instance_id == instance_id:
-                print("ChassisManager: Found card to remove in slot: ", slot_name)
-                slots_to_clear.append(slot_name)
+            if part is Card:
+                var part_id = part.data.instance_id if part.data is Part else part.data.get("instance_id", "")
+                if part_id == instance_id:
+                    print("ChassisManager: Found card to remove in slot: ", slot_name)
+                    slots_to_clear.append(slot_name)
             elif part is Dictionary and part.has("instance_id") and part.instance_id == instance_id:
                 print("ChassisManager: Found card data to remove in slot: ", slot_name)
                 slots_to_clear.append(slot_name)
@@ -845,7 +876,10 @@ func remove_card_from_attached_parts_by_instance_id(instance_id):
         var cards_to_remove = []
         
         for card in scrapper_cards:
-            if card is Card and card.data.has("instance_id") and card.data.instance_id == instance_id:
+            if card is Card:
+                var card_id = card.data.instance_id if card.data is Part else card.data.get("instance_id", "")
+                if card_id == instance_id:
+                    print("Found matching card by ID: ", instance_id)
                 cards_to_remove.append(card)
                 print("ChassisManager: Found card to remove from scrapper")
             elif card is Dictionary and card.has("instance_id") and card.instance_id == instance_id:
@@ -864,8 +898,16 @@ func remove_card_from_attached_parts_by_instance_id(instance_id):
 
 # Remove a card from attached_parts (either Card object or Dictionary)
 func remove_card_from_attached_parts(card):
-    print("ChassisManager: Removing card: ", 
-          card.data.get("name", "Unknown") if card is Card else card.get("name", "Unknown") if card is Dictionary else "Unknown")
+    var card_name = "Unknown"
+    if card is Card:
+        if card.data is Part:
+            card_name = card.data.part_name
+        else:
+            card_name = card.data.get("name", "Unknown")
+    elif card is Dictionary:
+        card_name = card.get("name", "Unknown")
+        
+    print("ChassisManager: Removing card: ", card_name)
     
     # First check regular slots
     var slots_to_clear = []
@@ -893,8 +935,15 @@ func remove_card_from_attached_parts(card):
                 scrapper_slot.remove_card(card)
     
     # If card is a Card object with data, try to match by instance_id
-    if card is Card and card.data and card.data.has("instance_id"):
-        remove_card_from_attached_parts_by_instance_id(card.data.instance_id)
+    if card is Card and card.data:
+        var card_id = ""
+        if card.data is Part:
+            card_id = card.data.instance_id
+        elif card.data.has("instance_id"):
+            card_id = card.data.instance_id
+            
+        if card_id != "":
+            remove_card_from_attached_parts_by_instance_id(card_id)
     
     # Update UI
     emit_signal("chassis_updated", attached_parts)
@@ -948,6 +997,24 @@ func store_combat_parts(parts_dict):
 # Clear all parts after combat ends
 func clear_combat_parts():
     combat_parts_storage.clear()
+    
+# Update Part objects to use proper Part class properties
+func update_card_part_metadata(card: Card, slot_name: String):
+    if card and card.data and card.data is Part:
+        # Set Part metadata directly
+        card.data.attached_to_chassis = true
+        card.data.chassis_slot = slot_name
+        # card.data.chassis_card_id = card.data.id
+        
+func clear_card_part_metadata(card: Card):
+    if card and card.data and card.data is Part:
+        # Clear Part metadata
+        card.data.attached_to_chassis = false
+        card.data.chassis_slot = ""
+        # card.data.chassis_card_id = ""
+        
+        # Update card part metadata
+        update_card_part_metadata(card, "combat")
     print("ChassisManager: Cleared combat parts storage")
 
 # Handle the end of combat phase

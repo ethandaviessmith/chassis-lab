@@ -94,7 +94,7 @@ func draw_single_card():
     var card_data = deck_manager.draw_card()
     
     # Check if we got a valid card
-    if card_data.is_empty():
+    if card_data == null:
         print("HandManager: Failed to draw card - empty result from deck_manager")
         return false
     
@@ -218,20 +218,30 @@ func create_card_sprite(card_data, index):
         print("Card signals: ", card.get_signal_list().map(func(s): return s.name))
         
         # Prepare the card data properly
-        var prepared_data = card_data.duplicate()
+        var prepared_data
         
-        # Add required fields if missing
-        if not "effects" in prepared_data:
-            prepared_data["effects"] = [{"description": "Basic effect"}]
+        # Handle different types of card_data (Part objects vs dictionaries)
+        if card_data is Part:
+            # Create a new Part and initialize from the existing one
+            var new_part = Part.new()
+            prepared_data = new_part.initialize_from_part(card_data)
+        else:
+            # For dictionaries, just duplicate
+            prepared_data = card_data.duplicate()
         
-        if not "description" in prepared_data:
-            prepared_data["description"] = ""
+        # Add required fields if missing (dictionary mode)
+        if prepared_data is Dictionary:
+            if not "effects" in prepared_data:
+                prepared_data["effects"] = [{"description": "Basic effect"}]
             
-        if not "rarity" in prepared_data:
-            prepared_data["rarity"] = "Common"
+            if not "description" in prepared_data:
+                prepared_data["description"] = ""
+                
+            if not "rarity" in prepared_data:
+                prepared_data["rarity"] = "Common"
             
-        if not "image" in prepared_data:
-            prepared_data["image"] = ""
+        # if not "image" in prepared_data:
+        #     prepared_data["image"] = ""
         
         # Add to tracking array - do this before initialize to ensure it's tracked properly
         cards_in_hand.append(card)
@@ -305,7 +315,7 @@ func return_card_to_hand(card):
     if card.has_meta("attached_to_chassis"):
         # Get the energy cost of the card
         var card_cost = 0
-        if card is Card and card.data.has("cost"):
+        if card is Card and card.data.cost:
             card_cost = int(card.data.cost)
         
         # Refund energy if cost is greater than 0 and turn_manager exists

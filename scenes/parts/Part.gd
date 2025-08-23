@@ -1,5 +1,5 @@
 extends Node2D
-class_name Part
+class_name Part_bac
 
 var id: String
 var part_name: String

@@ -22,12 +22,12 @@ func calculate_heat(attached_parts: Dictionary) -> Dictionary:
         for slot_name in ["head", "core", "arm_left", "arm_right", "legs", "utility"]:
             if attached_parts.has(slot_name):
                 var card = attached_parts[slot_name]
-                if card and card.data and card.data.has("heat"):
-                    needed_heat += int(card.data["heat"])
+                if card and card.data and card.data.heat:
+                    needed_heat += int(card.data.heat)
         if attached_parts.has("scrapper"):
             for card in attached_parts["scrapper"]:
-                if card and card.data and card.data.has("heat"):
-                    scrapper_heat += int(card.data["heat"])
+                if card and card.data and card.data.heat:
+                    scrapper_heat += int(card.data.heat)
     available_heat = scrapper_heat + base_scrapper_heat
     max_heat = max(10, needed_heat + available_heat)
     var heat_data = {

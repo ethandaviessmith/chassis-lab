@@ -50,22 +50,22 @@ func _ready():
     update_visuals()
 
 # Create a part object from card data
-func create_part_from_card(card_data: Dictionary, is_right: bool = false):
+func create_part_from_card(card_data: Part, is_right: bool = false):
     # Convert card data to a part object that can be used for visuals
     var part = {
-        "name": card_data.get("name", "Unknown Part"),
-        "type": card_data.get("type", "Unknown"),
-        "cost": card_data.get("cost", 0),
-        "heat": card_data.get("heat", 0),
-        "durability": card_data.get("durability", 1),
-        "effects": card_data.get("effects", []),
+        "name": card_data.name,
+        "type": card_data.type,
+        "cost": card_data.cost,
+        "heat": card_data.heat,
+        "durability": card_data.durability,
+        "effects": card_data.effects,
         "frame_index": 0
     }
     
     # Get frame index from card data
-    if card_data.has("frame"):
+    if card_data.frame:
         part.frame_index = card_data.frame
-        if card_data.get("type", "").to_lower() == "arm" and !is_right:
+        if card_data.type.to_lower() == "arm" and !is_right:
             part.frame_index += left_to_right_offset
     return part
 
@@ -78,27 +78,27 @@ func attach_part_visual(part_data, slot: String):
             # Scrapper parts don't have sprites but we store the data
         "head":
             head_data = part_data
-            if head_sprite and part_data.has("frame_index"):
+            if head_sprite and part_data.frame_index:
                 head_sprite.frame = part_data.frame_index
         "core":
             core_data = part_data
-            if core_sprite and part_data.has("frame_index"):
+            if core_sprite and part_data.frame_index:
                 core_sprite.frame = part_data.frame_index
         "left_arm":
             left_arm_data = part_data
-            if left_arm_sprite and part_data.has("frame_index"):
+            if left_arm_sprite and part_data.frame_index:
                 left_arm_sprite.frame = part_data.frame_index
         "right_arm":
             right_arm_data = part_data
-            if right_arm_sprite and part_data.has("frame_index"):
+            if right_arm_sprite and part_data.frame_index:
                 right_arm_sprite.frame = part_data.frame_index
         "legs":
             legs_data = part_data
-            if legs_sprite and part_data.has("frame_index"):
+            if legs_sprite and part_data.frame_index:
                 legs_sprite.frame = part_data.frame_index
         "utility":
             utility_data = part_data
-            if utility_sprite and part_data.has("frame_index"):
+            if utility_sprite and part_data.frame_index:
                 utility_sprite.frame = part_data.frame_index
     
     print("RobotFrame: Attached ", part_data.name, " to ", slot)
@@ -191,7 +191,7 @@ func build_robot_visuals(attached_parts: Dictionary):
     for slot_name in slot_order:
         if attached_parts.has(slot_name) and is_instance_valid(attached_parts[slot_name]):
             var card = attached_parts[slot_name]
-            if card is Card and card.data.size() > 0:
+            if card is Card and card.data:
                 print("  - Adding visual for ", slot_name, ": ", card.data.name, card.data.frame)
                 
                 # Convert slot names to robot part names and determine if it's a right arm

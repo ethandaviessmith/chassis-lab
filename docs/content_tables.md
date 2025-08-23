@@ -15,11 +15,11 @@ rail_arm,Rail Arm,Arm,2,1,3,"12 dmg shot; pierce 1",Uncommon,"Mainline DPS with 
 saw_arm,Saw Arm,Arm,1,1,4,"4 dmg + 2 bleed over 3s",Common,"DoT/armor shred flavor"
 pulse_blaster,Pulse Blaster,Arm,1,0,3,"6 dmg; +10% stagger chance",Common,"Reliable cheap arm"
 flak_arm,Flak Arm,Arm,2,1,4,"8 dmg; +25% vs shielded",Uncommon,"Anti-shield tech"
-heavy_plating,Heavy Plating,Core,1,0,5,"+10 Armor until end of fight; -5% move speed",Common,"Survivability tradeoff"
+heavy_plating,Heavy Plating,Core,1,0,5,"+10 Armor until end of fight; -5% move speed",Common,"Adds a massive durability buffer to protect other parts"
 tracked_legs,Tracked Legs,Leg,1,0,4,"+20% stability; -10% knockback",Common,"Baseline stability legs"
 jump_jets,Jump Jets,Leg,2,1,3,"+20% dodge burst every 5s",Rare,"Evade window legs"
 overclock,Overclock,Utility,1,2,2,"+25% dmg this turn; +3 Heat instantly",Uncommon,"Burst with heat risk"
-patch_kit,Patch Kit,Utility,1,0,1,"Heal 15 HP; purge 2 Heat",Common,"Emergency sustain"
+patch_kit,Patch Kit,Utility,1,0,1,"Restore 3 Durability to a non-Core part. Purge 2 Heat.",Common,"In-combat repair"
 auto_loader,Auto-Loader,Head,2,1,4,"+15% attack speed",Rare,"Speed head"
 capacitor,Capacitor,Core,0,0,3,"Store 1 unused Energy; release next turn",Common,"Smoothing economy"
 reinforced_armature,Reinforced Armature,Leg,1,0,4,"+10% move speed; +5% armor",Uncommon,"Mobility + slight armor"
@@ -45,8 +45,8 @@ Contains detailed enemy data with structured special abilities, behaviors, and s
 ## Balance Parameters (balance.json)
 
 ### Player Base Stats
-- Starting Energy/HP: 10
-- Starting Max Heat: 10
+- Starting Energy: 3
+- Max Heat: 10
 - Base Move Speed: 100
 - Base Attack Speed: 1.0
 - Base Armor: 0
@@ -64,7 +64,7 @@ Contains detailed enemy data with structured special abilities, behaviors, and s
 
 - **Overheat Effects**:
   - Warning: 80% attack speed, 90% move speed
-  - Critical: 50% attack speed, 70% move speed, 1 damage per second
+  - Critical: 50% attack speed, 70% move speed, 1 durability damage per second to a random part
 
 - **Heat Management**:
   - Natural Dissipation: -1 every 3 seconds
@@ -85,13 +85,18 @@ Contains detailed enemy data with structured special abilities, behaviors, and s
   - Encounter 2: 50% Common, 40% Uncommon, 10% Rare
   - Encounter 3: 30% Common, 50% Uncommon, 20% Rare
 
+### Hangar & Repair System
+- **Resource**: Scrap (used for repairs)
+- **Scrap Conversion**: At end of combat, gain 1 Scrap for every point of Heat below the Warning threshold (8).
+- **Repair Cost**: 1 Scrap restores 1 Durability to any part.
+
 ### Scrapper/Forge System
-- Maximum Heat: 5
-- Heat Gain per Card: 1
+- **Resource**: Upgrade Materials (gained by scrapping unwanted cards)
+- **Scrap Value**: 1 Material per card scrapped
 - Enhancement Values:
-  - 1 Heat: +1 damage, +1 durability
-  - 3 Heat: +3 damage, +2 durability
-  - 5 Heat: +5 damage, +3 durability
+  - Cost 1 Material: +1 damage, +1 durability
+  - Cost 3 Materials: +3 damage, +2 durability
+  - Cost 5 Materials: +5 damage, +3 durability
 
 ## Card Distribution by Type
 

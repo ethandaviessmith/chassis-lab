@@ -90,12 +90,24 @@ func _on_part_durability_changed(part, new_durability):
     print("Part durability changed: ", part, " - New durability: ", new_durability)
     
     # Check if this part has an instance_id
-    if part is Dictionary and part.has("instance_id"):
+    var instance_id = ""
+    
+    if part is Part:
+        # Handle Part objects directly
+        instance_id = part.instance_id
+    elif part is Dictionary and part.has("instance_id"):
+        # Handle dictionary data
+        instance_id = part["instance_id"]
+    elif part is Card and part.data:
+        # Handle Card objects with data
+        if part.data is Part:
+            instance_id = part.data.instance_id
+        elif part.data.has("instance_id"):
+            instance_id = part.data["instance_id"]
+    
+    if instance_id != "":
         # Update the card's durability in our registry
-        update_card_durability(part["instance_id"], new_durability)
-    elif part is Card and part.data.has("instance_id"):
-        # Update the card's durability in our registry
-        update_card_durability(part.data["instance_id"], new_durability)
+        update_card_durability(instance_id, new_durability)
     else:
         print("Cannot track durability - no instance_id found for part:", part)
 
@@ -153,7 +165,14 @@ func configure_starting_deck(type_distribution: Dictionary = {}) -> void:
     var cards_by_type = {}
     
     for card in all_available_cards:
-        var card_type = card.get("type", "Unknown")
+        var card_type = ""
+        
+        if card is Part:
+            # Handle Part objects
+            card_type = card.type.capitalize()  # Convert "head" to "Head", etc.
+        else:
+            # Handle dictionary data
+            card_type = card.get("type", "Unknown")
         
         # Initialize array for this type if needed
         if not cards_by_type.has(card_type):
@@ -188,11 +207,20 @@ func configure_starting_deck(type_distribution: Dictionary = {}) -> void:
         while added < count:
             # Pick a random card of this type
             var random_index = randi() % type_cards.size()
-            var random_card = type_cards[random_index].duplicate()
+            var random_card
             
-            # Add a unique identifier to distinguish duplicates
-            if not random_card.has("instance_id"):
-                random_card["instance_id"] = randi()
+            # Properly duplicate the card based on its type
+            if type_cards[random_index] is Part:
+                # Create a new Part instance and copy all properties
+                random_card = Part.new()
+                random_card.duplicate_from(type_cards[random_index])
+                
+                # Add a unique identifier
+                if random_card.instance_id.is_empty():
+                    random_card.instance_id = str(randi())
+            else:
+                # For dictionaries, normal duplicate is fine
+                random_card = type_cards[random_index].duplicate()
                 
             # Add to deck
             deck.append(random_card)
@@ -207,7 +235,20 @@ func configure_starting_deck(type_distribution: Dictionary = {}) -> void:
     print("First few cards in configured deck:")
     for i in range(min(5, deck.size())):
         var card = deck[i]
-        print("  ", i+1, ": ", card.get("name", "Unknown"), " (", card.get("type", "Unknown"), ")")
+        
+        # Detailed debug output to figure out what's happening
+        print("  Card", i+1, "type:", typeof(card), "class:", card.get_class() if card is Object else "N/A")
+        
+        if card is Part:
+            print("  Part properties - ID:", card.id, "Name:", card.part_name, "Type:", card.type, "Instance ID:", card.instance_id)
+            var card_name = card.part_name
+            var card_type = card.type
+            print("  ", i+1, ": ", card_name, " (", card_type, ")")
+        else:
+            print("  Dictionary keys:", card.keys() if card is Dictionary else "Not a dictionary")
+            var card_name = card.get("name", "Unknown")
+            var card_type = card.get("type", "Unknown")
+            print("  ", i+1, ": ", card_name, " (", card_type, ")")
 
 func load_starting_deck(type_distribution: Dictionary = {}):
     print("Loading starting deck...")
@@ -219,42 +260,58 @@ func load_starting_deck(type_distribution: Dictionary = {}):
     print("First 3 cards in deck:")
     for i in range(min(3, deck.size())):
         var card = deck[i]
-        print("  ", i+1, ": ", card.get("name", "Unknown"), " (", card.get("type", "Unknown"), ")")
+        var card_name = card.part_name if card is Part else card.get("name", "Unknown")
+        var card_type = card.type if card is Part else card.get("type", "Unknown") 
+        print("  ", i+1, ": ", card_name, " (", card_type, ")")
 
 func _get_fallback_card_pool() -> Array:
     # Create a larger pool of sample cards if DataLoader fails
-    var sample_cards = [
-        # Heads
-        {"id": "scope_visor", "name": "Scope Visor", "type": "Head", "cost": 1, "heat": 0, "durability": 3, "rarity": "Common"},
-        {"id": "sensor_array", "name": "Sensor Array", "type": "Head", "cost": 2, "heat": 1, "durability": 4, "rarity": "Common"},
-        {"id": "targeting_cpu", "name": "Targeting CPU", "type": "Head", "cost": 3, "heat": 2, "durability": 3, "rarity": "Uncommon"},
-        {"id": "armored_helm", "name": "Armored Helm", "type": "Head", "cost": 2, "heat": 0, "durability": 5, "rarity": "Common"},
-        
-        # Cores
-        {"id": "fusion_core", "name": "Fusion Core", "type": "Core", "cost": 2, "heat": 1, "durability": 5, "rarity": "Common"},
-        {"id": "cooling_system", "name": "Cooling System", "type": "Core", "cost": 2, "heat": -1, "durability": 4, "rarity": "Uncommon"},
-        {"id": "power_generator", "name": "Power Generator", "type": "Core", "cost": 3, "heat": 2, "durability": 6, "rarity": "Uncommon"},
-        
-        # Arms
-        {"id": "rail_arm", "name": "Rail Arm", "type": "Arm", "cost": 2, "heat": 1, "durability": 3, "rarity": "Common"},
-        {"id": "saw_arm", "name": "Saw Arm", "type": "Arm", "cost": 1, "heat": 1, "durability": 4, "rarity": "Common"},
-        {"id": "cannon_arm", "name": "Cannon Arm", "type": "Arm", "cost": 3, "heat": 2, "durability": 3, "rarity": "Uncommon"},
-        {"id": "shield_arm", "name": "Shield Arm", "type": "Arm", "cost": 2, "heat": 0, "durability": 5, "rarity": "Common"},
-        {"id": "laser_arm", "name": "Laser Arm", "type": "Arm", "cost": 2, "heat": 2, "durability": 3, "rarity": "Uncommon"},
-        {"id": "grapple_arm", "name": "Grapple Arm", "type": "Arm", "cost": 1, "heat": 1, "durability": 4, "rarity": "Common"},
-        
-        # Legs
-        {"id": "tracked_legs", "name": "Tracked Legs", "type": "Legs", "cost": 1, "heat": 0, "durability": 4, "rarity": "Common"},
-        {"id": "jump_jets", "name": "Jump Jets", "type": "Legs", "cost": 2, "heat": 1, "durability": 3, "rarity": "Uncommon"},
-        {"id": "bipedal_legs", "name": "Bipedal Legs", "type": "Legs", "cost": 2, "heat": 0, "durability": 4, "rarity": "Common"},
-        
-        # Utility
-        {"id": "repair_drone", "name": "Repair Drone", "type": "Utility", "cost": 2, "heat": 0, "durability": 2, "rarity": "Uncommon"},
-        {"id": "ammo_cache", "name": "Ammo Cache", "type": "Utility", "cost": 1, "heat": 0, "durability": 3, "rarity": "Common"},
-        {"id": "stealth_field", "name": "Stealth Field", "type": "Utility", "cost": 3, "heat": 1, "durability": 2, "rarity": "Rare"}
-    ]
+    var sample_cards = []
+    
+    # Convert the dictionary data into Part objects
+    # Heads
+    _add_fallback_part(sample_cards, "scope_visor", "Scope Visor", "head", 1, 0, 3, "Common")
+    _add_fallback_part(sample_cards, "sensor_array", "Sensor Array", "head", 2, 1, 4, "Common")
+    _add_fallback_part(sample_cards, "targeting_cpu", "Targeting CPU", "head", 3, 2, 3, "Uncommon")
+    _add_fallback_part(sample_cards, "armored_helm", "Armored Helm", "head", 2, 0, 5, "Common")
+    
+    # Cores
+    _add_fallback_part(sample_cards, "fusion_core", "Fusion Core", "core", 2, 1, 5, "Common")
+    _add_fallback_part(sample_cards, "cooling_system", "Cooling System", "core", 2, -1, 4, "Uncommon")
+    _add_fallback_part(sample_cards, "power_generator", "Power Generator", "core", 3, 2, 6, "Uncommon")
+    
+    # Arms
+    _add_fallback_part(sample_cards, "rail_arm", "Rail Arm", "arm", 2, 1, 3, "Common")
+    _add_fallback_part(sample_cards, "saw_arm", "Saw Arm", "arm", 1, 1, 4, "Common")
+    _add_fallback_part(sample_cards, "cannon_arm", "Cannon Arm", "arm", 3, 2, 3, "Uncommon")
+    _add_fallback_part(sample_cards, "shield_arm", "Shield Arm", "arm", 2, 0, 5, "Common")
+    _add_fallback_part(sample_cards, "laser_arm", "Laser Arm", "arm", 2, 2, 3, "Uncommon")
+    _add_fallback_part(sample_cards, "grapple_arm", "Grapple Arm", "arm", 1, 1, 4, "Common")
+    
+    # Legs
+    _add_fallback_part(sample_cards, "tracked_legs", "Tracked Legs", "legs", 1, 0, 4, "Common")
+    _add_fallback_part(sample_cards, "jump_jets", "Jump Jets", "legs", 2, 1, 3, "Uncommon")
+    _add_fallback_part(sample_cards, "bipedal_legs", "Bipedal Legs", "legs", 2, 0, 4, "Common")
+    
+    # Utility
+    _add_fallback_part(sample_cards, "repair_drone", "Repair Drone", "utility", 2, 0, 2, "Uncommon")
+    _add_fallback_part(sample_cards, "ammo_cache", "Ammo Cache", "utility", 1, 0, 3, "Common")
+    _add_fallback_part(sample_cards, "stealth_field", "Stealth Field", "utility", 3, 1, 2, "Rare")
     
     return sample_cards
+
+# Helper function to create a Part and add it to the fallback card pool
+func _add_fallback_part(array, part_id, part_name, part_type, cost, heat, durability, rarity):
+    var part = Part.new()
+    part.id = part_id
+    part.part_name = part_name
+    part.type = part_type
+    part.cost = cost
+    part.heat = heat
+    part.durability = durability
+    part.max_durability = durability
+    part.rarity = rarity
+    array.append(part)
 
 func _create_fallback_deck():
     # Use the default card distribution with our fallback pool
@@ -262,11 +319,11 @@ func _create_fallback_deck():
     
     # Group cards by type
     var cards_by_type = {}
-    for card in fallback_pool:
-        var card_type = card.get("type", "Unknown")
-        if not cards_by_type.has(card_type):
-            cards_by_type[card_type] = []
-        cards_by_type[card_type].append(card)
+    for part in fallback_pool:
+        var part_type = part.type
+        if not cards_by_type.has(part_type):
+            cards_by_type[part_type] = []
+        cards_by_type[part_type].append(part)
     
     # Add cards based on default distribution
     for card_type in default_card_distribution.keys():
@@ -289,7 +346,7 @@ func shuffle_deck():
     emit_signal("deck_updated")
     emit_signal("deck_shuffled")
 
-func draw_card() -> Dictionary:
+func draw_card() -> Part:
     print("DeckManager: Drawing card - deck size:", deck.size(), ", hand size:", hand.size())
     
     if deck.size() == 0:
@@ -304,20 +361,25 @@ func draw_card() -> Dictionary:
         else:
             # No cards to draw!
             print("DeckManager: No cards left to draw!")
-            return {}
-    
+            return null
+
     # Draw top card
     var card = deck.pop_front()
     
     # Make sure this card has a unique instance_id
-    if not card.has("instance_id") or card["instance_id"] == null or card["instance_id"] == "":
+    if card is Part:
+        if card.instance_id.is_empty():
+            card.instance_id = "card_" + str(randi()) + "_" + str(Time.get_unix_time_from_system())
+            print("DeckManager: Added instance_id to Part:", card.instance_id)
+    elif not card.has("instance_id") or card["instance_id"] == null or card["instance_id"] == "":
         card["instance_id"] = "card_" + str(randi()) + "_" + str(Time.get_unix_time_from_system())
         print("DeckManager: Added instance_id to card:", card["instance_id"])
     
     # Add to hand array
     hand.append(card)
     
-    print("DeckManager: Drew card:", card.get("name", "Unknown"), "- new deck size:", deck.size(), ", new hand size:", hand.size())
+    var card_name = card.part_name if card is Part else card.get("name", "Unknown")
+    print("DeckManager: Drew card:", card_name, "- new deck size:", deck.size(), ", new hand size:", hand.size())
     
     emit_signal("card_drawn", card)
     emit_signal("card_drawn_to_hand", card)
@@ -366,7 +428,13 @@ func play_card(card: Dictionary, slot: String) -> bool:
         return false
     
     # Check if player has enough energy
-    var card_cost = card.get("cost", 0)
+    var card_cost = 0
+    if card is Dictionary:
+        card_cost = card.get("cost", 0)  # Dictionary-based cards only here
+    else:
+        # Try to access cost property directly
+        card_cost = card.cost if "cost" in card else 0
+        
     if turn_manager and turn_manager.current_energy < card_cost:
         print("Not enough energy! Need: ", card_cost, ", Have: ", turn_manager.current_energy)
         return false
@@ -385,7 +453,15 @@ func play_card(card: Dictionary, slot: String) -> bool:
     
     # Add to discard pile
     discard_pile.append(card)
-    print("Played card: ", card.name, " for ", card_cost, " energy")
+    
+    var card_name = ""
+    if card is Dictionary:
+        card_name = card.get("name", "Unknown")
+    else:
+        # Try to access part_name property directly
+        card_name = card.part_name if "part_name" in card else "Unknown"
+    print("Played card: ", card_name, " for ", card_cost, " energy")
+    
     return true
 
 func scrap_card(card: Dictionary) -> bool:
@@ -454,7 +530,12 @@ func discard_all_from_hand():
         discard_pile.append(card_data)
         
         # Update card registry if we have an instance ID
-        var instance_id = card_data.get("instance_id", "")
+        var instance_id = ""
+        if card_data is Part:
+            instance_id = card_data.instance_id
+        else:
+            instance_id = card_data.get("instance_id", "")
+            
         if instance_id != "" and card_registry.has(instance_id):
             card_registry[instance_id].location = "discard"
             
@@ -479,21 +560,34 @@ func discard_card(card):
             hand.erase(card)
             print("DeckManager: Removed card data from hand")
         
-    elif card is Card and card.data:
-        card_data = card.data
+    elif card is Card and card.part:
+        var card_part = card.part
         # Remove from hand if present
         for i in range(hand.size() - 1, -1, -1):
-            # Compare instance_id if available
-            if hand[i].has("instance_id") and card.data.has("instance_id") and hand[i].instance_id == card.data.instance_id:
-                hand.remove_at(i)
-                print("DeckManager: Removed card object's data from hand by instance_id")
-                break
-            # Fall back to name/id comparison if no instance_id
-            elif (hand[i].has("id") and card.data.has("id") and hand[i].id == card.data.id) or \
-                 (hand[i].has("name") and card.data.has("name") and hand[i].name == card.data.name):
-                hand.remove_at(i)
-                print("DeckManager: Removed card object's data from hand by name/id")
-                break
+            if hand[i] is Part and card_part is Part:
+                # Compare instance_id if available
+                if hand[i].instance_id == card_part.instance_id:
+                    hand.remove_at(i)
+                    print("DeckManager: Removed card object's part from hand by instance_id")
+                    break
+                # Fall back to id/name comparison
+                elif hand[i].id == card_part.id or hand[i].part_name == card_part.part_name:
+                    hand.remove_at(i)
+                    print("DeckManager: Removed card object's part from hand by id/name")
+                    break
+            # Handle legacy dictionary case
+            elif hand[i] is Dictionary and card.data is Dictionary:
+                # Compare instance_id if available
+                if hand[i].has("instance_id") and card.data.has("instance_id") and hand[i].instance_id == card.data.instance_id:
+                    hand.remove_at(i)
+                    print("DeckManager: Removed card object's data from hand by instance_id")
+                    break
+                # Fall back to name/id comparison if no instance_id
+                elif (hand[i].has("id") and card.data.has("id") and hand[i].id == card.data.id) or \
+                     (hand[i].has("name") and card.data.has("name") and hand[i].name == card.data.name):
+                    hand.remove_at(i)
+                    print("DeckManager: Removed card object's data from hand by name/id")
+                    break
     else:
         print("DeckManager: Unable to discard - invalid card type:", typeof(card))
         return
@@ -516,9 +610,16 @@ func register_card(instance_id, card_data, card_instance = null):
     if instance_id == null or instance_id == "":
         print("ERROR: Cannot register card with null or empty instance_id")
         return false
-        
+    
     # Store the card data in the registry
-    card_registry[instance_id] = card_data.duplicate()
+    if card_data is Part:
+        # For Part objects, create a new instance
+        var new_part = Part.new()
+        new_part.duplicate_from(card_data)
+        card_registry[instance_id] = new_part
+    else:
+        # For dictionary data, duplicate it
+        card_registry[instance_id] = card_data.duplicate()
     
     # If a card instance is provided, store it too
     if card_instance:
@@ -538,13 +639,22 @@ func update_card_durability(instance_id, new_durability):
         return false
     
     # Update the durability in the registry
-    var old_dir = card_registry[instance_id]["durability"]
-    card_registry[instance_id]["durability"] = new_durability
+    var old_dir = 0
+    if card_registry[instance_id] is Part:
+        old_dir = card_registry[instance_id].durability
+        card_registry[instance_id].durability = new_durability
+    else:
+        old_dir = card_registry[instance_id]["durability"]
+        card_registry[instance_id]["durability"] = new_durability
+        
     print("DeckManager: Updated card durability in registry: ", instance_id, old_dir, " -> ", new_durability)
     
     # Update the card instance if it exists
     if card_instances.has(instance_id) and is_instance_valid(card_instances[instance_id]):
-        card_instances[instance_id].data["durability"] = new_durability
+        if card_instances[instance_id].data is Part:
+            card_instances[instance_id].data.durability = new_durability
+        else:
+            card_instances[instance_id].data["durability"] = new_durability
         
         # Update the UI if this card has a durability label
         var card_instance = card_instances[instance_id]
@@ -567,7 +677,11 @@ func update_card_durability(instance_id, new_durability):
 func _update_card_in_collection(collection, instance_id, new_durability):
     for i in range(collection.size()):
         var card = collection[i]
-        if card is Dictionary and card.has("instance_id") and card["instance_id"] == instance_id:
+        if card is Part and card.instance_id == instance_id:
+            collection[i].durability = new_durability
+            print("DeckManager: Updated Part durability in collection: ", instance_id, " -> ", new_durability)
+            return true
+        elif card is Dictionary and card.has("instance_id") and card["instance_id"] == instance_id:
             collection[i]["durability"] = new_durability
             print("DeckManager: Updated card durability in collection: ", instance_id, " -> ", new_durability)
             return true
@@ -582,5 +696,8 @@ func get_card_by_instance_id(instance_id):
 # Get the current durability of a card by instance_id
 func get_card_durability(instance_id):
     if card_registry.has(instance_id):
-        return card_registry[instance_id].get("durability", 0)
+        if card_registry[instance_id] is Part:
+            return card_registry[instance_id].durability
+        else:
+            return card_registry[instance_id].get("durability", 0)
     return 0

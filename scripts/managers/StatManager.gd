@@ -74,9 +74,9 @@ func calculate_robot_stats(attached_parts) -> Dictionary:
     return stats
 
 # Apply a single part's stats to the stats dictionary
-func _apply_part_stats(stats: Dictionary, part_data: Dictionary) -> void:
+func _apply_part_stats(stats: Dictionary, part_data: Part) -> void:
     # Process effects array if it exists
-    if "effects" in part_data and part_data.effects is Array:
+    if part_data.effects is Array:
         for effect in part_data.effects:
             match effect.type:
                 "damage":
