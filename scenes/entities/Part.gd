@@ -420,6 +420,11 @@ func update_visuals() -> void:
     # To be implemented in visual child classes
     pass
 
+static func from_dict(data: Dictionary) -> Part:
+    var part = Part.new()
+    part.initialize_from_data(data)
+    return part
+
 # Get a copy of this part's data as a dictionary
 func to_dict() -> Dictionary:
     var dict = {
@@ -431,6 +436,7 @@ func to_dict() -> Dictionary:
         "durability": durability,
         "max_durability": max_durability,
         "frame": frame,
+        "frame_index": frame,
         "manufacturer": manufacturer,
         "rarity": rarity,
         "description": description,

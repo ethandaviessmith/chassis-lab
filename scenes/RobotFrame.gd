@@ -33,7 +33,7 @@ var FRAME_INDEX_LEFT_ARM = 20
 var FRAME_INDEX_HEAD = 30
 var FRAME_INDEX_CORE = 40
 var FRAME_INDEX_UTILITY = 50
-var left_to_right_offset = 10
+static var LEFT_RIGHT_OFFSET = 10
 
 # Parts data for visual representation
 var scrapper_data = null
@@ -75,69 +75,91 @@ func _ready():
 
 # Create a part object from card data
 func create_part_from_card(card_data: Part, is_right: bool = false):
-    # Convert card data to a part object that can be used for visuals
-    var part = {
-        "name": card_data.name,
-        "type": card_data.type,
-        "cost": card_data.cost,
-        "heat": card_data.heat,
-        "durability": card_data.durability,
-        "effects": card_data.effects,
-        "frame_index": 0
-    }
+    # Create a new Part instance
+    var part = Part.new()
+    
+    # Copy properties from card_data to the new Part
+    part.id = card_data.id
+    part.part_name = card_data.part_name
+    part.type = card_data.type
+    part.cost = card_data.cost
+    part.heat = card_data.heat
+    part.durability = card_data.durability
+    part.max_durability = card_data.max_durability
+    part.description = card_data.description
+    part.manufacturer = card_data.manufacturer
+    part.rarity = card_data.rarity
+    
+    # Copy effects (if they exist and are accessible)
+    if card_data.get("effects") != null:
+        # Assuming effects are handled appropriately within Part class
+        part.effects = card_data.effects.duplicate() if card_data.effects is Array else []
     
     # Get frame index from card data
     if card_data.frame:
-        part.frame_index = card_data.frame
+        part.frame = card_data.frame
         if card_data.type.to_lower() == "arm" and !is_right:
-            part.frame_index += left_to_right_offset
+            part.frame += LEFT_RIGHT_OFFSET
+    
     return part
 
 # Attach a part to a specific slot (visual only)
 func attach_part_visual(part_data, slot: String):
-    Log.pr("Attaching part ", part_data.name, " to ", slot, " ", part_data.frame_index)
+    var part_name = ""
+    var frame_value = 0
+    
+    # Handle different types for logging and frame access
+    if part_data is Part:
+        part_name = part_data.part_name
+        frame_value = part_data.frame
+    else:
+        part_name = part_data.name if part_data.has("name") else "Unknown"
+        frame_value = part_data.frame_index if part_data.has("frame_index") else (part_data.frame if part_data.has("frame") else 0)
+    
+    Log.pr("Attaching part ", part_name, " to ", slot, " frame:", frame_value)
+    
     match slot:
         "scrapper":
             scrapper_data = part_data
             # Scrapper parts don't have sprites but we store the data
         "head":
             head_data = part_data
-            if head_sprite and part_data.frame_index:
-                head_sprite.frame = part_data.frame_index
+            if head_sprite:
+                head_sprite.frame = frame_value
             if show_durability and head_durability:
                 setup_durability_pips(head_durability, part_data)
         "core":
             core_data = part_data
-            if core_sprite and part_data.frame_index:
-                core_sprite.frame = part_data.frame_index
+            if core_sprite:
+                core_sprite.frame = frame_value
             if show_durability and core_durability:
                 setup_durability_pips(core_durability, part_data)
         "left_arm":
             left_arm_data = part_data
-            if left_arm_sprite and part_data.frame_index:
-                left_arm_sprite.frame = part_data.frame_index
+            if left_arm_sprite:
+                left_arm_sprite.frame = frame_value
             if show_durability and left_arm_durability:
                 setup_durability_pips(left_arm_durability, part_data)
         "right_arm":
             right_arm_data = part_data
-            if right_arm_sprite and part_data.frame_index:
-                right_arm_sprite.frame = part_data.frame_index
+            if right_arm_sprite:
+                right_arm_sprite.frame = frame_value
             if show_durability and right_arm_durability:
                 setup_durability_pips(right_arm_durability, part_data)
         "legs":
             legs_data = part_data
-            if legs_sprite and part_data.frame_index:
-                legs_sprite.frame = part_data.frame_index
+            if legs_sprite:
+                legs_sprite.frame = frame_value
             if show_durability and legs_durability:
                 setup_durability_pips(legs_durability, part_data)
         "utility":
             utility_data = part_data
-            if utility_sprite and part_data.frame_index:
-                utility_sprite.frame = part_data.frame_index
+            if utility_sprite:
+                utility_sprite.frame = frame_value
             if show_durability and utility_durability:
                 setup_durability_pips(utility_durability, part_data)
     
-    print("RobotFrame: Attached ", part_data.name, " to ", slot)
+    print("RobotFrame: Attached ", part_name, " to ", slot)
     emit_signal("part_attached", part_data, slot)
     emit_signal("robot_frame_updated")
     update_visuals()
@@ -307,46 +329,88 @@ func setup_durability_pips(durability_container: Control, part_data):
     if not show_durability or not part_data:
         return
     
-    var max_durability = part_data.get("durability", 0)
-    var current_durability = part_data.get("current_durability", max_durability)
+    var max_durability = 0
+    var current_durability = 0
     
-    # Create durability pips
+    # Handle different types
+    if part_data is Part:
+        current_durability = part_data.durability
+        max_durability = part_data.max_durability
+    else:
+        # Legacy dictionary format
+        max_durability = part_data.get("durability", 0)
+        current_durability = part_data.get("current_durability", max_durability)
+    
+    # Define styling constants
+    const PIP_SIZE = Vector2(6, 6)  # Width, Height of each pip
+    const PIP_SPACING = 1  # Horizontal spacing between pips
+    const PIP_OUTLINE = 1  # Outline thickness (set to 0 for no outline)
+    const PIP_COLOR = Color(0.2, 0.8, 0.2)  # Green for filled pips
+    
+    # Create a container for the pips with proper spacing
+    var pip_row = HBoxContainer.new()
+    pip_row.add_theme_constant_override("separation", PIP_SPACING)
+    durability_container.add_child(pip_row)
+    
+    # Create pips for durability
     for i in range(max_durability):
-        var pip = TextureRect.new()
-        # Use durability_pip.png from assets root
-        var texture_path = "res://assets/durability_pip.png"
-        if ResourceLoader.exists(texture_path):
-            pip.texture = load(texture_path)
-            # Force small size for the pip
-            pip.custom_minimum_size = Vector2(3, 3)
-            pip.expand = true
-            pip.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        # Create a container for the pip if we want an outline
+        var pip_container
+        if PIP_OUTLINE > 0:
+            pip_container = Control.new()
+            pip_container.custom_minimum_size = PIP_SIZE + Vector2(PIP_OUTLINE * 2, PIP_OUTLINE * 2)
+            
+            # Create border as a dark outline
+            var border = ColorRect.new()
+            border.color = Color(0.1, 0.1, 0.1, 1.0)  # Dark outline
+            border.size = pip_container.custom_minimum_size
+            border.position = Vector2.ZERO
+            pip_container.add_child(border)
         else:
-            # Create a fallback colored rect if texture doesn't exist
-            var style_box = StyleBoxFlat.new()
-            style_box.bg_color = Color(0.2, 0.8, 0.2) if i < current_durability else Color(0.5, 0.5, 0.5, 0.5)
-            style_box.corner_radius_top_left = 2
-            style_box.corner_radius_top_right = 2
-            style_box.corner_radius_bottom_left = 2
-            style_box.corner_radius_bottom_right = 2
-            
-            var panel = Panel.new()
-            panel.custom_minimum_size = Vector2(4, 4)
-            panel.add_theme_stylebox_override("panel", style_box)
-            pip.add_child(panel)
-            
-        # Set size constraints
-        pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-        pip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+            # If no outline, just use a container
+            pip_container = Control.new()
+            pip_container.custom_minimum_size = PIP_SIZE
         
+        # Create the actual pip (background)
+        var pip = ColorRect.new()
+        pip.custom_minimum_size = PIP_SIZE
+        pip.size = PIP_SIZE
+        pip.color = PIP_COLOR.darkened(0.7)  # Start with darkened/faded color
         
-        # Color based on whether this pip is "filled" (represents remaining durability)
+        # For outlined pips, position properly
+        if PIP_OUTLINE > 0:
+            pip.position = Vector2(PIP_OUTLINE, PIP_OUTLINE)
+            pip_container.add_child(pip)
+        else:
+            pip_container = pip  # If no outline, the pip is the container
+        
+        # Store a filled part reference in each pip for later updates
+        var filled_part = ColorRect.new()
+        filled_part.name = "FilledPart"
+        filled_part.color = PIP_COLOR
+        
+        # Set filled state based on current durability
         if i < current_durability:
-            pip.modulate = Color(0.2, 0.8, 0.2)  # Green for remaining durability
+            # Fully filled pip
+            filled_part.size = Vector2(PIP_SIZE.x, PIP_SIZE.y)
+            filled_part.position = Vector2(0, 0)
         else:
-            pip.modulate = Color(0.5, 0.5, 0.5, 0.5)  # Gray for lost durability
+            # Empty pip
+            filled_part.size = Vector2(PIP_SIZE.x, 0)
+            filled_part.position = Vector2(0, PIP_SIZE.y)
         
-        durability_container.add_child(pip)
+        pip.add_child(filled_part)
+        
+        # Add to container
+        pip_row.add_child(pip_container)
+    
+    # Add an animation for the pips (optional)
+    var tween = create_tween()
+    tween.set_parallel(true)
+    for i in range(min(current_durability, pip_row.get_child_count())):
+        var pip_container = pip_row.get_child(i)
+        tween.tween_property(pip_container, "modulate", Color(1.2, 1.2, 1.2), 0.2)
+        tween.tween_property(pip_container, "modulate", Color(1, 1, 1), 0.3)
 
 # Clear all durability pips from a container
 func clear_durability_pips(durability_container: Control):

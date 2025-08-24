@@ -23,7 +23,7 @@ func get_max_hp() -> int:
 @onready var sprite = $Sprite
 @onready var attack_indicator = $AttackIndicator
 var enemy_visuals: EnemyVisuals
-@onready var robot_visuals = $RobotFrame  # Reference to RobotVisuals node
+@onready var robot_visuals: RobotVisuals = $RobotFrame  # Reference to RobotVisuals node
 
 # Combat indicators with emojis
 var INDICATORS = {
@@ -74,49 +74,49 @@ func generate_random_robot_parts() -> Dictionary:
     rng.randomize()
     
     # Basic random head
-    enemy_robot_parts["head"] = {
-        "name": "Enemy Head",
-        "type": "Head",
-        "frame": rng.randi_range(30, 33), # Random head frame
-        "frames": 1,
-        "effects": []
-    }
+    var head_part = Part.new()
+    head_part.id = "enemy_head"
+    head_part.part_name = "Enemy Head"
+    head_part.type = "Head"
+    head_part.frame = rng.randi_range(30, 33)  # Random head frame
+    head_part.effects = []
+    enemy_robot_parts["head"] = head_part
     
     # Basic random core
-    enemy_robot_parts["core"] = {
-        "name": "Enemy Core",
-        "type": "Core",
-        "frame": rng.randi_range(40, 43), # Random core frame
-        "frames": 1,
-        "effects": []
-    }
+    var core_part = Part.new()
+    core_part.id = "enemy_core"
+    core_part.part_name = "Enemy Core"
+    core_part.type = "Core"
+    core_part.frame = rng.randi_range(40, 43)  # Random core frame
+    core_part.effects = []
+    enemy_robot_parts["core"] = core_part
     
     # Basic random left arm
-    enemy_robot_parts["left_arm"] = {
-        "name": "Enemy Left Arm",
-        "type": "Arm",
-        "frame": rng.randi_range(10, 13), # Random right arm frame (RobotVisual corrects)
-        "frames": 1,
-        "effects": []
-    }
+    var left_arm_part = Part.new()
+    left_arm_part.id = "enemy_left_arm"
+    left_arm_part.part_name = "Enemy Left Arm"
+    left_arm_part.type = "Arm"
+    left_arm_part.frame = rng.randi_range(10, 13)  # Random right arm frame (RobotVisual corrects)
+    left_arm_part.effects = []
+    enemy_robot_parts["left_arm"] = left_arm_part
     
     # Basic random right arm
-    enemy_robot_parts["right_arm"] = {
-        "name": "Enemy Right Arm",
-        "type": "Arm",
-        "frame": rng.randi_range(10, 13), # Random right arm frame
-        "frames": 1,
-        "effects": []
-    }
+    var right_arm_part = Part.new()
+    right_arm_part.id = "enemy_right_arm"
+    right_arm_part.part_name = "Enemy Right Arm"
+    right_arm_part.type = "Arm"
+    right_arm_part.frame = rng.randi_range(10, 13)  # Random right arm frame
+    right_arm_part.effects = []
+    enemy_robot_parts["right_arm"] = right_arm_part
     
     # Basic random legs
-    enemy_robot_parts["legs"] = {
-        "name": "Enemy Legs",
-        "type": "Legs",
-        "frame": rng.randi_range(0, 3), # Random legs frame
-        "frames": 1,
-        "effects": []
-    }
+    var legs_part = Part.new()
+    legs_part.id = "enemy_legs"
+    legs_part.part_name = "Enemy Legs"
+    legs_part.type = "Legs"
+    legs_part.frame = rng.randi_range(0, 3)  # Random legs frame
+    legs_part.effects = []
+    enemy_robot_parts["legs"] = legs_part
     
     return enemy_robot_parts
 
@@ -129,6 +129,10 @@ func initialize_from_data(data: Dictionary, view: CombatView):
     attack_speed = data.attack_speed
     move_speed = data.move_speed
     behavior = data.behavior
+    
+    # Debug output to verify enemy initialization values
+    print("Enemy initialized for combat: Name=%s, HP=%d/%d, Damage=%d, Armor=%d" % 
+          [enemy_name, energy, max_energy, damage, armor])
     
     # Load attack types and ranges if present
     if "attack_type" in data:
@@ -205,7 +209,7 @@ func default_behavior(target_node, delta):
         var distance = global_position.distance_to(target_node.global_position)
         
         # Move toward target if too far
-        if distance > 80:
+        if distance > Util.ATTACK_DISTANCE:
             move_to_target(target_node)
         else:
             # Stop and attack when close
@@ -386,11 +390,17 @@ func take_damage(amount: int):
     
     # Calculate actual damage
     var actual_damage = max(0, varied_amount - armor)
+    
+    # DETAILED DEBUG OUTPUT: Show calculation steps
+    print("DAMAGE CALCULATION - %s: Raw=%d, Variation=%.2f, After variation=%d, Armor=%d, Final damage=%d" % 
+          [enemy_name, amount, damage_variation, varied_amount, armor, actual_damage])
+    
+    # Apply damage
     energy -= actual_damage
     energy = max(0, energy)
     update_bars()
     
-    print(enemy_name, " took ", actual_damage, " damage (", energy, "/", max_energy, " HP)")
+    print("%s took %d damage (%d/%d HP remaining)" % [enemy_name, actual_damage, energy, max_energy])
     
     # Show shield indicator if armor reduced damage significantly
     if armor > 0 and amount > actual_damage and combat_view:
@@ -438,11 +448,11 @@ func activate_special_ability(ability: Dictionary):
             await get_tree().create_timer(3.0).timeout
             move_speed /= 1.5
         "shield_up":
-            armor += 2  # Temporary armor boost
+            armor += 1  # Temporary armor boost
             if combat_view:
                 combat_view.show_combat_effect("shield", self)
             await get_tree().create_timer(2.0).timeout
-            armor -= 2
+            armor -= 1
         # Add more special abilities as needed
 
 # Override the update_bars method from BaseFighter

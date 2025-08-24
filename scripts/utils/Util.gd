@@ -9,6 +9,8 @@ static var COL_LEGS = Color("4dcc4d40")   # Green with alpha
 static var COL_UTILITY = Color("674bcc40")  # Purple with alpha
 static var COL_SCRAPPER = Color("cc634b40")   # Brownish-red with alpha
 
+static var ATTACK_DISTANCE = 140.0  # Default attack distance
+
 static func get_slot_color(slot_type: String) -> Color:
     match slot_type.to_lower():
         "head":

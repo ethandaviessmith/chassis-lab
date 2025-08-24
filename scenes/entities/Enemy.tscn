@@ -1,18 +1,17 @@
-[gd_scene load_steps=5 format=3 uid="uid://dneyl0bcnce87"]
+[gd_scene load_steps=4 format=3 uid="uid://dneyl0bcnce87"]
 
 [ext_resource type="Script" uid="uid://omrsobek863d" path="res://scenes/entities/Enemy.gd" id="1_8dejf"]
-[ext_resource type="PackedScene" uid="uid://vbycyhmsf42b" path="res://scenes/RobotFrame.tscn" id="2_2dc7q"]
-[ext_resource type="Script" uid="uid://c63sq0l286klv" path="res://scenes/entities/RobotVisuals.gd" id="2_m8eof"]
+[ext_resource type="PackedScene" uid="uid://8c8xp2e3yd2n" path="res://scenes/RobotVisuals.tscn" id="2_m8eof"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_2dc7q"]
-radius = 22.0
+radius = 47.3814
 
 [node name="Enemy" type="CharacterBody2D"]
 script = ExtResource("1_8dejf")
 metadata/_custom_type_script = "uid://omrsobek863d"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, -7)
+position = Vector2(3, -9)
 shape = SubResource("CircleShape2D_2dc7q")
 
 [node name="HealthBar" type="ProgressBar" parent="."]
@@ -21,10 +20,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -25.0
-offset_top = -136.0
-offset_right = 35.0
-offset_bottom = -126.0
+offset_left = -24.0
+offset_top = -240.0
+offset_right = 36.0
+offset_bottom = -230.0
 grow_horizontal = 2
 grow_vertical = 2
 value = 100.0
@@ -37,17 +36,16 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -47.0
-offset_top = -89.0
-offset_right = -25.0
-offset_bottom = -66.0
+offset_left = -82.0
+offset_top = -174.0
+offset_right = -60.0
+offset_bottom = -151.0
 grow_horizontal = 2
 grow_vertical = 2
 text = "🗡️"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="RobotFrame" parent="." instance=ExtResource("2_2dc7q")]
-position = Vector2(55, -107)
-scale = Vector2(-0.5, 0.5)
-script = ExtResource("2_m8eof")
+[node name="RobotFrame" parent="." instance=ExtResource("2_m8eof")]
+position = Vector2(1, 0)
+scale = Vector2(-1, 1)

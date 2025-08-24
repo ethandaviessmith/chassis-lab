@@ -9,6 +9,7 @@ signal show_reward_screen
 signal chassis_updated(attached_parts)
 
 # Export references - set these in the editor
+@export var chassis_manager: ChassisManager = null
 @export var player_spawn_point: Marker2D = null
 @export var enemy_spawn_point: Marker2D = null
 @export var combat_ui: Control = null
@@ -88,12 +89,15 @@ func start_combat(robot_fighter: PlayerRobot, enemy_data: Dictionary = {}):
     
     # Update combat robot frame with player robot data
     if combat_robot_frame:
+        Log.pr("[CombatView] Initializing combat_robot_frame from player_robot")
         combat_robot_frame.initialize_from_robot(player_robot)
         
         # Connect signals for part usage and damage
         if not player_robot.is_connected("part_used", Callable(self, "_on_robot_part_used")):
+            Log.pr("[CombatView] Connecting part_used signal")
             player_robot.connect("part_used", Callable(self, "_on_robot_part_used"))
         if not player_robot.is_connected("part_damaged", Callable(self, "_on_robot_part_damaged")):
+            Log.pr("[CombatView] Connecting part_damaged signal")
             player_robot.connect("part_damaged", Callable(self, "_on_robot_part_damaged"))
     
     # Set up enemy
@@ -138,6 +142,7 @@ func spawn_enemy(enemy_data: Dictionary = {}):
     
     # Initialize enemy with data
     current_enemy.initialize_from_data(enemy_data, self)
+    Log.pr("[CombatView] Spawned enemy with data: %s" % enemy_data)
     
     # Position enemy
     if enemy_spawn_point:
@@ -305,6 +310,7 @@ func _on_bullet_hit_target(target):
 
 # Signal handlers for robot part usage and damage
 func _on_robot_part_used(slot_name: String):
+    Log.pr("[CombatView] _on_robot_part_used called for slot:", slot_name)
     if combat_robot_frame:
         combat_robot_frame.show_part_usage(slot_name)
     
@@ -314,16 +320,18 @@ func _on_robot_part_used(slot_name: String):
         parts_dict = {
             "head": player_robot.head,
             "core": player_robot.core,
-            "arm_left": player_robot.left_arm,
-            "arm_right": player_robot.right_arm,
+            "left_arm": player_robot.left_arm,
+            "right_arm": player_robot.right_arm,
             "legs": player_robot.legs,
             "utility": player_robot.utility
         }
     
     # Emit chassis_updated signal for any listeners
+    Log.pr("[CombatView] Emitting chassis_updated signal")
     emit_signal("chassis_updated", parts_dict)
 
 func _on_robot_part_damaged(slot_name: String, current_durability: int):
+    Log.pr("[CombatView] _on_robot_part_damaged called - slot:", slot_name, "durability:", current_durability)
     if combat_robot_frame:
         combat_robot_frame.update_part_durability(slot_name, current_durability)
         combat_robot_frame.show_part_damage(slot_name)
@@ -334,13 +342,18 @@ func _on_robot_part_damaged(slot_name: String, current_durability: int):
         parts_dict = {
             "head": player_robot.head,
             "core": player_robot.core,
-            "arm_left": player_robot.left_arm,
-            "arm_right": player_robot.right_arm,
+            "left_arm": player_robot.left_arm,
+            "right_arm": player_robot.right_arm,
             "legs": player_robot.legs,
             "utility": player_robot.utility
         }
     
+    # Update the card data in ChassisManager to reflect the durability changes
+    if chassis_manager and chassis_manager.has_method("update_part_durability"):       
+        chassis_manager.update_part_durability(slot_name, current_durability)
+    
     # Emit chassis_updated signal for any listeners
+    Log.pr("[CombatView] Emitting chassis_updated signal after part damage")
     emit_signal("chassis_updated", parts_dict)
 
 # Get the status of the combat robot frame

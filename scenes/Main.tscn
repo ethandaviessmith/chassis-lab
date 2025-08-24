@@ -54,7 +54,7 @@ shader = ExtResource("6_gsxep")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cmqll"]
 shader = ExtResource("6_gsxep")
 
-[sub_resource type="Curve" id="Curve_kxyth"]
+[sub_resource type="Curve" id="Curve_g6wdg"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_8cp6k"]
 shader = ExtResource("6_gsxep")
@@ -101,10 +101,10 @@ color = Color(0.12549, 0.12549, 0.12549, 1)
 [node name="NextEnemyDisplay" parent="BuildView" node_paths=PackedStringArray("enemy_manager") instance=ExtResource("3_36rkl")]
 modulate = Color(1, 1, 1, 1)
 layout_mode = 1
-offset_left = 940.0
-offset_top = 278.0
-offset_right = -12.0
-offset_bottom = -210.0
+offset_left = 939.0
+offset_top = 246.0
+offset_right = -13.0
+offset_bottom = -242.0
 enemy_manager = NodePath("../../Managers/EnemyManager")
 
 [node name="StatDisplay" parent="BuildView" node_paths=PackedStringArray("stat_manager") instance=ExtResource("4_36rkl")]
@@ -200,7 +200,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="RobotFrame" parent="BuildView/ChassisContainer" instance=ExtResource("8_kxyth")]
-position = Vector2(306, 0)
+position = Vector2(324, 25)
 
 [node name="HeadSlot" type="Control" parent="BuildView/ChassisContainer"]
 layout_mode = 2
@@ -689,8 +689,10 @@ theme_override_font_sizes/font_size = 27
 text = "Round 01"
 horizontal_alignment = 1
 
-[node name="CombatView" type="Node2D" parent="." node_paths=PackedStringArray("player_spawn_point", "enemy_spawn_point", "combat_ui", "start_combat_button", "robot_frame_container")]
+[node name="CombatView" type="Node2D" parent="." node_paths=PackedStringArray("chassis_manager", "player_spawn_point", "enemy_spawn_point", "combat_ui", "start_combat_button", "robot_frame_container")]
+visible = false
 script = ExtResource("13_mwfav")
+chassis_manager = NodePath("../Managers/ChassisManager")
 player_spawn_point = NodePath("Spawn")
 enemy_spawn_point = NodePath("Spawn2")
 combat_ui = NodePath("CombatUI")
@@ -706,6 +708,7 @@ offset_top = 61.0
 offset_right = 1027.0
 offset_bottom = 502.0
 script = ExtResource("4_yxlcp")
+terminal_header = "BATTLE v0.8.5"
 metadata/_custom_type_script = "uid://cl0lrw5yogklt"
 
 [node name="PlayerRobot" parent="CombatView" instance=ExtResource("9_3p2gp")]
@@ -743,11 +746,12 @@ material = SubResource("ShaderMaterial_cmqll")
 
 [node name="Managers" type="Node" parent="."]
 
-[node name="GameManager" type="Node" parent="Managers" node_paths=PackedStringArray("deck_manager", "turn_manager", "hand_manager", "build_view", "combat_view", "reward_screen", "data_loader", "deck_control", "level", "volume")]
+[node name="GameManager" type="Node" parent="Managers" node_paths=PackedStringArray("deck_manager", "turn_manager", "hand_manager", "enemy_manager", "build_view", "combat_view", "reward_screen", "data_loader", "deck_control", "level", "volume")]
 script = ExtResource("1_ebyi6")
 deck_manager = NodePath("../DeckManager")
 turn_manager = NodePath("../TurnManager")
 hand_manager = NodePath("../HandManager")
+enemy_manager = NodePath("../EnemyManager")
 build_view = NodePath("../../BuildView")
 combat_view = NodePath("../../CombatView")
 reward_screen = NodePath("../../RewardScreen")
@@ -836,7 +840,7 @@ metadata/_custom_type_script = "uid://ct8lmorf7v4pu"
 
 [node name="EnemyScalingSystem" type="Node" parent="Managers"]
 script = ExtResource("31_hq6as")
-scaling_curve = SubResource("Curve_kxyth")
+scaling_curve = SubResource("Curve_g6wdg")
 metadata/_custom_type_script = "uid://beet088xiw18f"
 
 [node name="Utils" type="Node" parent="."]
@@ -918,6 +922,7 @@ script = ExtResource("21_1iba3")
 metadata/_custom_type_script = "uid://c278bgdvcdqsf"
 
 [node name="HelpSystem" parent="." instance=ExtResource("2_ma7h6")]
+visible = false
 
 [editable path="CombatView/PlayerRobot"]
 [editable path="CombatView/CombatRobotFrame"]

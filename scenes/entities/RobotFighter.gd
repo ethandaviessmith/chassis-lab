@@ -84,13 +84,16 @@ func build_from_chassis(attached_parts: Dictionary):
                 
                 # Convert slot names to robot part names
                 var robot_slot = slot_name
+                var is_right_arm = false
                 if slot_name == "arm_left":
                     robot_slot = "left_arm"
+                    is_right_arm = false
                 elif slot_name == "arm_right":
                     robot_slot = "right_arm"
+                    is_right_arm = true
                 
                 # Create a part object from card data
-                var part_data = create_part_from_card(card.data)
+                var part_data = create_part_from_card(card.data, is_right_arm)
                 attach_part(part_data, robot_slot)
     
     print("RobotFighter: Build complete - Energy: ", energy, "/", max_energy, ", Heat: ", heat, "/", max_heat, ", Armor: ", armor)
@@ -98,7 +101,7 @@ func build_from_chassis(attached_parts: Dictionary):
     emit_signal("robot_updated")
 
 # Create a part object from card data
-func create_part_from_card(card_data: Dictionary):
+func create_part_from_card(card_data: Dictionary, is_right: bool = false):
     # Convert card data to a part object that the robot can use for stats
     var part = {
         "name": card_data.get("name", "Unknown Part"),
@@ -108,6 +111,13 @@ func create_part_from_card(card_data: Dictionary):
         "durability": card_data.get("durability", 1),
         "effects": card_data.get("effects", [])
     }
+
+    # Get frame index from card data
+    if card_data.frame:
+        part.frame_index = card_data.frame
+        if card_data.type.to_lower() == "arm" and !is_right:
+            part.frame_index += RobotFrame.LEFT_RIGHT_OFFSET
+    return part
     
     # Add attack type and range if present (for arms)
     if card_data.has("attack_type"):

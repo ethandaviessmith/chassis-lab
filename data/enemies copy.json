@@ -1,0 +1,89 @@
+[
+  {
+    "id": "basic_drone",
+    "name": "Basic Drone",
+    "hp": 10,
+    "armor": 0,
+    "damage": 1,
+    "attack_speed": 1.0,
+    "attack_type": ["melee"],
+    "attack_range": [1.0],
+    "move_speed": 80,
+    "behavior": "default",
+    "special_abilities": [
+      {
+        "name": "Basic Targeting",
+        "description": "Simple movement and attack patterns",
+        "trigger": "always",
+        "effect": "none"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/basic_drone.png",
+    "is_boss": false
+  },
+  {
+    "id": "scavenger_drone",
+    "name": "Scavenger Drone",
+    "hp": 8,
+    "armor": 0,
+    "damage": 2,
+    "attack_speed": 2.0,
+    "attack_type": ["melee", "range"],
+    "attack_range": [1.0, 4.0],
+    "move_speed": 120,
+    "behavior": "aggressive",
+    "special_abilities": [
+      {
+        "name": "Burst Attack",
+        "description": "Attacks in bursts; prioritizes close combat",
+        "trigger": "always",
+        "effect": "burst_fire"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/scavenger_drone.png",
+    "is_boss": false
+  },{
+    "id": "basic_drone2",
+    "name": "Basic Drone",
+    "hp": 10,
+    "armor": 0,
+    "damage": 1,
+    "attack_speed": 1.0,
+    "attack_type": ["melee"],
+    "attack_range": [1.0],
+    "move_speed": 80,
+    "behavior": "default",
+    "special_abilities": [
+      {
+        "name": "Basic Targeting",
+        "description": "Simple movement and attack patterns",
+        "trigger": "always",
+        "effect": "none"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/basic_drone.png",
+    "is_boss": false
+  },
+  {
+    "id": "scavenger_drone2",
+    "name": "Scavenger Drone",
+    "hp": 8,
+    "armor": 0,
+    "damage": 2,
+    "attack_speed": 2.0,
+    "attack_type": ["melee", "range"],
+    "attack_range": [1.0, 4.0],
+    "move_speed": 120,
+    "behavior": "aggressive",
+    "special_abilities": [
+      {
+        "name": "Burst Attack",
+        "description": "Attacks in bursts; prioritizes close combat",
+        "trigger": "always",
+        "effect": "burst_fire"
+      }
+    ],
+    "sprite": "res://assets/images/enemies/scavenger_drone.png",
+    "is_boss": false
+  }
+]

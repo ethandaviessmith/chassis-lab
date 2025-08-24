@@ -1,0 +1,76 @@
+[gd_scene load_steps=3 format=3 uid="uid://8c8xp2e3yd2n"]
+
+[ext_resource type="PackedScene" uid="uid://vbycyhmsf42b" path="res://scenes/RobotFrame.tscn" id="1_llo2k"]
+[ext_resource type="Script" uid="uid://c63sq0l286klv" path="res://scenes/entities/RobotVisuals.gd" id="2_xxrtv"]
+
+[node name="RobotFrame" instance=ExtResource("1_llo2k")]
+script = ExtResource("2_xxrtv")
+
+[node name="UtilitySprite" parent="." index="1"]
+position = Vector2(59.231, -53.0769)
+
+[node name="LegsSprite" parent="." index="2"]
+position = Vector2(0.153992, -61.539)
+
+[node name="CoreSprite" parent="." index="3"]
+position = Vector2(0.922989, -128.308)
+
+[node name="HeadSprite" parent="." index="4"]
+position = Vector2(0.153992, -239.077)
+
+[node name="LeftArmSprite" parent="." index="5"]
+position = Vector2(-86, -134.462)
+
+[node name="RightArmSprite" parent="." index="6"]
+position = Vector2(86.308, -135.231)
+
+[node name="HeadDurability" parent="." index="8"]
+offset_left = 69.2308
+offset_top = -203.077
+offset_right = 149.231
+offset_bottom = -183.077
+
+[node name="CoreDurability" parent="." index="9"]
+offset_left = 69.2308
+offset_top = -174.615
+offset_right = 149.231
+offset_bottom = -154.615
+
+[node name="LeftArmDurability" parent="." index="10"]
+offset_left = 69.2308
+offset_top = -147.692
+offset_right = 149.231
+offset_bottom = -127.692
+
+[node name="RightArmDurability" parent="." index="11"]
+offset_left = 69.2308
+offset_top = -123.077
+offset_right = 149.231
+offset_bottom = -103.077
+
+[node name="LegsDurability" parent="." index="12"]
+offset_left = 69.2308
+offset_top = -97.6923
+offset_right = 149.231
+offset_bottom = -77.6923
+
+[node name="UtilityDurability" parent="." index="13"]
+offset_left = 69.2308
+offset_top = -72.3077
+offset_right = 149.231
+offset_bottom = -52.3077
+
+[node name="HeadMarker" type="Marker2D" parent="." index="14"]
+position = Vector2(1.53846, -176.154)
+
+[node name="CoreMarker" type="Marker2D" parent="." index="15"]
+position = Vector2(1.53848, -145.385)
+
+[node name="LeftArmMarker" type="Marker2D" parent="." index="16"]
+position = Vector2(-27.6923, -169.231)
+
+[node name="RightArmMarker" type="Marker2D" parent="." index="17"]
+position = Vector2(26.9231, -167.692)
+
+[node name="LegsMarker" type="Marker2D" parent="." index="18"]
+position = Vector2(1.53847, -110.769)

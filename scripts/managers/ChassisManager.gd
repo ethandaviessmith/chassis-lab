@@ -194,7 +194,7 @@ func attach_part_to_slot(card, slot_name) -> bool:
     if attached_parts.has(slot_name) and is_instance_valid(attached_parts[slot_name]) and attached_parts[slot_name] != card:
         existing_card_in_slot = attached_parts[slot_name]
         if existing_card_in_slot is Card:
-            previous_card_cost = existing_card_in_slot.data.get("cost", 0)
+            previous_card_cost = existing_card_in_slot.data.cost
     
     # Calculate net energy change
     var energy_change = 0

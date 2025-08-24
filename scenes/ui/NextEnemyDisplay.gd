@@ -12,7 +12,7 @@ var enemy_image: TextureRect
 var boss_indicator: Label
 
 # Reference to EnemyManager
-@export var enemy_manager: Node
+@export var enemy_manager: EnemyManager
 
 # Preview options for editor
 @export var show_preview_in_editor: bool = true
@@ -146,15 +146,30 @@ func setup_ui():
 func update_display(data):
 	self.enemy_data = data
 	
-	# Update labels with enemy data
-	enemy_name_label.text = data.name
-	enemy_hp_label.text = "HP: " + str(data.hp)
-	enemy_damage_label.text = "DMG: " + str(data.damage)
-	enemy_armor_label.text = "ARM: " + str(data.armor)
-	enemy_speed_label.text = "SPD: " + str(data.move_speed)
+	# Map enemy properties correctly regardless of format
+	enemy_name_label.text = data.name if "name" in data else data.enemy_name if "enemy_name" in data else "Unknown"
+	
+	# Check both energy/health and hp fields to cover all cases
+	var health_value = data.max_health if "max_health" in data else (
+						data.max_energy if "max_energy" in data else (
+						data.hp if "hp" in data else (
+						data.health if "health" in data else 0)))
+	enemy_hp_label.text = "HP: " + str(health_value)
+	
+	enemy_damage_label.text = "DMG: " + str(data.damage if "damage" in data else 0)
+	enemy_armor_label.text = "ARM: " + str(data.armor if "armor" in data else 0)
+	enemy_speed_label.text = "SPD: " + str(data.move_speed if "move_speed" in data else 100)
 	
 	# Show boss indicator if this is a boss
-	boss_indicator.visible = data.is_boss
+	boss_indicator.visible = data.is_boss if "is_boss" in data else false
+	
+	# Debug output to verify display values
+	print("NextEnemyDisplay: Name=%s, HP=%s, DMG=%s, ARM=%s" % [
+		enemy_name_label.text,
+		health_value,
+		data.damage if "damage" in data else 0,
+		data.armor if "armor" in data else 0
+	])
 	
 	# Load enemy image if available
 	if data.has("sprite") and data.sprite.length() > 0:

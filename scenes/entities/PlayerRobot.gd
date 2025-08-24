@@ -366,7 +366,7 @@ func try_attack(target_node, _delta):
     if time_since_last_attack >= (1.0 / randomized_attack_speed):
         # Check if close enough to attack
         var distance_to_target = global_position.distance_to(target_node.global_position)
-        if distance_to_target <= 80:  # Attack range
+        if distance_to_target <= Util.ATTACK_DISTANCE:  # Attack range
             perform_attack(target_node)
             last_attack_time = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
             

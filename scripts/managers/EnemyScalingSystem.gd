@@ -19,6 +19,7 @@ func get_scaled_enemy_stats() -> Dictionary:
         scaled_stats[stat] = base_enemy_stats[stat] * scaling_factor
     scaled_stats.health = int(scaled_stats.health * randf_range(0.9, 1.1))
     scaled_stats.damage = int(max(1, scaled_stats.damage * randf_range(0.9, 1.1)))
+    Log.pr("Scaled Enemy Stats: %s" % scaled_stats)
     return scaled_stats
 
 func advance_battle():

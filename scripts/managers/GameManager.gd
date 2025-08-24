@@ -21,6 +21,7 @@ var victory: bool = false
 @export var deck_manager: DeckManager
 @export var turn_manager: TurnManager
 @export var hand_manager: HandManager
+@export var enemy_manager: EnemyManager
 @export var build_view: Control
 @export var combat_view: CombatView
 @export var reward_screen: RewardScreen
@@ -177,7 +178,7 @@ func _setup_combat_phase():
         var robot_fighter = turn_manager.robot_fighter
         if robot_fighter:
             # Get enemy data for current encounter
-            var enemy_data = get_enemy_for_encounter(current_encounter)
+            var enemy_data = enemy_manager.get_next_enemy()
             combat_view.start_combat(robot_fighter, enemy_data)
         else:
             print("GameManager: No robot fighter available!")

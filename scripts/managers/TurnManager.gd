@@ -110,9 +110,9 @@ func start_new_turn():
     start_turn()
     
     # Reset hand state to ensure clean start
-    if hand_manager and hand_manager.has_method("reset_hand"):
+    if hand_manager:
         print("TurnManager: Resetting hand state")
-        hand_manager.reset_hand()
+        hand_manager.discard_hand()
     
     # Draw new cards after hand is reset
     if hand_manager and hand_manager.has_method("start_sequential_card_draw"):

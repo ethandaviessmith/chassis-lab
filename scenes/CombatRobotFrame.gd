@@ -69,9 +69,14 @@ func create_part_data_for_frame(part, _slot_name: String):
             "durability": part.durability,
             "current_durability": part.durability
         }
+        # Apply offset for left arms, similar to RobotFrame.gd
+        if part.type.to_lower() == "arm" and _slot_name == "left_arm":
+            frame_data.frame_index += RobotFrame.LEFT_RIGHT_OFFSET
         return frame_data
+        
     elif part is Dictionary:
-        return part
+        var frame_data = part.duplicate()
+        return frame_data
     return null
 
 # Reset all parts to empty
@@ -129,8 +134,8 @@ func update_from_parts_dict(parts_dict: Dictionary):
     part_data = {
         "head": parts_dict.get("head"),
         "core": parts_dict.get("core"),
-        "left_arm": parts_dict.get("arm_left"),
-        "right_arm": parts_dict.get("arm_right"),
+        "left_arm": parts_dict.get("left_arm"),
+        "right_arm": parts_dict.get("right_arm"),
         "legs": parts_dict.get("legs"),
         "utility": parts_dict.get("utility")
     }
