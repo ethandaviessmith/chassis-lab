@@ -6,7 +6,6 @@ signal chassis_updated(attached_parts)
 # References to other managers
 @export var turn_manager: TurnManager
 @export var hand_manager: HandManager
-@export var build_view: BuildView
 @export var stat_manager: Node
 @export var heat_manager: HeatManager
 

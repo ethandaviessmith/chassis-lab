@@ -1,14 +1,19 @@
 extends Node2D
 class_name CombatView
 
+# Preload the CombatRobotFrame class
+const CombatRobotFrame = preload("res://scenes/CombatRobotFrame.gd")
+
 signal combat_finished(victory: bool)
 signal show_reward_screen
+signal chassis_updated(attached_parts)
 
 # Export references - set these in the editor
 @export var player_spawn_point: Marker2D = null
 @export var enemy_spawn_point: Marker2D = null
 @export var combat_ui: Control = null
 @export var start_combat_button: Button = null
+@export var robot_frame_container: Control = null
 
 # Internal references
 var player_robot: PlayerRobot = null
@@ -17,6 +22,7 @@ var combat_active: bool = false
 var combat_timer: float = 0.0
 var effects_layer: CombatEffectsLayer = null
 var bullet_scene = preload("res://scenes/entities/Bullet.tscn")
+var combat_robot_frame: CombatRobotFrame = null
 
 # Combat parameters
 var approach_distance: float = 150.0  # Distance robots approach before combat
@@ -41,6 +47,18 @@ func _ready():
     # Create effects layer for combat indicators
     effects_layer = CombatEffectsLayer.new()
     add_child(effects_layer)
+    
+    # Set up the combat_robot_frame if it exists
+    if robot_frame_container:
+        # Create CombatRobotFrame if it doesn't exist
+        if not combat_robot_frame:
+            var combat_frame_scene = preload("res://scenes/CombatRobotFrame.tscn")
+            combat_robot_frame = combat_frame_scene.instantiate()
+            robot_frame_container.add_child(combat_robot_frame)
+        
+        # Connect to the chassis_updated signal
+        if not self.chassis_updated.is_connected(combat_robot_frame.update_from_parts_dict):
+            self.chassis_updated.connect(combat_robot_frame.update_from_parts_dict)
     
     # Add to combat_view group so entities can find it
     add_to_group("combat_view")
@@ -67,6 +85,16 @@ func start_combat(robot_fighter: PlayerRobot, enemy_data: Dictionary = {}):
     # Make sure robot is added to scene if not already
     if not player_robot.get_parent():
         add_child(player_robot)
+    
+    # Update combat robot frame with player robot data
+    if combat_robot_frame:
+        combat_robot_frame.initialize_from_robot(player_robot)
+        
+        # Connect signals for part usage and damage
+        if not player_robot.is_connected("part_used", Callable(self, "_on_robot_part_used")):
+            player_robot.connect("part_used", Callable(self, "_on_robot_part_used"))
+        if not player_robot.is_connected("part_damaged", Callable(self, "_on_robot_part_damaged")):
+            player_robot.connect("part_damaged", Callable(self, "_on_robot_part_damaged"))
     
     # Set up enemy
     spawn_enemy(enemy_data)
@@ -274,6 +302,59 @@ func _on_bullet_hit_target(target):
     if target:
         # Show hit effect
         show_combat_effect("range_attack", target)
+
+# Signal handlers for robot part usage and damage
+func _on_robot_part_used(slot_name: String):
+    if combat_robot_frame:
+        combat_robot_frame.show_part_usage(slot_name)
+    
+    # Create a parts dictionary to emit with the chassis_updated signal
+    var parts_dict = {}
+    if player_robot:
+        parts_dict = {
+            "head": player_robot.head,
+            "core": player_robot.core,
+            "arm_left": player_robot.left_arm,
+            "arm_right": player_robot.right_arm,
+            "legs": player_robot.legs,
+            "utility": player_robot.utility
+        }
+    
+    # Emit chassis_updated signal for any listeners
+    emit_signal("chassis_updated", parts_dict)
+
+func _on_robot_part_damaged(slot_name: String, current_durability: int):
+    if combat_robot_frame:
+        combat_robot_frame.update_part_durability(slot_name, current_durability)
+        combat_robot_frame.show_part_damage(slot_name)
+    
+    # Create a parts dictionary to emit with the chassis_updated signal
+    var parts_dict = {}
+    if player_robot:
+        parts_dict = {
+            "head": player_robot.head,
+            "core": player_robot.core,
+            "arm_left": player_robot.left_arm,
+            "arm_right": player_robot.right_arm,
+            "legs": player_robot.legs,
+            "utility": player_robot.utility
+        }
+    
+    # Emit chassis_updated signal for any listeners
+    emit_signal("chassis_updated", parts_dict)
+
+# Get the status of the combat robot frame
+func get_robot_frame_status() -> String:
+    var status = "Combat Status:\n"
+    
+    if not combat_robot_frame or not player_robot:
+        return status + "No robot data available."
+    
+    status += "Heat: " + str(player_robot.current_heat) + "/" + str(player_robot.max_heat) + "\n"
+    
+    # Add more status information as needed
+    
+    return status
 
 func get_combat_status() -> String:
     if not combat_active:

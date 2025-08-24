@@ -14,10 +14,13 @@ var energy_label: Label = null
 
 # References - set these in the editor
 @export var robot_frame: RobotFrame = null
+@export var robot_fight_frame: RobotFrame = null
+@export var robot_fighter_frame: RobotFrame = null
 @export var robot_fighter: PlayerRobot = null
 @export var enemy_manager: EnemyManager = null
 @export var stat_manager: StatManager = null
 @export var build_view: BuildView = null
+@export var combat_view: CombatView = null
 @export var chassis_manager: ChassisManager
 @export var deck_manager: DeckManager
 @export var hand_manager: HandManager
@@ -30,14 +33,20 @@ func _ready():
     # Connect to robot frame signals for real-time visual updates
     if robot_frame:
         robot_frame.connect("robot_frame_updated", _on_robot_frame_updated)
+    if robot_fight_frame:
+        robot_fight_frame.connect("robot_frame_updated", _on_robot_frame_updated)
+    if robot_fighter_frame:
+        robot_fighter_frame.connect("robot_frame_updated", _on_robot_frame_updated)
         print("TurnManager: Connected to robot_frame signals")
     
     # Try to find and connect to BuildView
     call_deferred("_connect_to_build_view")
     
     if build_view:
-        build_view.connect("robot_frame_updated", _on_robot_frame_updated)
+        # build_view.connect("robot_frame_updated", _on_robot_frame_updated)
         build_view.connect("chassis_updated", _on_chassis_updated)
+        # combat_view.connect("robot_frame_updated", _on_robot_frame_updated)
+        combat_view.connect("chassis_updated", _on_chassis_updated)
         print("TurnManager: Connected to BuildView signals")
 
     # Request next enemy from enemy manager
@@ -67,6 +76,10 @@ func update_robot_visuals(attached_parts):
     # Update visual robot frame
     if robot_frame:
         robot_frame.build_robot_visuals(attached_parts)
+    if robot_fight_frame:
+        robot_fight_frame.build_robot_visuals(attached_parts)
+    if robot_fighter_frame:
+        robot_fighter_frame.build_robot_visuals(attached_parts)
     else:
         print("Warning: No RobotFrame assigned for visual updates")
 

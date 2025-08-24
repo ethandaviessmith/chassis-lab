@@ -1,22 +1,7 @@
-extends Node2D
+extends RobotFrame
 class_name RobotVisuals
 
 signal animation_completed
-
-# References to sprite nodes
-@onready var head_sprite: Sprite2D = %HeadSprite
-@onready var core_sprite: Sprite2D = %CoreSprite
-@onready var legs_sprite: Sprite2D = %LegsSprite
-@onready var left_arm_sprite: Sprite2D = %Left_ArmSprite
-@onready var right_arm_sprite: Sprite2D = %Right_ArmSprite
-
-# Parts data for animation and behavior
-var head_data = null
-var core_data = null
-var left_arm_data = null
-var right_arm_data = null
-var legs_data = null
-var utility_data = null
 
 # Define joint points for each body part
 var joint_points = {
@@ -24,17 +9,18 @@ var joint_points = {
         "head": Vector2(0, -15),       # Where head connects to core (top)
         "left_arm": Vector2(-30, 0),   # Where left arm connects to core (left side)
         "right_arm": Vector2(30, 0),   # Where right arm connects to core (right side)
-        "legs": Vector2(0, 30)         # Where legs connect to core (bottom)
+        "legs": Vector2(0, 25),        # Where legs connect to core (bottom)
+        "core": Vector2.ZERO           # Core is the reference point
     }
 }
 
 # Offset values for each sprite to position them correctly at their joints
 var sprite_offsets = {
-    "head": Vector2(0, 89.2),       # Offset for head (adjusted from scene position)
+    "head": Vector2(0, 38),       # Offset for head (adjusted from scene position)
     "core": Vector2.ZERO,           # Core is the reference point
     "left_arm": Vector2(58.2, 1.8), # Offset for left arm (derived from scene)
     "right_arm": Vector2(-63.8, 1.8),# Offset for right arm (derived from scene)
-    "legs": Vector2(0, -46)         # Offset for legs (adjusted from scene position)
+    "legs": Vector2(0, -23)         # Offset for legs (adjusted from scene position)
 }
 
 # Animation variables
@@ -44,15 +30,6 @@ var is_attacking: bool = false
 var is_hit: bool = false
 var attack_direction: int = 1  # 1 = right, -1 = left
 
-# Frame index mapping for each part type (synced with RobotFrame)
-static var FRAME_INDEX_LEGS = 0
-static var FRAME_INDEX_RIGHT_ARM = 10
-static var FRAME_INDEX_LEFT_ARM = 20
-static var FRAME_INDEX_HEAD = 30
-static var FRAME_INDEX_CORE = 40
-static var FRAME_INDEX_UTILITY = 50
-static var LEFT_TO_RIGHT_OFFSET = 10
-var left_to_right_offset = LEFT_TO_RIGHT_OFFSET
 
 # Sprite frame data
 var head_frames = 1   # Number of frames in head sprite
@@ -73,18 +50,21 @@ func _ready():
     set_default_positions()
     
     # Default sprite settings
-    core_sprite.centered = true
-    head_sprite.centered = true
-    legs_sprite.centered = true
-    left_arm_sprite.centered = true
-    right_arm_sprite.centered = true
-    
-    # Initialize with default frames
-    head_sprite.frame = FRAME_INDEX_HEAD
-    core_sprite.frame = FRAME_INDEX_CORE
-    left_arm_sprite.frame = FRAME_INDEX_LEFT_ARM
-    right_arm_sprite.frame = FRAME_INDEX_RIGHT_ARM
-    legs_sprite.frame = FRAME_INDEX_LEGS
+    if head_sprite:
+        head_sprite.centered = true
+        head_sprite.frame = FRAME_INDEX_HEAD
+    if core_sprite:
+        core_sprite.centered = true
+        core_sprite.frame = FRAME_INDEX_CORE
+    if legs_sprite:
+        legs_sprite.centered = true
+        legs_sprite.frame = FRAME_INDEX_LEGS
+    if left_arm_sprite:
+        left_arm_sprite.centered = true
+        left_arm_sprite.frame = FRAME_INDEX_LEFT_ARM
+    if right_arm_sprite:
+        right_arm_sprite.centered = true
+        right_arm_sprite.frame = FRAME_INDEX_RIGHT_ARM
 
 # Set the default positions for all sprites
 func set_default_positions():
@@ -92,17 +72,18 @@ func set_default_positions():
     core_sprite.position = Vector2.ZERO
     
     # Position each part based on where it connects to the core
-    head_sprite.position = joint_points.core.head - sprite_offsets.head
-    left_arm_sprite.position = joint_points.core.left_arm - sprite_offsets.left_arm
-    right_arm_sprite.position = joint_points.core.right_arm - sprite_offsets.right_arm
-    legs_sprite.position = joint_points.core.legs - sprite_offsets.legs
-    
-    # Reset rotations
-    head_sprite.rotation_degrees = 0
-    core_sprite.rotation_degrees = 0
-    left_arm_sprite.rotation_degrees = 0
-    right_arm_sprite.rotation_degrees = 0
-    legs_sprite.rotation_degrees = 0
+    if head_sprite:
+        head_sprite.position = joint_points.core.head - sprite_offsets.head
+        head_sprite.rotation_degrees = 0
+    if left_arm_sprite:
+        left_arm_sprite.position = joint_points.core.left_arm - sprite_offsets.left_arm
+        left_arm_sprite.rotation_degrees = 0
+    if right_arm_sprite:
+        right_arm_sprite.position = joint_points.core.right_arm - sprite_offsets.right_arm
+        right_arm_sprite.rotation_degrees = 0
+    if legs_sprite:
+        legs_sprite.position = joint_points.core.legs - sprite_offsets.legs
+        legs_sprite.rotation_degrees = 0
 
 # Function to position a part with respect to its parent part
 func update_part_position(part_sprite: Sprite2D, parent_part: String, 
@@ -170,6 +151,10 @@ func _process(delta):
 # Set sprite textures and frames based on equipped parts
 func set_part_sprites(head_frame_index = -1, core_frame_index = -1, legs_frame_index = -1,
                      left_arm_frame_index = -1, right_arm_frame_index = -1):
+    print("RobotVisuals: Setting part frames - Head:", head_frame_index, 
+          " Core:", core_frame_index, " Legs:", legs_frame_index,
+          " LeftArm:", left_arm_frame_index, " RightArm:", right_arm_frame_index)
+    
     # Set textures for each part if provided
         # Set frame if specified, otherwise use default
     if head_frame_index >= 0:
@@ -251,26 +236,32 @@ func update_from_part_data(parts_data: Dictionary):
     print("RobotVisuals: Updating from part data")
     # Parts data should contain head, core, left_arm, right_arm, legs
     if parts_data.has("head") and parts_data.head != null:
-        head_sprite.frame = parts_data.head.frame
+        if head_sprite:
+            head_sprite.frame = parts_data.head.frame
         head_data = parts_data.head
     if parts_data.has("core") and parts_data.core != null:
-        core_sprite.frame = parts_data.core.frame
+        if core_sprite:
+            core_sprite.frame = parts_data.core.frame
         core_data = parts_data.core
     if parts_data.has("left_arm") and parts_data.left_arm != null:
-        left_arm_sprite.frame = parts_data.left_arm.frame
+        if left_arm_sprite:
+            left_arm_sprite.frame = parts_data.left_arm.frame
         left_arm_data = parts_data.left_arm
     if parts_data.has("right_arm") and parts_data.right_arm != null:
-        right_arm_sprite.frame = parts_data.right_arm.frame
+        if right_arm_sprite:
+            right_arm_sprite.frame = parts_data.right_arm.frame
         right_arm_data = parts_data.right_arm
     if parts_data.has("legs") and parts_data.legs != null:
-        legs_sprite.frame = parts_data.legs.frame
+        if legs_sprite:
+            legs_sprite.frame = parts_data.legs.frame
         legs_data = parts_data.legs
     if parts_data.has("utility") and parts_data.utility != null:
         # utility_sprite.frame = parts_data.utility.frame (utility not shown in fight)
         utility_data = parts_data.utility
     
     # Update animation frames if part data includes frame counts
-    update_animation_frames()
+    # frame counts not implemented, all parts are 1 frame
+    # update_animation_frames()
 
 # Update sprite positions with offsets for animations
 func update_positions(head_offset: Vector2 = Vector2.ZERO, core_offset: Vector2 = Vector2.ZERO, 
@@ -280,10 +271,16 @@ func update_positions(head_offset: Vector2 = Vector2.ZERO, core_offset: Vector2 
     core_sprite.position = core_offset
     
     # Position each part based on joints and offsets
-    head_sprite.position = joint_points.core.head - sprite_offsets.head + head_offset
-    legs_sprite.position = joint_points.core.legs - sprite_offsets.legs + legs_offset
-    left_arm_sprite.position = joint_points.core.left_arm - sprite_offsets.left_arm + left_arm_offset
-    right_arm_sprite.position = joint_points.core.right_arm - sprite_offsets.right_arm + right_arm_offset
+    if head_sprite:
+        head_sprite.position = joint_points.core.head - sprite_offsets.head + head_offset
+    if core_sprite:
+        core_sprite.position = joint_points.core.core - sprite_offsets.core + core_offset
+    if legs_sprite:
+        legs_sprite.position = joint_points.core.legs - sprite_offsets.legs + legs_offset
+    if left_arm_sprite:
+        left_arm_sprite.position = joint_points.core.left_arm - sprite_offsets.left_arm + left_arm_offset
+    if right_arm_sprite:
+        right_arm_sprite.position = joint_points.core.right_arm - sprite_offsets.right_arm + right_arm_offset
 
 # Animation functions
 func animate_idle(_delta):
@@ -298,7 +295,8 @@ func animate_idle(_delta):
     
     # Animate frame if multiple frames exist
     if fmod(anim_time, 1.0) < 0.5:
-        advance_frames(0)  # Idle animation - first frame
+        pass
+        #advance_frames(0)  # Idle animation - first frame
 
 func animate_walking(_delta):
     # Walking animation
@@ -528,21 +526,31 @@ func play_hit():
     # Keep walking if already walking
     
     # Flash sprites red
-    head_sprite.modulate = Color(1, 0.5, 0.5)
-    core_sprite.modulate = Color(1, 0.5, 0.5)
-    legs_sprite.modulate = Color(1, 0.5, 0.5)
-    left_arm_sprite.modulate = Color(1, 0.5, 0.5)
-    right_arm_sprite.modulate = Color(1, 0.5, 0.5)
-    
+    if head_sprite:
+        head_sprite.modulate = Color(1, 0.5, 0.5)
+    if core_sprite:
+        core_sprite.modulate = Color(1, 0.5, 0.5)
+    if legs_sprite:
+        legs_sprite.modulate = Color(1, 0.5, 0.5)
+    if left_arm_sprite:
+        left_arm_sprite.modulate = Color(1, 0.5, 0.5)
+    if right_arm_sprite:
+        right_arm_sprite.modulate = Color(1, 0.5, 0.5)
+
     # Reset color after a short delay
     var timer = get_tree().create_timer(0.1)
     await timer.timeout
-    
-    head_sprite.modulate = Color(1, 1, 1)
-    core_sprite.modulate = Color(1, 1, 1)
-    legs_sprite.modulate = Color(1, 1, 1)
-    left_arm_sprite.modulate = Color(1, 1, 1)
-    right_arm_sprite.modulate = Color(1, 1, 1)
+
+    if head_sprite:
+        head_sprite.modulate = Color(1, 1, 1)
+    if core_sprite:
+        core_sprite.modulate = Color(1, 1, 1)
+    if legs_sprite:
+        legs_sprite.modulate = Color(1, 1, 1)
+    if left_arm_sprite:
+        left_arm_sprite.modulate = Color(1, 1, 1)
+    if right_arm_sprite:
+        right_arm_sprite.modulate = Color(1, 1, 1)
     is_hit = false
     
 func play_heal_effect():
@@ -581,11 +589,17 @@ func play_death_animation():
     
     # Falling backwards
     # First move everything slightly up
-    tween.tween_property(head_sprite, "position:y", head_sprite.position.y - 10, 0.2)
-    tween.parallel().tween_property(core_sprite, "position:y", core_sprite.position.y - 5, 0.2)
-    tween.parallel().tween_property(legs_sprite, "position:y", legs_sprite.position.y - 5, 0.2)
-    tween.parallel().tween_property(left_arm_sprite, "position:y", left_arm_sprite.position.y - 5, 0.2)
-    tween.parallel().tween_property(right_arm_sprite, "position:y", right_arm_sprite.position.y - 5, 0.2)
+    
+    if head_sprite:
+        tween.tween_property(head_sprite, "position:y", head_sprite.position.y - 10, 0.2)
+    if core_sprite:
+        tween.parallel().tween_property(core_sprite, "position:y", core_sprite.position.y - 5, 0.2)
+    if legs_sprite:
+        tween.parallel().tween_property(legs_sprite, "position:y", legs_sprite.position.y - 5, 0.2)
+    if left_arm_sprite:
+        tween.parallel().tween_property(left_arm_sprite, "position:y", left_arm_sprite.position.y - 5, 0.2)
+    if right_arm_sprite:
+        tween.parallel().tween_property(right_arm_sprite, "position:y", right_arm_sprite.position.y - 5, 0.2)
     
     # Then rotate and fall back
     tween.tween_property(self, "rotation_degrees", 90, 0.3)

@@ -548,6 +548,10 @@ func discard_all_from_hand():
     emit_signal("deck_updated")
     emit_signal("hand_emptied")
 
+func discard_cards(cards: Array):
+    for card in cards:
+        discard_card(card)
+
 func discard_card(card):
     # First, get the card data regardless of what type it is
     var card_data = null
@@ -560,8 +564,8 @@ func discard_card(card):
             hand.erase(card)
             print("DeckManager: Removed card data from hand")
         
-    elif card is Card and card.part:
-        var card_part = card.part
+    elif card is Card and card.data:
+        var card_part = card.data
         # Remove from hand if present
         for i in range(hand.size() - 1, -1, -1):
             if hand[i] is Part and card_part is Part:

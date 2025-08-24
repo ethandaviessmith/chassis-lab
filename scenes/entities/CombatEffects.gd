@@ -15,7 +15,20 @@ func show_effect(effect_type: String, effect_position: Vector2):
     var effect_node = Label.new()
     add_child(container)
     container.add_child(effect_node)
+    
+    # Set initial position
     container.position = effect_position
+    
+    # Try to get the attack indicator position from the entity
+    # Look through all PlayerRobot nodes to see if one matches the position
+    var robots = get_tree().get_nodes_in_group("player_robot")
+    for robot in robots:
+        if robot.global_position.distance_to(effect_position) < 50:  # If close to this entity
+            if robot.has_node("AttackIndicator"):
+                var indicator = robot.get_node("AttackIndicator")
+                # Use the x position from the entity but y position from the indicator
+                container.position = Vector2(effect_position.x, indicator.global_position.y)
+                break
     
     # Center the label
     effect_node.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -59,7 +72,25 @@ func show_damage_number(amount: int, effect_position: Vector2):
     var number_node = Label.new()
     add_child(container)
     container.add_child(number_node)
-    container.position = effect_position + Vector2(0, -30)  # Show above target
+    
+    # Default position: above the target
+    var target_position = effect_position + Vector2(0, -30)
+    
+    # Try to get the attack indicator position from the entity
+    # Look through all player robots or enemies to see if one matches the position
+    var entities = []
+    entities.append_array(get_tree().get_nodes_in_group("player_robot"))
+    entities.append_array(get_tree().get_nodes_in_group("enemies"))
+    
+    for entity in entities:
+        if entity.global_position.distance_to(effect_position) < 50:  # If close to this entity
+            if entity.has_node("AttackIndicator"):
+                var indicator = entity.get_node("AttackIndicator")
+                # Use the x position from the entity but y position from the indicator
+                target_position = Vector2(effect_position.x, indicator.global_position.y - 30)
+                break
+    
+    container.position = target_position
     
     # Center the label
     number_node.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

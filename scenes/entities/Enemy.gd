@@ -23,7 +23,7 @@ func get_max_hp() -> int:
 @onready var sprite = $Sprite
 @onready var attack_indicator = $AttackIndicator
 var enemy_visuals: EnemyVisuals
-@onready var robot_visuals = $RobotVisuals  # Reference to RobotVisuals node
+@onready var robot_visuals = $RobotFrame  # Reference to RobotVisuals node
 
 # Combat indicators with emojis
 var INDICATORS = {

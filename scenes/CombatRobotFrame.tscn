@@ -1,0 +1,43 @@
+[gd_scene load_steps=6 format=3 uid="uid://cbh2sqoaorjrx"]
+
+[ext_resource type="Script" uid="uid://dv3wlj61ixklk" path="res://scenes/CombatRobotFrame.gd" id="1_v3jnr"]
+[ext_resource type="PackedScene" uid="uid://vbycyhmsf42b" path="res://scenes/RobotFrame.tscn" id="2_3ldtv"]
+[ext_resource type="Shader" uid="uid://bhkp5ns7y0vog" path="res://assets/shaders/crt_effect.gdshader" id="2_uwm5d"]
+[ext_resource type="Script" uid="uid://cl0lrw5yogklt" path="res://scenes/ui/TerminalBackground.gd" id="3_0sfi0"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_8ixvh"]
+shader = ExtResource("2_uwm5d")
+
+[node name="CombatRobotFrame" type="Control"]
+layout_mode = 3
+anchor_right = 0.242
+anchor_bottom = 0.566
+offset_left = 1.0
+offset_right = 0.215973
+offset_bottom = 0.231964
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_v3jnr")
+
+[node name="BackgroundPanel" type="Panel" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -873.0
+offset_bottom = -286.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TerminalBackground" type="Control" parent="."]
+material = SubResource("ShaderMaterial_8ixvh")
+anchors_preset = 0
+offset_right = 280.0
+offset_bottom = 366.0
+script = ExtResource("3_0sfi0")
+terminal_header = "BOT.STATUS_SCREEN"
+metadata/_custom_type_script = "uid://cl0lrw5yogklt"
+
+[node name="RobotFrame" parent="." instance=ExtResource("2_3ldtv")]
+position = Vector2(-22, 31)

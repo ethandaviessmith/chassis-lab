@@ -4,6 +4,10 @@ class_name RobotFrame
 signal robot_frame_updated
 signal part_attached(part_data, slot_name)
 signal part_removed(slot_name)
+signal part_clicked(slot_name)
+
+# Configuration options
+@export var show_durability: bool = false  # Set to true in combat view
 
 # Visual references for robot parts
 @onready var head_sprite = $HeadSprite
@@ -12,6 +16,14 @@ signal part_removed(slot_name)
 @onready var right_arm_sprite = $RightArmSprite
 @onready var legs_sprite = $LegsSprite
 @onready var utility_sprite = $UtilitySprite
+
+# Durability indicator references (optional)
+@onready var head_durability = $HeadDurability if has_node("HeadDurability") else null
+@onready var core_durability = $CoreDurability if has_node("CoreDurability") else null
+@onready var left_arm_durability = $LeftArmDurability if has_node("LeftArmDurability") else null
+@onready var right_arm_durability = $RightArmDurability if has_node("RightArmDurability") else null
+@onready var legs_durability = $LegsDurability if has_node("LegsDurability") else null
+@onready var utility_durability = $UtilityDurability if has_node("UtilityDurability") else null
 
 # Frame index mapping for AsepriteWizard sprites
 # Base indices for each part type
@@ -36,17 +48,29 @@ func _ready():
     # Initialize all sprites to show empty frames
     if head_sprite:
         head_sprite.frame = FRAME_INDEX_HEAD
+        if head_durability:
+            head_durability.gui_input.connect(_on_part_input.bind("head"))
     if core_sprite:
         core_sprite.frame = FRAME_INDEX_CORE
+        if core_durability:
+            core_durability.gui_input.connect(_on_part_input.bind("core"))
     if left_arm_sprite:
         left_arm_sprite.frame = FRAME_INDEX_LEFT_ARM
+        if left_arm_durability:
+            left_arm_durability.gui_input.connect(_on_part_input.bind("left_arm"))
     if right_arm_sprite:
         right_arm_sprite.frame = FRAME_INDEX_RIGHT_ARM
+        if right_arm_durability:
+            right_arm_durability.gui_input.connect(_on_part_input.bind("right_arm"))
     if legs_sprite:
         legs_sprite.frame = FRAME_INDEX_LEGS
+        if legs_durability:
+            legs_durability.gui_input.connect(_on_part_input.bind("legs"))
     if utility_sprite:
         utility_sprite.frame = FRAME_INDEX_UTILITY
-    
+        if utility_durability:
+            utility_durability.gui_input.connect(_on_part_input.bind("utility"))
+
     update_visuals()
 
 # Create a part object from card data
@@ -80,26 +104,38 @@ func attach_part_visual(part_data, slot: String):
             head_data = part_data
             if head_sprite and part_data.frame_index:
                 head_sprite.frame = part_data.frame_index
+            if show_durability and head_durability:
+                setup_durability_pips(head_durability, part_data)
         "core":
             core_data = part_data
             if core_sprite and part_data.frame_index:
                 core_sprite.frame = part_data.frame_index
+            if show_durability and core_durability:
+                setup_durability_pips(core_durability, part_data)
         "left_arm":
             left_arm_data = part_data
             if left_arm_sprite and part_data.frame_index:
                 left_arm_sprite.frame = part_data.frame_index
+            if show_durability and left_arm_durability:
+                setup_durability_pips(left_arm_durability, part_data)
         "right_arm":
             right_arm_data = part_data
             if right_arm_sprite and part_data.frame_index:
                 right_arm_sprite.frame = part_data.frame_index
+            if show_durability and right_arm_durability:
+                setup_durability_pips(right_arm_durability, part_data)
         "legs":
             legs_data = part_data
             if legs_sprite and part_data.frame_index:
                 legs_sprite.frame = part_data.frame_index
+            if show_durability and legs_durability:
+                setup_durability_pips(legs_durability, part_data)
         "utility":
             utility_data = part_data
             if utility_sprite and part_data.frame_index:
                 utility_sprite.frame = part_data.frame_index
+            if show_durability and utility_durability:
+                setup_durability_pips(utility_durability, part_data)
     
     print("RobotFrame: Attached ", part_data.name, " to ", slot)
     emit_signal("part_attached", part_data, slot)
@@ -119,31 +155,43 @@ func remove_part_visual(slot: String):
             head_data = null
             if head_sprite:
                 head_sprite.frame = FRAME_INDEX_HEAD  # Show empty head frame
+            if show_durability and head_durability:
+                clear_durability_pips(head_durability)
         "core":
             removed_data = core_data
             core_data = null
             if core_sprite:
                 core_sprite.frame = FRAME_INDEX_CORE  # Show empty core frame
+            if show_durability and core_durability:
+                clear_durability_pips(core_durability)
         "left_arm":
             removed_data = left_arm_data
             left_arm_data = null
             if left_arm_sprite:
                 left_arm_sprite.frame = FRAME_INDEX_LEFT_ARM  # Show empty left arm frame
+            if show_durability and left_arm_durability:
+                clear_durability_pips(left_arm_durability)
         "right_arm":
             removed_data = right_arm_data
             right_arm_data = null
             if right_arm_sprite:
                 right_arm_sprite.frame = FRAME_INDEX_RIGHT_ARM  # Show empty right arm frame
+            if show_durability and right_arm_durability:
+                clear_durability_pips(right_arm_durability)
         "legs":
             removed_data = legs_data
             legs_data = null
             if legs_sprite:
                 legs_sprite.frame = FRAME_INDEX_LEGS  # Show empty legs frame
+            if show_durability and legs_durability:
+                clear_durability_pips(legs_durability)
         "utility":
             removed_data = utility_data
             utility_data = null
             if utility_sprite:
                 utility_sprite.frame = FRAME_INDEX_UTILITY  # Show empty utility frame
+            if show_durability and utility_durability:
+                clear_durability_pips(utility_durability)
     
     if removed_data:
         print("RobotFrame: Removed ", removed_data.name, " from ", slot)
@@ -250,6 +298,140 @@ func play_build_animation():
         tween.tween_property(self, "modulate:a", 1.0, 0.2)
         tween.tween_property(self, "modulate:a", 0.5, 0.2)
         tween.tween_property(self, "modulate:a", 1.0, 0.2)
+
+# Setup durability pips based on part's max durability
+func setup_durability_pips(durability_container: Control, part_data):
+    # Clear existing pips
+    clear_durability_pips(durability_container)
+    
+    if not show_durability or not part_data:
+        return
+    
+    var max_durability = part_data.get("durability", 0)
+    var current_durability = part_data.get("current_durability", max_durability)
+    
+    # Create durability pips
+    for i in range(max_durability):
+        var pip = TextureRect.new()
+        # Use durability_pip.png from assets root
+        var texture_path = "res://assets/durability_pip.png"
+        if ResourceLoader.exists(texture_path):
+            pip.texture = load(texture_path)
+            # Force small size for the pip
+            pip.custom_minimum_size = Vector2(3, 3)
+            pip.expand = true
+            pip.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        else:
+            # Create a fallback colored rect if texture doesn't exist
+            var style_box = StyleBoxFlat.new()
+            style_box.bg_color = Color(0.2, 0.8, 0.2) if i < current_durability else Color(0.5, 0.5, 0.5, 0.5)
+            style_box.corner_radius_top_left = 2
+            style_box.corner_radius_top_right = 2
+            style_box.corner_radius_bottom_left = 2
+            style_box.corner_radius_bottom_right = 2
+            
+            var panel = Panel.new()
+            panel.custom_minimum_size = Vector2(4, 4)
+            panel.add_theme_stylebox_override("panel", style_box)
+            pip.add_child(panel)
+            
+        # Set size constraints
+        pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+        pip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+        
+        
+        # Color based on whether this pip is "filled" (represents remaining durability)
+        if i < current_durability:
+            pip.modulate = Color(0.2, 0.8, 0.2)  # Green for remaining durability
+        else:
+            pip.modulate = Color(0.5, 0.5, 0.5, 0.5)  # Gray for lost durability
+        
+        durability_container.add_child(pip)
+
+# Clear all durability pips from a container
+func clear_durability_pips(durability_container: Control):
+    if not durability_container:
+        return
+        
+    for child in durability_container.get_children():
+        child.queue_free()
+
+# Update durability display for a specific part
+func update_part_durability(slot_name: String, current_durability: int):
+    if not show_durability:
+        return
+        
+    var part_data = null
+    var durability_container = null
+    
+    match slot_name:
+        "head":
+            part_data = head_data
+            durability_container = head_durability
+        "core":
+            part_data = core_data
+            durability_container = core_durability
+        "left_arm":
+            part_data = left_arm_data
+            durability_container = left_arm_durability
+        "right_arm":
+            part_data = right_arm_data
+            durability_container = right_arm_durability
+        "legs":
+            part_data = legs_data
+            durability_container = legs_durability
+        "utility":
+            part_data = utility_data
+            durability_container = utility_durability
+    
+    if part_data and durability_container:
+        part_data.current_durability = current_durability
+        setup_durability_pips(durability_container, part_data)
+
+# Flash effect for when a part is used in combat
+func flash_part(slot_name: String, color: Color = Color(1, 1, 0.5)):
+    var sprite = null
+    
+    match slot_name:
+        "head": sprite = head_sprite
+        "core": sprite = core_sprite
+        "left_arm": sprite = left_arm_sprite
+        "right_arm": sprite = right_arm_sprite
+        "legs": sprite = legs_sprite
+        "utility": sprite = utility_sprite
+    
+    if sprite:
+        # Create a tween for the flash effect
+        var tween = create_tween()
+        tween.tween_property(sprite, "modulate", color, 0.1)
+        tween.tween_property(sprite, "modulate", Color(1, 1, 1, 1), 0.2)
+
+# Show damage effect on a part
+func show_part_damage(slot_name: String):
+    flash_part(slot_name, Color(1, 0.3, 0.3))  # Red flash
+
+# Show part usage effect
+func show_part_usage(slot_name: String):
+    flash_part(slot_name, Color(0.3, 0.7, 1))  # Blue flash
+
+# Show part overheating effect
+func show_part_overheat(slot_name: String):
+    flash_part(slot_name, Color(1, 0.5, 0))  # Orange flash
+    
+# Handle part input events (clicking)
+func _on_part_input(event: InputEvent, slot_name: String):
+    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+        var part_data = null
+        match slot_name:
+            "head": part_data = head_data
+            "core": part_data = core_data
+            "left_arm": part_data = left_arm_data
+            "right_arm": part_data = right_arm_data
+            "legs": part_data = legs_data
+            "utility": part_data = utility_data
+            
+        if part_data:
+            emit_signal("part_clicked", slot_name)
 
 # Check if robot has minimum required parts for combat
 func is_combat_ready() -> bool:

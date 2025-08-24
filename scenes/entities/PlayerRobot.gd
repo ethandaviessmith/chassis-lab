@@ -4,6 +4,8 @@ class_name PlayerRobot
 # We're using BaseFighter's process_combat_behavior
 # No need to override unless we need specific behavioral changes
 signal robot_overheated
+signal part_used(slot_name)
+signal part_damaged(slot_name, current_durability)
 
 # Robot-specific resources
 # Note: heat and max_heat are inherited from BaseFighter
@@ -147,82 +149,6 @@ func build_from_chassis(attached_parts: Dictionary):
     update_bars()
     update_visuals()  # Update visuals based on new parts
     emit_signal("robot_updated")
-
-# Create a part object from card data
-# func create_part_from_card(card_data: Part):
-#     # Convert card data to a part object that the robot can use for stats
-#     var part = {
-#         "name": card_data.name,
-#         "type": card_data.type,
-#         "cost": card_data.cost,
-#         "heat": card_data.heat,
-#         "durability": card_data.durability
-#         "effects": card_data.get("effects", []),
-#         "frames": card_data.get("frames", 1)  # Animation frame count, default to 1
-#     }
-    
-#     # Add attack type and range if present (for arms)
-#     if card_data.has("attack_type"):
-#         part["attack_type"] = card_data.attack_type
-    
-#     if card_data.has("attack_range"):
-#         part["attack_range"] = card_data.attack_range
-    
-#     # Extract frame index if present (from RobotFrame)
-#     if card_data.has("frame"):
-#         var frame_index = card_data.frame
-#         var part_type = card_data.get("type", "").to_lower()
-        
-#         # Handle different part types for frame indices
-#         part["frame_index"] = frame_index
-#         print("PlayerRobot: Setting frame_index for ", part.name, " to ", frame_index)
-        
-#         # Special handling for left arm (add offset)
-#         if part_type == "arm" and part["name"].to_lower().begins_with("left"):
-#             part["frame_index"] += RobotVisuals.LEFT_TO_RIGHT_OFFSET
-#             print("  Adjusted left arm frame_index to ", part["frame_index"])
-#     else:
-#         # If no frame specified, set default based on part type
-#         var part_type = card_data.get("type", "").to_lower()
-        
-#         print("PlayerRobot: No frame specified for ", part.name, ", setting default based on type: ", part_type)
-        
-#         # Set default frame indices
-#         if part_type == "head":
-#             part["frame_index"] = RobotVisuals.FRAME_INDEX_HEAD
-#         elif part_type == "core":
-#             part["frame_index"] = RobotVisuals.FRAME_INDEX_CORE
-#         elif part_type == "arm":
-#             if part["name"].to_lower().begins_with("left"):
-#                 part["frame_index"] = RobotVisuals.FRAME_INDEX_LEFT_ARM
-#             else:
-#                 part["frame_index"] = RobotVisuals.FRAME_INDEX_RIGHT_ARM
-#         elif part_type == "legs":
-#             part["frame_index"] = RobotVisuals.FRAME_INDEX_LEGS
-#         elif part_type == "utility":
-#             part["frame_index"] = RobotVisuals.FRAME_INDEX_UTILITY
-        
-#         print("  Set frame_index to ", part.get("frame_index", "None"))
-        
-#     # Extract sprite/visual information if present
-#     if card_data.has("sprite_path"):
-#         part["sprite_path"] = card_data.sprite_path
-    
-#     # Parse effects for stat modifications
-#     if card_data.has("effects"):
-#         var parsed_effects = []
-#         for effect in card_data.effects:
-#             if effect is Dictionary and effect.has("description"):
-#                 # Parse effect description for stat bonuses
-#                 var desc = effect.description.to_lower()
-#                 if "+2 armor" in desc:
-#                     parsed_effects.append({"type": "armor", "value": 2})
-#                 elif "gain materials" in desc:
-#                     parsed_effects.append({"type": "scrapper_bonus", "value": 1})
-#                 # Add more effect parsing as needed
-#         part.effects = parsed_effects
-    
-#     return part
 
 # Attach a part and apply its effects
 func attach_part(part: Part, slot: String):
@@ -397,6 +323,15 @@ func reset_to_base_stats():
 # Override move_toward_target to include robot visuals
 func move_toward_target(target_node):
     var direction = (target_node.global_position - global_position).normalized()
+    
+    # Use legs for movement (if available)
+    if legs and randf() < 0.1:  # 10% chance per frame to emit signal (not every frame)
+        emit_signal("part_used", "legs")
+    
+    # Use core for power management (if available)
+    if core and randf() < 0.05:  # 5% chance per frame
+        emit_signal("part_used", "core")
+    
     velocity = direction * move_speed
     
     # Apply modifiers from parts
@@ -431,7 +366,7 @@ func try_attack(target_node, _delta):
     if time_since_last_attack >= (1.0 / randomized_attack_speed):
         # Check if close enough to attack
         var distance_to_target = global_position.distance_to(target_node.global_position)
-        if distance_to_target <= 50:  # Attack range
+        if distance_to_target <= 80:  # Attack range
             perform_attack(target_node)
             last_attack_time = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
             
@@ -451,13 +386,26 @@ func perform_attack(target_node):
     # Add damage from arms
     if left_arm:
         base_damage += 2  # Example: left arm adds damage
+        emit_signal("part_used", "left_arm")
     if right_arm:
         base_damage += 2  # Example: right arm adds damage
+        emit_signal("part_used", "right_arm")
     
     # Apply randomization to damage (±20%)
     var rng = RandomNumberGenerator.new()
     rng.randomize()
     var damage_variation = rng.randf_range(0.8, 1.2)
+    
+    # Use head for targeting precision (if available)
+    if head:
+        damage_variation = rng.randf_range(0.9, 1.3)  # Better precision with head
+        emit_signal("part_used", "head")
+    
+    # Use utility for bonus effects (if available)
+    if utility and rng.randf() < 0.3:  # 30% chance to use utility
+        damage_variation *= 1.2  # 20% damage boost from utility
+        emit_signal("part_used", "utility")
+    
     var damage = round(base_damage * damage_variation)
     damage = max(1, damage)  # Ensure minimum damage of 1
     
@@ -509,6 +457,25 @@ func take_damage(amount: int):
     if robot_visuals and actual_damage > 0:
         robot_visuals.play_hit()
     
+    # If we took damage, reduce durability on a random part
+    if actual_damage > 0:
+        # Choose a random part to damage
+        var damage_candidates = []
+        if head and head.durability > 0: damage_candidates.append("head")
+        if core and core.durability > 0: damage_candidates.append("core")
+        if left_arm and left_arm.durability > 0: damage_candidates.append("left_arm")
+        if right_arm and right_arm.durability > 0: damage_candidates.append("right_arm")
+        if legs and legs.durability > 0: damage_candidates.append("legs")
+        if utility and utility.durability > 0: damage_candidates.append("utility")
+        
+        if damage_candidates.size() > 0:
+            var random_part = damage_candidates[randi() % damage_candidates.size()]
+            var part = get(random_part)
+            if part and part.durability:
+                part.durability = max(0, part.durability - 1)
+                emit_signal("part_damaged", random_part, part.durability)
+                print("PlayerRobot: Part damaged: ", random_part, " now at ", part.durability, "/", part.max_durability)
+
     if energy <= 0:
         # Play death animation before signaling defeat
         if robot_visuals:
@@ -544,24 +511,6 @@ func heal(amount: int):
             robot_visuals.play_heal_effect()
     
     print("PlayerRobot: Healed for ", (energy - previous_energy), " energy (", energy, "/", max_energy, ")")
-
-# Now using the base class implementation for reduce_heat
-
-# Override update_bars to include heat bar
-# func update_bars():
-#     if health_bar:
-#         health_bar.value = 100.0 * energy / max_energy
-    
-#     if heat_bar:
-#         heat_bar.value = 100.0 * heat / max_heat
-        
-#         # Update heat bar color
-#         if heat >= max_heat:
-#             heat_bar.modulate = Color(1, 0, 0)  # Red for overheat
-#         elif heat >= 8:
-#             heat_bar.modulate = Color(1, 0.5, 0)  # Orange for high heat
-#         else:
-#             heat_bar.modulate = Color(1, 0.8, 0)  # Yellow-orange normal
 
 # Status checks
 func get_armor() -> int:

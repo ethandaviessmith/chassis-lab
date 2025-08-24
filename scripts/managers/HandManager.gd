@@ -166,27 +166,6 @@ func clear_hand():
         card.queue_free()
     cards_in_hand.clear()
     
-# Reset the hand state for a new build phase
-func reset_hand():
-    print("HandManager: Resetting hand state")
-    
-    # First clear any existing cards
-    clear_hand()
-    
-    # Make sure our internal state matches DeckManager
-    if deck_manager:
-        # Synchronize hand tracking with DeckManager
-        var status = deck_manager.get_deck_status()
-        print("HandManager: Deck status - Draw: %d, Hand: %d, Discard: %d" % [status.deck_size, status.hand_size, status.discard_size])
-        
-        # If DeckManager thinks cards are in hand but we've cleared them,
-        # we need to make sure they get moved to discard
-        if status.hand_size > 0:
-            print("HandManager: Moving %d lingering cards from DeckManager hand to discard" % status.hand_size)
-            deck_manager.discard_all_from_hand()
-    else:
-        print("HandManager: No deck_manager reference, cannot synchronize state")
-
 # Create a visual representation of a card
 func create_card_sprite(card_data, index):
     # Create a simpler fallback card if loading the scene fails
@@ -367,7 +346,7 @@ func update_card_affordability(available_energy: int):
         if card is Card and card.has_method("update_affordability"):
             card.update_affordability(available_energy)
 
-# Discard all cards in hand to the discard pile
+# Discard all cards in hand to the discard pile leaving parts attached
 func discard_hand():
     if not deck_manager:
         print("HandManager: No deck_manager found, cannot discard hand")
@@ -376,10 +355,13 @@ func discard_hand():
     print("HandManager: Discarding all cards in hand... Current visual cards: " + str(cards_in_hand.size()))
     
     # Clear the visual hand
-    clear_hand()
+    # Get cards not on chassis (frame) and filter them
+    var cards_not_on_chassis = cards_in_hand.filter(func(card):
+        return not card.data.attached_to_chassis
+    )
+    deck_manager.discard_cards(cards_not_on_chassis)
     
-    # Tell DeckManager to discard all cards from hand
-    deck_manager.discard_all_from_hand()
+    # # Tell DeckManager to discard all cards from hand
     
     print("HandManager: After discarding - Visual cards: " + str(cards_in_hand.size()) + 
           ", DeckManager hand size: " + str(deck_manager.hand.size()))
