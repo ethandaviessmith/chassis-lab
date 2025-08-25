@@ -37,6 +37,9 @@ var default_card_distribution = {
     "Utility": 1
 }
 
+# Current deck name (for loading/saving)
+var current_deck_name: String = "default"
+
 # Heat management
 var current_heat: int = 0
 var max_heat: int = 10
@@ -45,9 +48,15 @@ var max_heat: int = 10
 @export var data_loader: DataLoader
 @export var turn_manager: TurnManager
 @export var combat_resolver: CombatResolver
+@export var deck_config_manager: DeckConfigManager
 
 func _ready():
     # Setup signals first
+    
+    load_starting_deck()
+    # Load the current deck if a deck_config_manager is available
+    if deck_config_manager:
+        load_deck_by_name(current_deck_name)
     if combat_resolver:
         combat_resolver.part_durability_changed.connect(_on_part_durability_changed)
     if turn_manager:
@@ -56,11 +65,7 @@ func _ready():
     print("DeckManager ready")
     print("  DataLoader: ", "Set" if data_loader else "Not set")
     print("  TurnManager: ", "Set" if turn_manager else "Not set")
-    
-    # We'll only load the deck here but NOT draw cards automatically
-    # The initial hand drawing will be done by HandManager when requested
-    print("DeckManager: About to load starting deck...")
-    load_starting_deck()
+
     
     # Print final status after loading
     var status = get_deck_status()
@@ -72,6 +77,7 @@ func _ready():
 # Force reload the starting deck (useful for debugging)
 func reload_deck():
     print("Force reloading deck...")
+    discard_all_from_hand()
     
     # We need to clear all collections before reloading to avoid duplicates
     deck.clear()
@@ -82,9 +88,6 @@ func reload_deck():
     # Also clear card tracking systems
     card_registry.clear()
     card_instances.clear()
-    
-    # Now load fresh deck
-    load_starting_deck()
 
 func _on_part_durability_changed(part, new_durability):
     print("Part durability changed: ", part, " - New durability: ", new_durability)
@@ -408,7 +411,7 @@ func draw_hand():
     var cards_drawn = 0
     while hand.size() < max_hand_size and (deck.size() > 0 or discard_pile.size() > 0):
         var drawn_card = draw_card()
-        if drawn_card.is_empty():
+        if drawn_card == null:
             print("DeckManager: Failed to draw card, breaking loop")
             break
         cards_drawn += 1
@@ -420,6 +423,18 @@ func draw_hand():
     print("DeckManager: Total cards in all collections: " + str(total_cards))
     
     return hand
+
+func discard_hand():
+    print("DeckManager: Discarding entire hand of size ", hand.size())
+    
+    # Move all cards from hand to discard pile
+    while hand.size() > 0:
+        var card = hand.pop_front()
+        discard_pile.append(card)
+    
+    emit_signal("hand_emptied")
+    emit_signal("deck_updated")
+
 
 func play_card(card: Dictionary, slot: String) -> bool:
     # Check if card is in hand
@@ -510,6 +525,58 @@ func add_card_to_deck(card: Dictionary):
     # Notify listeners that deck state has changed
     emit_signal("deck_updated")
     
+# Get the full deck (combine all cards in deck, hand, discard)
+func get_full_deck() -> Array:
+    var full_deck = []
+    full_deck.append_array(deck)
+    full_deck.append_array(hand)
+    full_deck.append_array(discard_pile)
+    # Don't include exhausted cards - they're not part of the deck anymore
+    return full_deck
+    
+# Set a completely new deck
+func set_deck(new_deck: Array):
+    reload_deck()
+    deck = new_deck
+    emit_signal("deck_updated")
+    
+# Set the current active deck and draw a new hand
+func set_current_deck(new_deck: Array):
+    set_deck(new_deck)
+    shuffle_deck()
+    
+    # Draw a new hand if possible (only if we're in a game state that uses the hand)
+    print("Drawing new hand after deck change")
+    # Clear current hand first
+    discard_all_from_hand()
+    # Draw a new hand
+    draw_hand()
+    
+# Load a deck by name from the deck config
+func load_deck_by_name(deck_name: String):
+    if not deck_config_manager or not data_loader:
+        print("Cannot load deck: missing deck_config_manager or data_loader")
+        return
+    
+    # Load the deck data
+    var deck_data = deck_config_manager.get_full_deck_data(deck_name)
+    
+    # Check if deck exists
+    if deck_data.cards.size() > 0:
+        # Convert the saved deck format to actual cards
+        var new_deck = deck_config_manager.convert_saveable_to_deck(deck_data.cards, data_loader)
+        
+        # Set the deck
+        set_deck(new_deck)
+        
+        # Update current deck name
+        current_deck_name = deck_name
+        print("Loaded deck: ", deck_name, " with ", new_deck.size(), " cards")
+    else:
+        print("No cards found in deck: ", deck_name)
+        # Use default deck generation
+        configure_starting_deck()
+    
 # Discard all cards currently in hand to the discard pile
 func discard_all_from_hand():
     print("DeckManager: Discarding all cards from hand to discard pile")
@@ -534,11 +601,7 @@ func discard_all_from_hand():
         if card_data is Part:
             instance_id = card_data.instance_id
         else:
-            instance_id = card_data.get("instance_id", "")
-            
-        if instance_id != "" and card_registry.has(instance_id):
-            card_registry[instance_id].location = "discard"
-            
+            instance_id = card_data.get("instance_id", "")            
         discard_count += 1
             
     # Clear the hand array
@@ -566,6 +629,8 @@ func discard_card(card):
         
     elif card is Card and card.data:
         var card_part = card.data
+        card_data = card_part  # Set card_data here
+        
         # Remove from hand if present
         for i in range(hand.size() - 1, -1, -1):
             if hand[i] is Part and card_part is Part:
@@ -592,6 +657,10 @@ func discard_card(card):
                     hand.remove_at(i)
                     print("DeckManager: Removed card object's data from hand by name/id")
                     break
+                     
+        # Make sure card_data is set even if not found in hand
+        if not card_data:
+            card_data = card.data
     else:
         print("DeckManager: Unable to discard - invalid card type:", typeof(card))
         return

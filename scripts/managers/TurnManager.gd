@@ -206,16 +206,16 @@ func prepare_robot_for_combat(view_instance) -> bool:
     # Show a "Preparing for Combat..." message to indicate the transition
     var preparing_label = _show_preparing_for_combat_message(view_instance)
     
-    # Discard remaining hand cards before combat
-    if hand_manager and hand_manager.has_method("discard_hand"):
-        print("TurnManager: Discarding remaining hand cards before combat...")
-        hand_manager.discard_hand()
-        # We'll add a short delay to allow animations to complete
-        await get_tree().create_timer(0.7).timeout
-        cards_discarded = true
-    else:
-        print("TurnManager: No HandManager found or missing discard_hand method")
-        cards_discarded = true
+    # # Discard remaining hand cards before combat
+    # if hand_manager and hand_manager.has_method("discard_hand"):
+    #     print("TurnManager: Discarding remaining hand cards before combat...")
+    #     hand_manager.discard_hand()
+    #     # We'll add a short delay to allow animations to complete
+    #     await get_tree().create_timer(0.7).timeout
+    #     cards_discarded = true
+    # else:
+    #     print("TurnManager: No HandManager found or missing discard_hand method")
+    #     cards_discarded = true
     
     # Ensure all scrapper cards are properly processed with a visual delay
     await get_tree().create_timer(0.5).timeout

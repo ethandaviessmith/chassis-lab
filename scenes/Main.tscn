@@ -1,4 +1,4 @@
-[gd_scene load_steps=44 format=3 uid="uid://brqbdkycilxbm"]
+[gd_scene load_steps=46 format=3 uid="uid://brqbdkycilxbm"]
 
 [ext_resource type="Script" uid="uid://db0n6tl4t48du" path="res://scripts/managers/GameManager.gd" id="1_ebyi6"]
 [ext_resource type="Script" uid="uid://c7w4x7sp1qi1s" path="res://game.gd" id="1_nxtc6"]
@@ -35,15 +35,11 @@
 [ext_resource type="Script" uid="uid://b7wor6dda5ona" path="res://scripts/managers/HeatManager.gd" id="29_pnhog"]
 [ext_resource type="Script" uid="uid://ct8lmorf7v4pu" path="res://scripts/managers/CardEffectSystem.gd" id="30_g6wdg"]
 [ext_resource type="Script" uid="uid://beet088xiw18f" path="res://scripts/managers/EnemyScalingSystem.gd" id="31_hq6as"]
+[ext_resource type="Script" uid="uid://u2y8ht2l4pwp" path="res://scripts/managers/DeckConfigManager.gd" id="32_kxyth"]
+[ext_resource type="PackedScene" uid="uid://5u0hodwckmue" path="res://scenes/ui/DeckEditorView.tscn" id="37_cobve"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wp0k4"]
 size = Vector2(740, 166)
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_g6wdg"]
-shader = ExtResource("6_gsxep")
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_hq6as"]
-shader = ExtResource("6_gsxep")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_kxyth"]
 shader = ExtResource("6_gsxep")
@@ -54,9 +50,15 @@ shader = ExtResource("6_gsxep")
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cmqll"]
 shader = ExtResource("6_gsxep")
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_8cp6k"]
+shader = ExtResource("6_gsxep")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_8b871"]
+shader = ExtResource("6_gsxep")
+
 [sub_resource type="Curve" id="Curve_g6wdg"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_8cp6k"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pdwbg"]
 shader = ExtResource("6_gsxep")
 
 [node name="Main" type="Node" node_paths=PackedStringArray("game_manager")]
@@ -152,7 +154,7 @@ position = Vector2(435, 94)
 shape = SubResource("RectangleShape2D_wp0k4")
 
 [node name="TerminalBackground3" type="Control" parent="BuildView"]
-material = SubResource("ShaderMaterial_g6wdg")
+material = SubResource("ShaderMaterial_kxyth")
 anchors_preset = 0
 offset_left = 51.0
 offset_top = 60.0
@@ -164,7 +166,7 @@ scanline_opacity = 0.5
 metadata/_custom_type_script = "uid://cl0lrw5yogklt"
 
 [node name="TerminalBackground" type="Control" parent="BuildView"]
-material = SubResource("ShaderMaterial_hq6as")
+material = SubResource("ShaderMaterial_cobve")
 anchors_preset = 0
 offset_left = 339.0
 offset_top = 60.0
@@ -175,7 +177,7 @@ terminal_header = "CHASSIS v0.8.5"
 metadata/_custom_type_script = "uid://cl0lrw5yogklt"
 
 [node name="TerminalBackground2" type="Control" parent="BuildView"]
-material = SubResource("ShaderMaterial_kxyth")
+material = SubResource("ShaderMaterial_cmqll")
 anchors_preset = 0
 offset_left = 703.0
 offset_top = 60.0
@@ -690,7 +692,6 @@ text = "Round 01"
 horizontal_alignment = 1
 
 [node name="CombatView" type="Node2D" parent="." node_paths=PackedStringArray("chassis_manager", "player_spawn_point", "enemy_spawn_point", "combat_ui", "start_combat_button", "robot_frame_container")]
-visible = false
 script = ExtResource("13_mwfav")
 chassis_manager = NodePath("../Managers/ChassisManager")
 player_spawn_point = NodePath("Spawn")
@@ -700,7 +701,7 @@ start_combat_button = NodePath("../BuildView/StartCombatButton")
 robot_frame_container = NodePath("CombatRobotFrame")
 
 [node name="TerminalBackground" type="Control" parent="CombatView"]
-material = SubResource("ShaderMaterial_cobve")
+material = SubResource("ShaderMaterial_8cp6k")
 layout_mode = 3
 anchors_preset = 0
 offset_left = 340.0
@@ -742,7 +743,7 @@ offset_right = 44.0
 offset_bottom = 60.232
 
 [node name="TerminalBackground" parent="CombatView/CombatRobotFrame" index="1"]
-material = SubResource("ShaderMaterial_cmqll")
+material = SubResource("ShaderMaterial_8b871")
 
 [node name="Managers" type="Node" parent="."]
 
@@ -761,11 +762,12 @@ level = NodePath("../../BuildView/LevelLabel")
 volume = NodePath("../../CombatView/Volume")
 metadata/_custom_type_script = "uid://db0n6tl4t48du"
 
-[node name="DeckManager" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "turn_manager", "combat_resolver")]
+[node name="DeckManager" type="Node" parent="Managers" node_paths=PackedStringArray("data_loader", "turn_manager", "combat_resolver", "deck_config_manager")]
 script = ExtResource("3_c01mt")
 data_loader = NodePath("../../Utils/DataLoader")
 turn_manager = NodePath("../TurnManager")
 combat_resolver = NodePath("../CombatResolver")
+deck_config_manager = NodePath("../DeckConfigManager")
 metadata/_custom_type_script = "uid://c4ap0o0bfb38"
 
 [node name="TurnManager" type="Node" parent="Managers" node_paths=PackedStringArray("robot_frame", "robot_fight_frame", "robot_fighter_frame", "robot_fighter", "enemy_manager", "stat_manager", "build_view", "combat_view", "chassis_manager", "deck_manager", "hand_manager")]
@@ -843,19 +845,30 @@ script = ExtResource("31_hq6as")
 scaling_curve = SubResource("Curve_g6wdg")
 metadata/_custom_type_script = "uid://beet088xiw18f"
 
+[node name="DeckConfigManager" type="Node" parent="Managers" node_paths=PackedStringArray("deck_manager")]
+script = ExtResource("32_kxyth")
+deck_manager = NodePath("../DeckManager")
+
 [node name="Utils" type="Node" parent="."]
 
 [node name="DataLoader" type="Node" parent="Utils"]
 script = ExtResource("6_q8u5g")
 metadata/_custom_type_script = "uid://bsqyfsrcw1o5c"
 
-[node name="DeckControl" parent="." node_paths=PackedStringArray("deck_manager", "hand_manager") instance=ExtResource("5_fs0b5")]
+[node name="DeckControl" parent="." node_paths=PackedStringArray("deck_manager", "hand_manager", "deck_editor_view") instance=ExtResource("5_fs0b5")]
 deck_manager = NodePath("../Managers/DeckManager")
 hand_manager = NodePath("../Managers/HandManager")
+deck_editor_view = NodePath("../DeckEditorView")
 metadata/_edit_lock_ = true
 
-[node name="RewardScreen" type="Control" parent="." node_paths=PackedStringArray("reward_title", "reward_container", "data_loader")]
+[node name="DeckEditorView" parent="DeckControl" node_paths=PackedStringArray("deck_config_manager", "data_loader", "deck_manager") instance=ExtResource("37_cobve")]
 visible = false
+layout_mode = 1
+deck_config_manager = NodePath("../../Managers/DeckConfigManager")
+data_loader = NodePath("../../Utils/DataLoader")
+deck_manager = NodePath("../../Managers/DeckManager")
+
+[node name="RewardScreen" type="Control" parent="." node_paths=PackedStringArray("reward_title", "reward_container", "data_loader", "skip_button")]
 layout_mode = 3
 anchors_preset = 8
 anchor_left = 0.5
@@ -872,6 +885,7 @@ script = ExtResource("15_3p2gp")
 reward_title = NodePath("VBoxContainer/Label")
 reward_container = NodePath("VBoxContainer/HBoxContainer")
 data_loader = NodePath("../Utils/DataLoader")
+skip_button = NodePath("VBoxContainer/Button")
 metadata/_custom_type_script = "uid://601a3qp8pcc1"
 
 [node name="Panel" type="Panel" parent="RewardScreen"]
@@ -884,7 +898,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="TerminalBackground" type="Control" parent="RewardScreen"]
-material = SubResource("ShaderMaterial_8cp6k")
+material = SubResource("ShaderMaterial_pdwbg")
 anchors_preset = 0
 offset_right = 603.0
 offset_bottom = 516.0
@@ -906,6 +920,10 @@ offset_bottom = 31.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="Button" type="Button" parent="RewardScreen/VBoxContainer"]
+layout_mode = 2
+text = "Skip"
+
 [node name="Label" type="Label" parent="RewardScreen/VBoxContainer"]
 layout_mode = 2
 text = "Rewards"
@@ -913,16 +931,18 @@ text = "Rewards"
 [node name="HBoxContainer" type="HBoxContainer" parent="RewardScreen/VBoxContainer"]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="RewardScreen/VBoxContainer"]
-layout_mode = 2
-text = "Continue"
-
 [node name="ScreenShake" type="Node" parent="."]
 script = ExtResource("21_1iba3")
 metadata/_custom_type_script = "uid://c278bgdvcdqsf"
 
 [node name="HelpSystem" parent="." instance=ExtResource("2_ma7h6")]
 visible = false
+
+[node name="DeckEditorView" parent="." node_paths=PackedStringArray("deck_config_manager", "data_loader", "deck_manager") instance=ExtResource("37_cobve")]
+visible = false
+deck_config_manager = NodePath("../Managers/DeckConfigManager")
+data_loader = NodePath("../Utils/DataLoader")
+deck_manager = NodePath("../Managers/DeckManager")
 
 [editable path="CombatView/PlayerRobot"]
 [editable path="CombatView/CombatRobotFrame"]

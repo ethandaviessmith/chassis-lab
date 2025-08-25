@@ -2,12 +2,16 @@
 extends Control
 class_name DeckControl
 
+# Use preload to avoid circular dependencies
+const DeckEditorViewClass = preload("res://scenes/ui/DeckEditorView.gd")
+
 # References to UI elements
 @onready var draw_pile_button = $DrawPileButton
 @onready var draw_pile_count = $DrawPileButton/CountLabel
 @onready var discard_pile_button = $DiscardPileButton
 @onready var discard_pile_count = $DiscardPileButton/CountLabel
 @onready var deck_button = $DeckButton
+@onready var new_button = $NewButton
 @onready var deck_count = $DeckButton/CountLabel
 @onready var deck_view_container = $DeckViewContainer
 @onready var deck_grid = $DeckViewContainer/ScrollContainer/GridContainer
@@ -18,6 +22,7 @@ class_name DeckControl
 @export var deck_manager: DeckManager
 @export var hand_manager: HandManager
 @export var card_scene: PackedScene
+@export var deck_editor_view: Control  # Will be cast to DeckEditorView
 
 # State tracking
 var is_deck_view_open = false
@@ -51,6 +56,8 @@ func _ready():
         back_button.pressed.connect(_on_back_button_pressed)
     if redraw_button:
         redraw_button.pressed.connect(_on_redraw_button_pressed)
+    if new_button:
+        new_button.pressed.connect(_on_new_button_pressed)
     
     # Connect to deck manager signals
     if deck_manager:
@@ -97,25 +104,25 @@ func _on_deck_button_pressed():
 
 func _on_back_button_pressed():
     _hide_deck_view()
-    
-func _on_redraw_button_pressed():
-    # Don't allow redraw if we don't have both managers
-    if not deck_manager or not hand_manager:
-        print("DeckControl: Cannot redraw - missing required managers")
-        return
-        
-    # Play a sound effect for the redraw action
-    if Sound and Sound.has_method("play_card_shuffle"):
-        Sound.play_card_shuffle()
-    elif Sound and Sound.has_method("play_click"):
-        Sound.play_click()
-    
-    # Discard all cards currently in hand
-    hand_manager.discard_hand()
-    
-    # Draw a new hand of cards sequentially with delay
-    hand_manager.start_sequential_card_draw()
 
+func _on_redraw_button_pressed():
+    
+    if hand_manager:
+        # Optionally play a sound when redrawing
+        if Sound and Sound.has_method("play_sfx"):
+            Sound.play_sfx("card_shuffle")
+            
+        # Redraw the hand
+        hand_manager.discard_hand()
+        deck_manager.draw_hand()
+        
+func _on_new_button_pressed():
+    if deck_editor_view:
+        # Cast to DeckEditorView if needed
+        var editor = deck_editor_view as DeckEditorViewClass
+        if editor:
+            editor.show_editor()
+            
 func _show_deck_view(pile_type = "all"):
     if not deck_view_container or not deck_manager:
         return

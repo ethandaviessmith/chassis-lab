@@ -156,6 +156,13 @@ func load_reward_options() -> Array:
 	
 	return reward_options
 
+func get_card_by_id(card_id) -> Part:
+	var all_cards = load_all_cards()
+	for card in all_cards:
+		if card.id == card_id:
+			return card.clone()  # Return a clone to avoid shared references
+	return null
+
 # Fallback functions in case files can't be loaded
 func _get_fallback_parts() -> Array:
 	var parts = []

@@ -27,6 +27,7 @@ var victory: bool = false
 @export var reward_screen: RewardScreen
 @export var data_loader: DataLoader
 @export var deck_control: DeckControl
+@export var deck_selection_screen: Control
 
 @export var level: Label
 @export var volume: HSlider
@@ -34,8 +35,6 @@ var victory: bool = false
 @export var play_music: bool = false
 
 func _ready():
-
-
     # Connect signals when components are available
     if build_view and build_view.has_signal("combat_requested"):
         build_view.combat_requested.connect(_on_combat_requested)
@@ -52,14 +51,33 @@ func _ready():
     if volume:
         volume.value_changed.connect(_on_volume_changed)
 
-    # Start new game
-    start_new_game()
+    # Check if we have a deck selection screen
+    if deck_selection_screen:
+        # Connect the deck selection signal
+        var selection = deck_selection_screen as DeckSelectionScreen
+        if selection:
+            selection.deck_selected.connect(_on_deck_selected)
+            selection.show()
+    else:
+        # Start new game with default deck
+        start_new_game()
 
     # if play_music:
         # Sound.start_background_music()
 
 func _on_volume_changed(value: float):
     Sound.set_music_volume(value)
+    
+# Handle deck selection
+func _on_deck_selected(deck_name: String):
+    print("GameManager: Selected deck: ", deck_name)
+    
+    # Set the deck in the deck manager
+    if deck_manager:
+        deck_manager.load_deck_by_name(deck_name)
+    
+    # Start the game
+    start_new_game()
 
 # CENTRAL MANAGER: Centralized game state handling
 func change_game_state(new_state: GameState):
@@ -361,6 +379,13 @@ func _on_show_reward_screen():
     # Called by CombatView when victory is achieved
     print("GameManager: Combat view requesting reward screen")
     change_game_state(GameState.REWARD)
+
+# Show the deck selection screen
+func show_deck_selection():
+    if deck_selection_screen:
+        var selection = deck_selection_screen as DeckSelectionScreen
+        if selection:
+            selection.show_selection()
 
 func _on_reward_selected(card_data: Dictionary):
     # Called when the player selects a reward card

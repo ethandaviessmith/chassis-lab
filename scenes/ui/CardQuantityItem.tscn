@@ -1,0 +1,76 @@
+[gd_scene load_steps=3 format=3 uid="uid://c44b350pntfhf"]
+
+[ext_resource type="Script" uid="uid://bq42xa822eq33" path="res://scenes/ui/CardQuantityItem.gd" id="1_3nqvh"]
+[ext_resource type="PackedScene" uid="uid://7265h3h34unm" path="res://scenes/ui/Card.tscn" id="2_ckvb7"]
+
+[node name="CardQuantityItem" type="PanelContainer"]
+custom_minimum_size = Vector2(220, 250)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = -125.0
+offset_right = 110.0
+offset_bottom = 125.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_3nqvh")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="CardInfo" type="RichTextLabel" parent="VBoxContainer"]
+visible = false
+layout_mode = 2
+bbcode_enabled = true
+text = "Card Name - Type"
+fit_content = true
+scroll_active = false
+
+[node name="Control" type="Control" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 3
+
+[node name="Card" parent="VBoxContainer/Control" instance=ExtResource("2_ckvb7")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -70.0
+offset_top = -100.0
+offset_right = 70.0
+offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="QuantityContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="DecreaseButton" type="Button" parent="VBoxContainer/QuantityContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "-"
+
+[node name="QuantityLabel" type="Label" parent="VBoxContainer/QuantityContainer"]
+layout_mode = 2
+theme_override_constants/line_spacing = 0
+theme_override_font_sizes/font_size = 16
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="IncreaseButton" type="Button" parent="VBoxContainer/QuantityContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "+"

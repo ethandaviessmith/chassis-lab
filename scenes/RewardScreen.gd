@@ -8,8 +8,8 @@ signal continue_to_next_encounter
 @export var reward_title: Label = null
 @export var reward_container: HBoxContainer = null
 @export var card_scene: PackedScene = preload("res://scenes/ui/Card.tscn")
-
 @export var data_loader: DataLoader
+@export var skip_button: Button = null
 
 # Reward options
 var available_rewards: Array = []
@@ -23,6 +23,8 @@ func _ready():
     # Make sure we have a card scene
     if not card_scene:
         card_scene = preload("res://scenes/ui/Card.tscn")
+    
+    skip_button.pressed.connect(_on_continue)
 
 func show_rewards(victory: bool = true):
     """Show the reward screen with appropriate rewards"""
@@ -286,20 +288,12 @@ func _on_reward_selected(index: int):
 
 func _on_continue():
     """Handle continuing to next encounter"""
-    if not selected_reward:
-        print("RewardScreen: No reward selected!")
-        return
-    
-    print("RewardScreen: Continuing with selected reward:", selected_reward.name)
-    
-    # Store the selected reward locally before hiding the screen
     var reward
     
     # Handle both Part objects and dictionaries
     if selected_reward is Dictionary:
         reward = selected_reward.duplicate()
     else:
-        # For Part objects, we emit directly as they're already instances
         reward = selected_reward
         
     # First emit the reward selected signal so GameManager can add it to deck

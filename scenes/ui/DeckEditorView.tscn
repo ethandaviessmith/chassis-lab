@@ -1,0 +1,98 @@
+[gd_scene load_steps=4 format=3 uid="uid://5u0hodwckmue"]
+
+[ext_resource type="Script" uid="uid://dp15p20s1rf10" path="res://scenes/ui/DeckEditorView.gd" id="1_fu3o2"]
+[ext_resource type="Theme" uid="uid://dfvfulbps0yqm" path="res://assets/themes/retro_theme.tres" id="2_5dmfw"]
+[ext_resource type="PackedScene" uid="uid://c44b350pntfhf" path="res://scenes/ui/CardQuantityItem.tscn" id="3_huhtp"]
+
+[node name="DeckEditorView" type="Control"]
+z_index = 100
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_5dmfw")
+script = ExtResource("1_fu3o2")
+card_quantity_scene = ExtResource("3_huhtp")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.06, 0.06, 0.08, 0.964706)
+
+[node name="TitleBar" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 60.0
+grow_horizontal = 2
+
+[node name="Label" type="Label" parent="TitleBar"]
+layout_mode = 2
+text = "Deck Editor:"
+vertical_alignment = 1
+
+[node name="DeckNameInput" type="LineEdit" parent="TitleBar"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+placeholder_text = "Deck Name"
+max_length = 30
+
+[node name="SaveButton" type="Button" parent="TitleBar"]
+layout_mode = 2
+text = " Save Deck "
+
+[node name="VSeparator" type="VSeparator" parent="TitleBar"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="LoadLabel" type="Label" parent="TitleBar"]
+layout_mode = 2
+text = "Load:"
+vertical_alignment = 1
+
+[node name="DeckDropdown" type="OptionButton" parent="TitleBar"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+alignment = 1
+
+[node name="CloseButton" type="Button" parent="TitleBar"]
+layout_mode = 2
+text = " Close "
+
+[node name="Spacer" type="Control" parent="TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TotalCardsLabel" type="Label" parent="TitleBar"]
+layout_mode = 2
+text = "Total Cards: 0"
+vertical_alignment = 1
+
+[node name="CardScrollContainer" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 80.0
+offset_right = -20.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CardGrid" type="GridContainer" parent="CardScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 4
