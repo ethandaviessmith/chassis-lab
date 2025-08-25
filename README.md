@@ -1,70 +1,60 @@
 # Chassis Lab - Game Jam Prototype
 
 ## Overview
-Chassis Lab is a retro-arcade deck-building auto-battler where players drag Head/Core/Arm/Leg cards onto a robot chassis to attach/upgrade parts. The game features heat management, part durability, and auto-combat mechanics in a 2-day game jam scope.
+Chassis Lab is a retro-arcade deck-building auto-battler where players drag Head/Core/Arm/Leg cards onto a robot chassis to attach/upgrade parts. The game features heat management, part durability, and auto-combat mechanics, all developed within a 2-day game jam scope.
 
-## Project Structure
+## How to Run
 
-This project contains the following key components:
-
-1. **Core Game Systems**
-   - GameManager.gd - Central game state controller
-   - DeckManager.gd - Manages deck, hand, and card operations
-   - TurnManager.gd - Controls turn sequence and combat flow
-   - CombatResolver.gd - Handles combat interactions
-   - DataLoader.gd - Loads game data from JSON/CSV files
-
-2. **Entity Classes**
-   - Robot.gd - Player-controlled entity with attachable parts
-   - Enemy.gd - Base enemy class with AI behaviors
-   - Part.gd, Head.gd, Core.gd, Arm.gd, Legs.gd - Part system
-   - Card.gd - Card representation with costs and effects
-
-3. **Data Files**
-   - cards.csv/json - Card definitions
-   - enemies.csv/json - Enemy definitions
-   - balance.json - Game balance parameters
-
-4. **Documentation**
-   - content_tables.md - Card and enemy data tables
-   - polish_and_risk.md - Polish priorities and risk assessment
-   - implementation_summary.md - Implementation overview
+1.  Ensure you have Godot Engine v4.x installed.
+2.  Open the project in the Godot editor.
+3.  Run the main scene (e.g., `main.tscn`).
 
 ## Core Mechanics
 
 ### Card System
-- Draw cards each turn
-- Drag cards to robot chassis to attach parts
-- Parts have energy cost, heat generation, and durability
+- Draw cards from your deck each turn.
+- Drag and drop cards onto the robot chassis to attach or upgrade parts.
+- Parts have an energy cost, generate heat, and have a durability rating.
 
 ### Heat Management
-- Cards generate heat
-- Excessive heat decreases performance
-- Critical heat causes damage
+- Using parts generates heat.
+- Excessive heat can decrease robot performance.
+- Reaching critical heat levels will cause damage to the robot.
 
 ### Combat System
-- Auto-resolved combat based on attached parts
-- Parts can break if durability reaches zero
-- Enemies have different behaviors and attack patterns
+- Combat is auto-resolved based on the parts currently attached to your robot.
+- Parts can break and become unusable if their durability reaches zero.
+- Enemies feature different behaviors and attack patterns.
 
-## Implementation Status
+## Project Structure
 
-This project contains all necessary scaffolding code and data files for the game jam prototype. The next step is implementing the core gameplay mechanics following the implementation priorities outlined in the implementation_summary.md file.
+This project is organized into the following key areas:
 
-## Development Timeline
+-   **`scripts/`**: Core game logic and entity classes.
+    -   `GameManager.gd`: Central game state controller.
+    -   `DeckManager.gd`: Manages the player's deck, hand, and card operations.
+    -   `TurnManager.gd`: Controls the turn sequence and combat flow.
+    -   `CombatResolver.gd`: Handles all combat calculations and interactions.
+    -   `DataLoader.gd`: Loads game data from JSON/CSV files.
+    -   `Robot.gd`: The player-controlled robot with attachable parts.
+    -   `Enemy.gd`: Base class for enemy entities.
+    -   `Part.gd`: Represents individual robot parts.
+    -   `Card.gd`: Represents the cards that grant parts.
+-   **`data/`**: Game data files (definitions for cards, enemies, etc.).
+    -   `cards.json`
+    -   `enemies.json`
+    -   `balance.json`
+-   **`addons/`**: Godot editor plugins.
+    -   **Aseprite Wizard**: Used for importing Aseprite files.
 
-The project is designed for a 2-day jam with the following milestones:
-1. Day 1 First Half: Design and core systems
-2. Day 1 Second Half: Card system and robot mechanics
-3. Day 2 First Half: Combat and enemy AI
-4. Day 2 Second Half: Polish and testing
+## Documentation
 
-## Running the Project
+Key design and implementation documents:
 
-1. Open the project in Godot 4.4
-2. Run game.gd as the main scene
-3. Follow the implementation priorities in implementation_summary.md
+-   **Implementation Summary**: An overview of the implementation plan and development timeline.
+-   **Content Tables**: Data tables for cards and enemies.
+-   **Polish & Risk Assessment**: A list of polish priorities and potential risks.
 
 ## License
 
-This project is created for educational purposes and game jam submission.
+This project is created for educational purposes and as a game jam submission.
